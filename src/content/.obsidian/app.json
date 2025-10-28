@@ -1,0 +1,6 @@
+{
+  "promptDelete": false,
+  "attachmentFolderPath": "attachment",
+  "newFileLocation": "folder",
+  "newFileFolderPath": "posts"
+}
