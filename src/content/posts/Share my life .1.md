@@ -5,3 +5,4 @@ tags:
   - Life
 ---
 测试一下
+![](C:\Users\luoya\fuwari\src\assets\images\avatar1.jpeg)
