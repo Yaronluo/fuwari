@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "c863ad261096890b",
+        "id": "fe5996073f0131f2",
         "type": "tabs",
         "children": [
           {
-            "id": "e462b1bb17fcaf39",
+            "id": "5c4448777f0f60e8",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "posts/Share my life.1.md",
+                "file": "posts/Travel Diary --厦门.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Share my life.1"
+              "title": "Travel Diary --厦门"
             }
           }
         ]
@@ -169,23 +169,25 @@
       "bases:创建新数据库": false
     }
   },
-  "active": "e462b1bb17fcaf39",
+  "active": "5c4448777f0f60e8",
   "lastOpenFiles": [
-    "attachment/Share my life.1-1.png",
-    "attachment/Share my life.1.png",
-    "attachment/65e7318764e21a165e763f6831589ba3.png",
-    "attachment/微信图片_20251028224443_9_3.png",
     "posts/Share my life.1.md",
+    "posts/Travel Diary --厦门.md",
+    "attachment/f2123e88d601b6457386b03e16999704.jpg",
+    "attachment/6ef7e6ec1cbf93ba54c45c9e993be8ec.jpg",
+    "attachment/809cc5d746f4f4dc1d48bbb76bdd110c.jpg",
+    "attachment/fea0e00b65e460db893f03e2d4579f8a.jpg",
+    "attachment/f44dad1ee244a18192777197235908b2.jpg",
+    "attachment/c4b7bf7e220af473e96b378df326ff6e.jpg",
+    "attachment/65e7318764e21a165e763f6831589ba3.png",
+    "attachment/279fc15489bf7f2086725e96bbdafadd.jpg",
+    "attachment/38adf352bbbc775a76d71b751ab116b8.jpg",
+    "attachment/4c5f3197979de6969966b419a0efee91.jpg",
     "spec/about.md",
     "posts/2025-10-28.md",
     "posts/Share my life .1.md",
-    "attachment/Share my life .1.png",
-    "attachment/Share my life .1-2.png",
-    "attachment/Share my life .1-1.png",
     "未命名",
     "attachment",
-    "images/Share my life .1.png",
-    "Share my life .1.png",
     "images",
     "新建文件夹",
     "未命名.base",
