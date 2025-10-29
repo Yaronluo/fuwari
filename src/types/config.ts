@@ -48,6 +48,7 @@ export enum LinkPreset {
 	Home = 0,
 	Archive = 1,
 	About = 2,
+    Series = 4,
 }
 
 export type NavBarLink = {
@@ -90,7 +91,8 @@ export type BlogPostData = {
 	tags: string[];
 	draft?: boolean;
 	image?: string;
-	category?: string;
+    series?: string
+    category?: string;
 	prevTitle?: string;
 	prevSlug?: string;
 	nextTitle?: string;
