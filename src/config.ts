@@ -80,11 +80,11 @@ export const profileConfig: ProfileConfig = {
             icon: 'fa6-brands:qq',
             url: 'https://qm.qq.com/q/2jKJhKcCjm',
         },
-        //{
-            //name: 'Email',
-            //icon: 'fa6-solid:envelope',
-            //url: 'mailto:2575586108@qq.com',
-        //},
+        {
+            name: 'Bilibili',
+            icon: 'fa6-brands:bilibili',
+            url: 'https://space.bilibili.com/321153856',
+        },
 	],
 };
 

@@ -4,6 +4,7 @@
     "cssclasses": "multitext",
     "tags": "tags",
     "published": "date",
-    "draft": "checkbox"
+    "draft": "checkbox",
+    "pinned": "checkbox"
   }
 }
