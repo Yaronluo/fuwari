@@ -26,15 +26,8 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
 </div>
 
 <script>
-    // 确保脚本在客户端运行
-    document.addEventListener('astro:page-load', () => {
-        setTimeout(initTyping, 50);
-    });
-
-    // 首次加载页面时也需要初始化
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(initTyping, 50);
-    });
+    // 🎯 关键修改 2: 使用 client:load 后，不再需要复杂的事件监听
+    // 脚本会自动在组件挂载后执行，直接调用函数即可
 
     function initTyping() {
         const descElement = document.querySelector('.article-description .description-content');
@@ -50,7 +43,6 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
         const text = descElement.getAttribute('data-description');
         if (!text) return;
 
-        // 🎯 关键修改 2:
         // 先清空零宽空格，然后从第一个字开始打
         descElement.textContent = '';
         descElement.classList.remove('typing-complete');
@@ -72,6 +64,9 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
         // 立即开始打字效果
         typeWriter();
     }
+
+    // 直接调用函数
+    initTyping();
 </script>
 
 <style>
@@ -123,4 +118,5 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
         }
     }
 </style>
+
 
