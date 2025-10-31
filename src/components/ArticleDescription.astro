@@ -1,0 +1,117 @@
+---
+// src/components/ArticleDescription.astro
+export interface Props {
+    description: string; // 文章描述内容
+}
+
+const { description } = Astro.props;
+
+// 如果没有描述，则不渲染任何东西
+if (!description || description.trim() === '') {
+    return null;
+}
+---
+
+<div class="article-description">
+    <div class="description-content" data-description={description}>
+        <!-- 打字机效果将在这里渲染 -->
+    </div>
+</div>
+
+<script>
+    // 确保脚本在客户端运行
+    document.addEventListener('astro:page-load', () => {
+        // 延迟执行，确保新页面的 DOM 已准备好
+        setTimeout(initTyping, 200);
+    });
+
+    // 首次加载页面时也需要初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(initTyping, 200);
+    });
+
+    function initTyping() {
+        const descElement = document.querySelector('.article-description .description-content');
+
+        // 如果找不到元素，或者已经初始化过，则退出
+        if (!descElement || descElement.hasAttribute('data-typed')) {
+            return;
+        }
+
+        // 标记为已初始化，防止重复执行
+        descElement.setAttribute('data-typed', 'true');
+
+        const text = descElement.getAttribute('data-description');
+        if (!text) return;
+
+        let index = 0;
+        descElement.textContent = ''; // 清空初始内容
+        descElement.classList.remove('typing-complete'); // 移除完成状态
+
+        const typeSpeed = 25; // 打字速度（毫秒）
+
+        function typeWriter() {
+            if (index < text.length) {
+                descElement.textContent += text.charAt(index);
+                index++;
+                setTimeout(typeWriter, typeSpeed);
+            } else {
+                // 打字完成后，添加类来隐藏光标
+                descElement.classList.add('typing-complete');
+            }
+        }
+
+        // 立即开始打字效果
+        typeWriter();
+    }
+</script>
+
+<style>
+    /* 使用 Fuwari 的全局变量来保持风格一致 */
+    .article-description {
+        --desc-text: var(--text-90);
+        --desc-border: var(--line-divider);
+        --desc-primary: var(--primary);
+    }
+
+    .article-description {
+        margin: 1.5rem 0 2rem 0;
+        padding: 1rem 1.25rem;
+        border-left: 4px solid var(--desc-primary);
+        background: var(--card-bg);
+        border-radius: 0 8px 8px 0;
+        position: relative;
+    }
+
+    .description-content {
+        color: var(--desc-text);
+        font-size: 1.05rem;
+        line-height: 1.7;
+        font-style: italic; /* 使用斜体，更像引言 */
+        min-height: 1.7em; /* 防止光标导致高度跳动 */
+    }
+
+    /* 打字机光标效果 */
+    .description-content::after {
+        content: '|';
+        color: var(--desc-primary);
+        animation: blink-cursor 1s infinite;
+        font-weight: bold;
+        font-style: normal; /* 光标保持正体 */
+    }
+
+    /* 打字完成后隐藏光标 */
+    .description-content.typing-complete::after {
+        display: none;
+    }
+
+    /* 光标闪烁动画 */
+    @keyframes blink-cursor {
+        0%, 50% {
+            opacity: 1;
+        }
+        51%, 100% {
+            opacity: 0;
+        }
+    }
+</style>

@@ -1,0 +1,20 @@
+---
+// src/pages/stats.astro
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="网站统计">
+    <main class="card-base p-4 md:p-8">
+        <h1 class="text-2xl font-bold mb-4">网站统计</h1>
+        <p class="mb-4">以下是我的博客的实时访问数据，由 Umami 提供。</p>
+
+        <!-- ✅ 删除这里的注释，让 iframe 生效 -->
+        <iframe
+                src="https://cloud.umami.is/share/1Dc4PAeDKgLAox0M"
+                class="w-full h-[600px] border-0 rounded-lg"
+                loading="lazy">
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+        </iframe>
+
+    </main>
+</Layout>
