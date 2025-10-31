@@ -10,24 +10,30 @@ const { description } = Astro.props;
 if (!description || description.trim() === '') {
     return null;
 }
+
+// 🎯 关键修改：使用零宽空格作为占位符
+const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
 ---
 
 <div class="article-description">
+    <!--
+      🎯 关键修改 1: 服务端只渲染零宽空格
+      这样页面有内容但用户看不见，避免布局跳动
+    -->
     <div class="description-content" data-description={description}>
-        <!-- 打字机效果将在这里渲染 -->
+        {placeholder}
     </div>
 </div>
 
 <script>
     // 确保脚本在客户端运行
     document.addEventListener('astro:page-load', () => {
-        // 延迟执行，确保新页面的 DOM 已准备好
-        setTimeout(initTyping, 200);
+        setTimeout(initTyping, 50);
     });
 
     // 首次加载页面时也需要初始化
     document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(initTyping, 200);
+        setTimeout(initTyping, 50);
     });
 
     function initTyping() {
@@ -44,10 +50,12 @@ if (!description || description.trim() === '') {
         const text = descElement.getAttribute('data-description');
         if (!text) return;
 
-        let index = 0;
-        descElement.textContent = ''; // 清空初始内容
-        descElement.classList.remove('typing-complete'); // 移除完成状态
+        // 🎯 关键修改 2:
+        // 先清空零宽空格，然后从第一个字开始打
+        descElement.textContent = '';
+        descElement.classList.remove('typing-complete');
 
+        let index = 0;
         const typeSpeed = 25; // 打字速度（毫秒）
 
         function typeWriter() {
@@ -115,3 +123,4 @@ if (!description || description.trim() === '') {
         }
     }
 </style>
+
