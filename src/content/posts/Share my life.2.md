@@ -6,6 +6,7 @@ tags:
 description: 这是我分享的第二个生活帖子
 series: 日常
 pinned: false
+category: Life
 ---
 # Foreword
 一不小心距离上次更新Blog已经过去了30天了，本来想着每个月尽量更新一篇Blog的，所以这篇Blog就当作是11月份的Blog吧！
