@@ -4,51 +4,20 @@
     "type": "split",
     "children": [
       {
-        "id": "fe5996073f0131f2",
+        "id": "f0dba5ae1c1dad28",
         "type": "tabs",
         "children": [
           {
-            "id": "5c4448777f0f60e8",
+            "id": "152f8cf2c6e3454d",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "posts/Share my life.1.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "Share my life.1"
-            }
-          },
-          {
-            "id": "acb543c6acc20724",
-            "type": "leaf",
-            "state": {
-              "type": "image",
-              "state": {
-                "file": "attachment/4c5f3197979de6969966b419a0efee91.jpg"
-              },
-              "icon": "lucide-image",
-              "title": "4c5f3197979de6969966b419a0efee91"
-            }
-          },
-          {
-            "id": "7daf40ead09a5436",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "posts/Share my life.2.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "Share my life.2"
+              "title": "新标签页"
             }
           }
-        ],
-        "currentTab": 2
+        ]
       }
     ],
     "direction": "vertical"
@@ -197,24 +166,23 @@
       "bases:创建新数据库": false
     }
   },
-  "active": "7daf40ead09a5436",
+  "active": "152f8cf2c6e3454d",
   "lastOpenFiles": [
-    "attachment/Share my life.2.png",
-    "attachment/Share my life.2.png",
     "posts/Share my life.2.md",
+    "attachment/4c5f3197979de6969966b419a0efee91.jpg",
     "posts/Share my life.1.md",
+    "attachment/Share my life.2.png",
+    "attachment/Share my life.2.png",
     "attachment/e7b6d507128f1c87b2ebfdf32866a529.jpg",
     "posts/Inbound Notice.md",
     "posts/Travel Diary --厦门.md",
     "posts/保姆级教程教你搭建个人Blog.md",
-    "attachment/4c5f3197979de6969966b419a0efee91.jpg",
     "attachment/6ef7e6ec1cbf93ba54c45c9e993be8ec.jpg",
     "attachment/14c5085ddb7b3bde1977480924728c18.jpg",
     "attachment/38adf352bbbc775a76d71b751ab116b8.jpg",
     "attachment/65e7318764e21a165e763f6831589ba3.png",
     "attachment/809cc5d746f4f4dc1d48bbb76bdd110c.jpg",
     "attachment/保姆级教程教你搭建个人Blog.png",
-    "attachment/保姆级教程教你搭建个人Blog-1.png",
     "posts/“这里填写你的文章标题”.md",
     "未命名",
     "spec/about.md",
