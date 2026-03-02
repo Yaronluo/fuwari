@@ -8,13 +8,17 @@
         "type": "tabs",
         "children": [
           {
-            "id": "152f8cf2c6e3454d",
+            "id": "774a88a9e3ddf265",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "posts/Hi-2026.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "新标签页"
+              "title": "Hi-2026"
             }
           }
         ]
@@ -49,7 +53,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "tag:Newyear",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -166,25 +170,27 @@
       "bases:创建新数据库": false
     }
   },
-  "active": "152f8cf2c6e3454d",
+  "active": "45f59bb36fd27abf",
   "lastOpenFiles": [
-    "posts/Share my life.2.md",
-    "attachment/4c5f3197979de6969966b419a0efee91.jpg",
-    "posts/Share my life.1.md",
-    "attachment/Share my life.2.png",
-    "attachment/Share my life.2.png",
-    "attachment/e7b6d507128f1c87b2ebfdf32866a529.jpg",
     "posts/Inbound Notice.md",
+    "posts/Share my life.1.md",
     "posts/Travel Diary --厦门.md",
+    "posts/Share my life.2.md",
+    "posts/Hi-2026.md",
     "posts/保姆级教程教你搭建个人Blog.md",
-    "attachment/6ef7e6ec1cbf93ba54c45c9e993be8ec.jpg",
-    "attachment/14c5085ddb7b3bde1977480924728c18.jpg",
-    "attachment/38adf352bbbc775a76d71b751ab116b8.jpg",
-    "attachment/65e7318764e21a165e763f6831589ba3.png",
-    "attachment/809cc5d746f4f4dc1d48bbb76bdd110c.jpg",
-    "attachment/保姆级教程教你搭建个人Blog.png",
-    "posts/“这里填写你的文章标题”.md",
+    "attachment/bc559768063c98512f727e619b551dee.jpg",
+    "attachment/128d95a56fd69914e9bad9cffbb9435e.jpg",
+    "attachment/4b6739d8ba30acd9736f7d04feff5fc2.jpg",
+    "attachment/75597e9f1b3eaf060ccb1e857dc03d37.jpg",
+    "attachment/197e1a9b5137070e841097e33bbbce77.jpg",
+    "attachment/f82d6b5a7d9d34621a69b95d5a3960d0.jpg",
+    "attachment/057ff4131b7162d9476ccd52aa477bf4.jpg",
+    "attachment/7b787963fb2a656cebe5fb21e80c51d7 1.jpg",
+    "attachment/7b787963fb2a656cebe5fb21e80c51d7.jpg",
+    "attachment/6f78d768fdac521055af304409f815e5.jpg",
     "未命名",
+    "posts/guide/未命名.md",
+    "posts/“这里填写你的文章标题”.md",
     "spec/about.md",
     "posts/2025-10-28.md",
     "posts/Share my life .1.md",
