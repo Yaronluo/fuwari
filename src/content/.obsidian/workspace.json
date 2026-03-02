@@ -161,22 +161,23 @@
   },
   "left-ribbon": {
     "hiddenItems": {
+      "bases:新建数据库": false,
       "switcher:打开快速切换": false,
       "graph:查看关系图谱": false,
       "canvas:新建白板": false,
       "daily-notes:打开/创建今天的日记": false,
       "templates:插入模板": false,
-      "command-palette:打开命令面板": false,
-      "bases:创建新数据库": false
+      "command-palette:打开命令面板": false
     }
   },
-  "active": "45f59bb36fd27abf",
+  "active": "774a88a9e3ddf265",
   "lastOpenFiles": [
+    "posts/[Travel.md",
+    "posts/Hi-2026.md",
+    "posts/Travel Diary --厦门.md",
     "posts/Inbound Notice.md",
     "posts/Share my life.1.md",
-    "posts/Travel Diary --厦门.md",
     "posts/Share my life.2.md",
-    "posts/Hi-2026.md",
     "posts/保姆级教程教你搭建个人Blog.md",
     "attachment/bc559768063c98512f727e619b551dee.jpg",
     "attachment/128d95a56fd69914e9bad9cffbb9435e.jpg",
