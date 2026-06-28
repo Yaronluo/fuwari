@@ -1,6 +1,54 @@
 ---
 // ✨ 完美调用 Fuwari 官方的标准主网格模板
 import MainGridLayout from '../layouts/MainGridLayout.astro';
+
+// 🎯 【编译期凭证配置】打包时 Node.js 会使用这些凭证抓取数据
+const BANGUMI_USER = "1260226";
+const BANGUMI_TOKEN = "rWiHjG2JSuDoCwcCFmFz3yGqgHOMnK9yZnEFqE0z";
+
+const COLLECTION_TYPES = [
+    { id: 3, label: '正在心动', color: 'bg-emerald-400 dark:bg-emerald-500 text-white' },
+    { id: 2, label: '完结撒花', color: 'bg-pink-400 dark:bg-pink-500 text-white' },
+    { id: 1, label: '预定入坑', color: 'bg-sky-400 dark:bg-sky-500 text-white' },
+    { id: 4, label: '时空凝结', color: 'bg-purple-400 dark:bg-purple-500 text-white' },
+    { id: 5, label: '物理斩断', color: 'bg-neutral-400 text-white' }
+];
+
+let allCollections: any[] = [];
+// ✨ 核心修正：显式为对象指定字符串索引签名，彻底消除 41 行的对象索引报错
+let statusCounts: Record<string, number> = { '3': 0, '2': 0, '1': 0, '4': 0, '5': 0 };
+
+try {
+    // 🌐 构建期 Node.js 异步向 Bangumi 发起抓取
+    const fetchPromises = COLLECTION_TYPES.map(async (cType) => {
+        const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${cType.id}&limit=50`;
+        const res = await fetch(url, {
+            headers: {
+                'User-Agent': 'Fuwari-Bangumi-Static-Builder/1.0',
+                'Authorization': `Bearer ${BANGUMI_TOKEN}`
+            }
+        });
+        if (!res.ok) return [];
+        const resData = await res.json();
+        // ✨ 核心修正：为隐式 any 的 item 添加显式 any 类型声明，解决 32 行报错
+        return (resData.data || []).map((item: any) => ({ ...item, type: cType.id }));
+    });
+
+    const results = await Promise.all(fetchPromises);
+    allCollections = results.flat().filter((item) => item && item.subject);
+
+    // 📊 统计各个分类的真实数量
+    allCollections.forEach((item: any) => {
+        if (String(item.type) in statusCounts) {
+            statusCounts[String(item.type)]++;
+        }
+    });
+} catch (error) {
+    console.error("[Bangumi Builder] 构建期抓取失败:", error);
+}
+
+// 序列化注入给前端切页使用
+const serializedData = JSON.stringify(allCollections);
 ---
 
 <MainGridLayout title="番剧观测" description="我的追番记录墙">
@@ -16,35 +64,30 @@ import MainGridLayout from '../layouts/MainGridLayout.astro';
             </p>
         </div>
 
-        <!-- 过滤器面板：强制单行不换行 + 极致无痕自适应滚动 -->
+        <!-- 过滤器面板 -->
         <div class="flex flex-nowrap overflow-x-auto whitespace-nowrap gap-1.5 p-2 bg-neutral-200/20 dark:bg-black/10 rounded-2xl border border-neutral-200/20 dark:border-neutral-700/10 shadow-inner [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button data-status-tab="all" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
-                全部明细 ✨ (<span id="count-all">0</span>)
+                全部明细 ✨ (<span>{allCollections.length}</span>)
             </button>
             <button data-status-tab="3" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
-                正在心动 💓 (<span data-count-status="3">0</span>)
+                正在心动 💓 (<span>{statusCounts['3']}</span>)
             </button>
             <button data-status-tab="2" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
-                完结撒花 🎉 (<span data-count-status="2">0</span>)
+                完结撒花 🎉 (<span>{statusCounts['2']}</span>)
             </button>
             <button data-status-tab="1" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
-                预定入坑 📺 (<span data-count-status="1">0</span>)
+                预定入坑 📺 (<span>{statusCounts['1']}</span>)
             </button>
             <button data-status-tab="4" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
-                时空凝结 🕰️ (<span data-count-status="4">0</span>)
+                时空凝结 🕰️ (<span>{statusCounts['4']}</span>)
             </button>
             <button data-status-tab="5" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
-                物理斩断 💔 (<span data-count-status="5">0</span>)
+                物理斩断 💔 (<span>{statusCounts['5']}</span>)
             </button>
         </div>
 
-        <!-- 加载状态提示占位 -->
-        <div id="bangumi-loading" class="text-center py-12 text-neutral-400 text-sm animate-pulse">
-            正在召唤Yaron的追番记录墙... 🪄
-        </div>
-
-        <!-- 强行锁死全平台每行 3 列，实现完美的 3×3 矩阵布局 -->
-        <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-4 hidden" id="bangumi-grid"></div>
+        <!-- 网格海报主墙 -->
+        <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-4" id="bangumi-grid"></div>
 
         <!-- 分页控制器 -->
         <div id="bangumi-pagination" class="flex justify-center items-center gap-4 mt-4 hidden">
@@ -62,23 +105,12 @@ import MainGridLayout from '../layouts/MainGridLayout.astro';
     </div>
 </MainGridLayout>
 
-<script>
-    interface BangumiItem {
-        type: number;
-        subject: {
-            id: number;
-            name: string;
-            name_cn: string;
-            images?: { large: string };
-            score?: number;
-        };
-    }
+<!-- define:vars 把序列化的死数据灌进来，data-astro-rerun 完美适配 Swup 单页重载 -->
+<script define:vars={{ serializedData }} data-astro-rerun>
+    // @ts-nocheck
+    const allCollections = JSON.parse(serializedData);
 
-    // 🔒 安全隐私配置区：请在下方分别填入你的真实数字 UID 和 个人访问令牌
-    const BANGUMI_USER = "1260226";
-    const BANGUMI_TOKEN = "rWiHjG2JSuDoCwcCFmFz3yGqgHOMnK9yZnEFqE0z";
-
-    const ITEMS_PER_PAGE = 9; // 单页精致展示 9 部作品，对应 3×3 矩阵
+    const ITEMS_PER_PAGE = 9;
     const COLLECTION_TYPES = [
         { id: 3, label: '正在心动', color: 'bg-emerald-400 dark:bg-emerald-500 text-white' },
         { id: 2, label: '完结撒花', color: 'bg-pink-400 dark:bg-pink-500 text-white' },
@@ -89,52 +121,21 @@ import MainGridLayout from '../layouts/MainGridLayout.astro';
 
     let currentStatus = "all";
     let currentPage = 1;
-    let allCollections: BangumiItem[] = [];
 
-    async function initBangumi() {
-        const loadingEl = document.getElementById('bangumi-loading');
+    function initStaticBangumi() {
         const gridEl = document.getElementById('bangumi-grid');
-        const paginationEl = document.getElementById('bangumi-pagination');
         if (!gridEl) return;
-
-        try {
-            if (allCollections.length === 0) {
-                const fetchPromises = COLLECTION_TYPES.map(async (cType) => {
-                    const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${cType.id}&limit=50`;
-                    const res = await fetch(url, {
-                        headers: {
-                            'User-Agent': 'Fuwari-Bangumi-Client/3.0',
-                            'Authorization': `Bearer ${BANGUMI_TOKEN}` // ✨ 核心修正：安全注入个人访问令牌
-                        }
-                    });
-                    if (!res.ok) return [];
-                    const resData = await res.json();
-                    return (resData.data || []).map((item: any) => ({ ...item, type: cType.id }));
-                });
-
-                const results = await Promise.all(fetchPromises);
-                allCollections = results.flat().filter((item: any) => item && item.subject);
-            }
-
-            if (loadingEl) loadingEl.classList.add('hidden');
-            gridEl.classList.remove('hidden');
-            if (paginationEl) paginationEl.classList.remove('hidden');
-
-            updateUI();
-            bindEvents();
-        } catch (error) {
-            console.error("加载失败:", error);
-            if (loadingEl) loadingEl.textContent = "Yaron的召唤水晶球失灵了，请检查网络并确认令牌有效性 😭";
-        }
+        updateUI();
+        bindEvents();
     }
 
-    function renderGrid(itemsToRender: BangumiItem[], container: HTMLElement) {
+    function renderGrid(itemsToRender, container) {
         if (itemsToRender.length === 0) {
             container.innerHTML = `<div class="col-span-full text-center py-12 text-neutral-400 text-xs tracking-widest">此处空空如也，快去捕捉新的奇迹吧 ✨</div>`;
             return;
         }
 
-        container.innerHTML = itemsToRender.map((item: BangumiItem) => {
+        container.innerHTML = itemsToRender.map((item) => {
             const statusInfo = COLLECTION_TYPES.find(c => c.id === item.type);
             const name = item.subject.name_cn || item.subject.name || 'Anime';
             const score = item.subject.score ? item.subject.score.toFixed(1) : '暂无';
@@ -162,21 +163,6 @@ import MainGridLayout from '../layouts/MainGridLayout.astro';
         const gridEl = document.getElementById('bangumi-grid');
         if (!gridEl) return;
 
-        let totalCount = allCollections.length;
-        const statusCounts: Record<string, number> = { '3': 0, '2': 0, '1': 0, '4': 0, '5': 0 };
-        allCollections.forEach(item => {
-            if (String(item.type) in statusCounts) {
-                statusCounts[String(item.type)]++;
-            }
-        });
-
-        const countAllEl = document.getElementById('count-all');
-        if (countAllEl) countAllEl.textContent = String(totalCount);
-        Object.keys(statusCounts).forEach(statusId => {
-            const el = document.querySelector(`[data-count-status="${statusId}"]`);
-            if (el) el.textContent = String(statusCounts[statusId]);
-        });
-
         const filteredCollections = currentStatus === "all"
             ? allCollections
             : allCollections.filter(item => String(item.type) === currentStatus);
@@ -190,8 +176,8 @@ import MainGridLayout from '../layouts/MainGridLayout.astro';
 
         renderGrid(pageItems, gridEl);
 
-        const prevBtn = document.getElementById('btn-prev') as HTMLButtonElement;
-        const nextBtn = document.getElementById('btn-next') as HTMLButtonElement;
+        const prevBtn = document.getElementById('btn-prev');
+        const nextBtn = document.getElementById('btn-next');
         const indicator = document.getElementById('page-indicator');
 
         if (prevBtn) prevBtn.disabled = (currentPage === 1);
@@ -205,11 +191,10 @@ import MainGridLayout from '../layouts/MainGridLayout.astro';
         }
 
         document.querySelectorAll('.status-tab-btn').forEach(btn => {
-            const htmlBtn = btn as HTMLElement;
-            if (htmlBtn.dataset.statusTab === currentStatus) {
-                htmlBtn.className = "status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-[var(--primary)] text-white shadow-sm scale-105";
+            if (btn.dataset.statusTab === currentStatus) {
+                btn.className = "status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-[var(--primary)] text-white shadow-sm scale-105";
             } else {
-                htmlBtn.className = "status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm";
+                btn.className = "status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm";
             }
         });
     }
@@ -225,7 +210,7 @@ import MainGridLayout from '../layouts/MainGridLayout.astro';
 
         document.querySelectorAll('.status-tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const target = e.currentTarget as HTMLElement;
+                const target = e.currentTarget;
                 if (target && target.dataset.statusTab) {
                     currentStatus = target.dataset.statusTab;
                     currentPage = 1;
@@ -256,6 +241,6 @@ import MainGridLayout from '../layouts/MainGridLayout.astro';
         });
     }
 
-    initBangumi();
-    document.addEventListener('astro:page-load', initBangumi);
+    // 🚀 初始化执行
+    initStaticBangumi();
 </script>
