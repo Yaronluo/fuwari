@@ -121,7 +121,29 @@ try {
 </MainGridLayout>
 
 <script>
+    let initialized = false;
+
     function initStaticPagination() {
+        // 防止重复初始化
+        if (initialized) {
+            // 清理旧的事件监听器
+            const oldTabs = document.querySelectorAll('.tab-btn');
+            const oldPrev = document.getElementById('btn-prev');
+            const oldNext = document.getElementById('btn-next');
+            oldTabs.forEach(tab => {
+                const newTab = tab.cloneNode(true);
+                tab.parentNode?.replaceChild(newTab, tab);
+            });
+            if (oldPrev) {
+                const newPrev = oldPrev.cloneNode(true);
+                oldPrev.parentNode?.replaceChild(newPrev, oldPrev);
+            }
+            if (oldNext) {
+                const newNext = oldNext.cloneNode(true);
+                oldNext.parentNode?.replaceChild(newNext, oldNext);
+            }
+        }
+
         const grid = document.getElementById('bangumi-grid');
         const items = document.querySelectorAll('.bangumi-item');
         const tabs = document.querySelectorAll('.tab-btn');
@@ -135,6 +157,7 @@ try {
         const ITEMS_PER_PAGE = 9; // 3行3列固定9个
         let currentStatus = 'all';
         let currentPage = 1;
+        let totalPages = 1;
 
         // 核心计算显示逻辑
         function render() {
@@ -151,7 +174,7 @@ try {
             });
 
             // 2. 边界约束计算
-            const totalPages = Math.ceil(visibleItems.length / ITEMS_PER_PAGE) || 1;
+            totalPages = Math.ceil(visibleItems.length / ITEMS_PER_PAGE) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
             if (currentPage < 1) currentPage = 1;
 
@@ -196,7 +219,7 @@ try {
         });
 
         nextBtn?.addEventListener('click', () => {
-            if (currentPage < Math.ceil(Array.from(items).filter(i => currentStatus === 'all' || (i as HTMLElement).dataset.type === currentStatus).length / ITEMS_PER_PAGE)) {
+            if (currentPage < totalPages) {
                 currentPage++;
                 render();
                 grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -204,6 +227,7 @@ try {
         });
 
         render();
+        initialized = true;
     }
 
     // ⚡ 【核心修正】彻底契合新版 Fuwari / Astro 原生单页视图过渡标准周期
