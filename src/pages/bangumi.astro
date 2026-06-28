@@ -121,29 +121,7 @@ try {
 </MainGridLayout>
 
 <script>
-    let initialized = false;
-
     function initStaticPagination() {
-        // 防止重复初始化
-        if (initialized) {
-            // 清理旧的事件监听器
-            const oldTabs = document.querySelectorAll('.tab-btn');
-            const oldPrev = document.getElementById('btn-prev');
-            const oldNext = document.getElementById('btn-next');
-            oldTabs.forEach(tab => {
-                const newTab = tab.cloneNode(true);
-                tab.parentNode?.replaceChild(newTab, tab);
-            });
-            if (oldPrev) {
-                const newPrev = oldPrev.cloneNode(true);
-                oldPrev.parentNode?.replaceChild(newPrev, oldPrev);
-            }
-            if (oldNext) {
-                const newNext = oldNext.cloneNode(true);
-                oldNext.parentNode?.replaceChild(newNext, oldNext);
-            }
-        }
-
         const grid = document.getElementById('bangumi-grid');
         const items = document.querySelectorAll('.bangumi-item');
         const tabs = document.querySelectorAll('.tab-btn');
@@ -227,11 +205,25 @@ try {
         });
 
         render();
-        initialized = true;
     }
 
-    // ⚡ 【核心修正】彻底契合新版 Fuwari / Astro 原生单页视图过渡标准周期
-    // 告别一切不稳定的临时宏任务，让事件在页面渲染好的第一时刻直接安全唤醒！
-    initStaticPagination();
+    // 确保 DOM 完全加载后再初始化
+    function safeInit() {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initStaticPagination);
+        } else {
+            // 使用 requestAnimationFrame 确保 DOM 渲染完成
+            requestAnimationFrame(() => {
+                // 再次检查，如果元素还不存在，延迟重试
+                if (document.getElementById('bangumi-grid')) {
+                    initStaticPagination();
+                } else {
+                    setTimeout(initStaticPagination, 100);
+                }
+            });
+        }
+    }
+
+    safeInit();
     document.addEventListener('astro:page-load', initStaticPagination);
 </script>
