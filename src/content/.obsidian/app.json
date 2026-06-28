@@ -1,8 +1,9 @@
 {
   "promptDelete": false,
-  "attachmentFolderPath": "attachment",
+  "attachmentFolderPath": "./attachments",
   "newFileLocation": "folder",
   "newFileFolderPath": "posts",
   "newLinkFormat": "relative",
-  "useMarkdownLinks": true
+  "useMarkdownLinks": true,
+  "alwaysUpdateLinks": true
 }

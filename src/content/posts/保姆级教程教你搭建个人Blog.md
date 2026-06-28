@@ -36,25 +36,25 @@ series: 博客
 # 三、让我们开始吧！
 ## 1.创建github账号并且拉取Fuwari仓库
 **1.打开[GitHub](https://github.com/)网站注册，Github不支持中文，请自行用浏览器翻译注册！如果打不开网站，请开启VPN(翻墙)访问！**
-![](../attachment/保姆级教程教你搭建个人Blog.png)
+![](attachments/保姆级教程教你搭建个人Blog.png)
 
 **2.开始拉取Fuwari仓库[Fuwari仓库地址](https://github.com/saicaca/fuwari)**
-![](../attachment/保姆级教程教你搭建个人Blog-1.png)
+![](attachments/保姆级教程教你搭建个人Blog-1.png)
 
 请按照下图来拉取Fuwari
-![](../attachment/保姆级教程教你搭建个人Blog-2.png)
+![](attachments/保姆级教程教你搭建个人Blog-2.png)
 
 完成以上所有操作后再次按照上面第一张图片操作，便能看到你的仓库中已经有了Fuwari仓库。
 
 ## 2.安装Node.js和npm并将Fuwari本地部署
 **1.安装Node.js和npm**[Node.js下载地址](https://nodejs.org/zh-cn/download)
-![](../attachment/保姆级教程教你搭建个人Blog-3.png)
+![](attachments/保姆级教程教你搭建个人Blog-3.png)
 
 命令安装教程(windows)
-![](../attachment/保姆级教程教你搭建个人Blog-4.png)
+![](attachments/保姆级教程教你搭建个人Blog-4.png)
 
 安装程序安装教程(所有均保持默认除非你知道自己在干什么，否则一直点击next直到install)
-![](../attachment/保姆级教程教你搭建个人Blog-5.png)
+![](attachments/保姆级教程教你搭建个人Blog-5.png)
 
 **验证是否安装成功**
 
@@ -68,20 +68,20 @@ series: 博客
 如果显示版本号，说明安装成功。
 
 **如果报错**请按`Win + R`，输入`cmd`，打开命令提示符后在里面再次输入以上命令验证！
-![](../attachment/保姆级教程教你搭建个人Blog-7.png)
+![](attachments/保姆级教程教你搭建个人Blog-7.png)
 
 **2.安装Git**[安装链接](https://git-scm.com/install/windows)
-![](../attachment/保姆级教程教你搭建个人Blog-6.png)
+![](attachments/保姆级教程教你搭建个人Blog-6.png)
 
 安装完下载程序后双击打开然后一路默认即可，出现这个界面安装就完成了！
-![](../attachment/保姆级教程教你搭建个人Blog-8.png)
+![](attachments/保姆级教程教你搭建个人Blog-8.png)
 
 如果不放心可以命令检测，仍然按`Win + R`，输入`cmd`粘贴以下代码运行
 ```
 git --version
 ```
 出现版本号，说明安装成功
-![](../attachment/保姆级教程教你搭建个人Blog-9.png)
+![](attachments/保姆级教程教你搭建个人Blog-9.png)
 
 **3.将你前面拉取到自己仓库的Fuwari仓库克隆到本地(ssh法可以不用VPN来推送)**
 
@@ -104,11 +104,11 @@ windows打开powershell(不是命令提示符)，其余系统用自带的shell�
 手动复制公钥以 `ssh-rsa` 开头，全部复制
 
 然后打开[Github添加公钥](https://github.com/settings/keys)
-![](../attachment/保姆级教程教你搭建个人Blog-10.png)
-![](../attachment/Pasted%20image%2020251106191737.png)
+![](attachments/保姆级教程教你搭建个人Blog-10.png)
+![](attachments/Pasted%20image%2020251106191737.png)
 
 回到你的仓库页面，打开已经拉取到了你仓库里的fuwari仓库，按照以下操作
-![](../attachment/保姆级教程教你搭建个人Blog-11.png)
+![](attachments/保姆级教程教你搭建个人Blog-11.png)
 
 继续打开powershell，
 ```
@@ -146,7 +146,7 @@ pnpm add sharp
 > [!IMPORTANT]
 > 注意这里文件夹名称不一定是fuwari，是你前文所拉取fuwari仓库的时候改的名称，如果没改默认就是fuwari，下文所指的所有fuwari文件夹皆是如此
 
-![](../attachment/保姆级教程教你搭建个人Blog-12.png)
+![](attachments/保姆级教程教你搭建个人Blog-12.png)
 
 ## 3.改写你的Fuwari
 > 刚创建的Fuwari和演示网站一模一样，我们需要改写它，使它真正成为你的Blog
@@ -154,11 +154,11 @@ pnpm add sharp
 **1.打开你的`fuwari`文件找到路径`src/config.ts`然后开始更改**
 - title：你的Blog主标题
 - subtitle：你的Blog副标题
-![](../attachment/保姆级教程教你搭建个人Blog-13.png)
+![](attachments/保姆级教程教你搭建个人Blog-13.png)
 
 - lang：Blog的显示语言，注释已经给出了常见语言的代码，更改即可
 - themeColor：Blog的主题色，其中fixed的false改为true就可以隐藏Blog的颜色选择，hue是颜色代码
-![](../attachment/保姆级教程教你搭建个人Blog-14.png)
+![](attachments/保姆级教程教你搭建个人Blog-14.png)
 - banner：Blog的背景图默认关闭，src：即背景图，支持http/https URL
 - favicon：Blog网站图标，src：即网站图标，支持http/https URL
 - links(`NavBarConfig`)：是导航栏的链接
@@ -166,10 +166,10 @@ pnpm add sharp
 - name：你的名字
 - bio：个性签名显示在头像和名字的下面
 - links(`ProfileConfig`)：是头像和名字下的链接
-![](../attachment/保姆级教程教你搭建个人Blog-15.png)
+![](attachments/保姆级教程教你搭建个人Blog-15.png)
 - icon：你也许想要更改图标，那么你可以去[Iconify](https://icon-sets.iconify.design/)找到你所需的图标，fuwari默认支持`fa6-brands`, `fa6-regular`, `fa6-solid`, `material-symbols`几种类型，如下图
-![](../attachment/保姆级教程教你搭建个人Blog-16.png)
-![](../attachment/保姆级教程教你搭建个人Blog-17.png)
+![](attachments/保姆级教程教你搭建个人Blog-16.png)
+![](attachments/保姆级教程教你搭建个人Blog-17.png)
 这里给上我的`config.ts`可以对照我的代码来修改
 ```
 import type {  
@@ -297,7 +297,7 @@ lang: ''
   以上带*的必须填写其它的可以留空
 
 5. 除此之外我们还需要修改`astro.config.mjs`文件，打开fuwari文件夹就能看到，把下图红色框框住的site：后的内容修改为自己的网站网址
-![](../attachment/保姆级教程教你搭建个人Blog-18.png)
+![](attachments/保姆级教程教你搭建个人Blog-18.png)
 
 **至此你就已经学会了如何开始写自己的Blog文章**
 
@@ -305,7 +305,7 @@ lang: ''
 打开powershell(如果有报错就用命令提示符)，输入`cd fuwari`进入fuwari文件夹
 
 1. 当你的文章写的差不多的时候，想要预览一下，输入命令`pnpm dev`等待片刻，出现以下画面说明本地部署成功
-![](../attachment/保姆级教程教你搭建个人Blog-19.png)
+![](attachments/保姆级教程教你搭建个人Blog-19.png)
 2. 预览文章发现无误之后，我们就需要把我们所做的更改使用Git发布到Github上了
 
    第一次推送可能需要Git知道你的身份，输入命令 `git config 你的Github用户名`和`git config 你注册的Github的邮箱`
@@ -317,7 +317,7 @@ lang: ''
    输入命令`git push origin main`推送更改你的更改到Github，后续推送只需要输入`git push`即可
 
    如果显示下面画面就表示成功
-   ![](../attachment/保姆级教程教你搭建个人Blog-20.png)
+   ![](attachments/保姆级教程教你搭建个人Blog-20.png)
 
 ## 6.让Cloudflare连接到Github，并且使用Pages服务托管你的Blog
 
@@ -328,11 +328,11 @@ lang: ''
 
 1. 打开[Cloudflare](https://www.cloudflare.com/zh-cn/)官网，注册登录
 2. 前往Cloudflare的Workers和Pages页面，创建一个新Pages
-![](../attachment/保姆级教程教你搭建个人Blog-21.png)
-![](../attachment/保姆级教程教你搭建个人Blog-22.png)
-![](../attachment/保姆级教程教你搭建个人Blog-23.png)
+![](attachments/保姆级教程教你搭建个人Blog-21.png)
+![](attachments/保姆级教程教你搭建个人Blog-22.png)
+![](attachments/保姆级教程教你搭建个人Blog-23.png)
 3. 设置自定义域
-![](../attachment/保姆级教程教你搭建个人Blog-24.png)
+![](attachments/保姆级教程教你搭建个人Blog-24.png)
 4. 随后，你只需要在本地编写文章，然后使用Git将更改推送到远程仓库，Cloudflare就会自动部署，更新你的博客
 
 # 最后

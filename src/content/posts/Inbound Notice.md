@@ -2,6 +2,7 @@
 title: 入站须知
 published: 2025-10-30
 pinned: true
+category: 公告
 ---
 本站主要分享我本人的生活和一些技术。
 

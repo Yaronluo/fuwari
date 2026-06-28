@@ -31,11 +31,11 @@ export const siteConfig: SiteConfig = {
 	},
 	favicon: [
 		// Leave this array empty to use the default favicon
-		 {
-		   src: '/favicon/favicon.png', // Path of the favicon, relative to the /public directory
-		   theme: 'light',              // (Optional) Either 'light' or 'dark', set only if you have different favicons for light and dark mode
-		   sizes: '32x32',              // (Optional) Size of the favicon, set only if you have favicons of different sizes
-		 }
+		{
+			src: '/favicon/favicon.png', // Path of the favicon, relative to the /public directory
+			theme: 'light',              // (Optional) Either 'light' or 'dark', set only if you have different favicons for light and dark mode
+			sizes: '32x32',              // (Optional) Size of the favicon, set only if you have favicons of different sizes
+		}
 	],
 };
 
@@ -44,12 +44,13 @@ export const navBarConfig: NavBarConfig = {
 		LinkPreset.Home,
 		LinkPreset.Archive,
 		LinkPreset.Series,
-        { name: "网站统计", url: "/stats" },
-        LinkPreset.About,
+		{ name: "网站统计", url: "/stats/" },
+		{ name: "番剧观测", url: "/bangumi/" }, // ✨ 在这里为你新增了追番页面的入口
+		LinkPreset.About,
 		//{
-			//name: "GitHub",
-			//url: "https://github.com/saicaca/fuwari", // Internal links should not include the base path, as it is automatically added
-			//external: true, // Show an external link icon and will open in a new tab
+		//name: "GitHub",
+		//url: "https://github.com/saicaca/fuwari", // Internal links should not include the base path, as it is automatically added
+		//external: true, // Show an external link icon and will open in a new tab
 		//},
 	],
 };
@@ -60,32 +61,32 @@ export const profileConfig: ProfileConfig = {
 	bio: "日落尤其温暖，人间皆是热爱",
 	links: [
 		//{
-			//name: "Twitter",
-			//icon: "fa6-brands:twitter", // Visit https://icones.js.org/ for icon codes
-			// You will need to install the corresponding icon set if it's not already included
-			// `pnpm add @iconify-json/<icon-set-name>`
-			//url: "https://twitter.com",
+		//name: "Twitter",
+		//icon: "fa6-brands:twitter", // Visit https://icones.js.org/ for icon codes
+		// You will need to install the corresponding icon set if it's not already included
+		// `pnpm add @iconify-json/<icon-set-name>`
+		//url: "https://twitter.com",
 		//},
 		//{
-			//name: "Steam",
-			//icon: "fa6-brands:steam",
-			//url: "https://store.steampowered.com",
+		//name: "Steam",
+		//icon: "fa6-brands:steam",
+		//url: "https://store.steampowered.com",
 		//},
 		{
 			name: "GitHub",
 			icon: "fa6-brands:github",
 			url: "https://github.com/Yaronluo",
 		},
-        {
-            name: 'QQ',
-            icon: 'fa6-brands:qq',
-            url: 'https://qm.qq.com/q/2jKJhKcCjm',
-        },
-        {
-            name: 'Bilibili',
-            icon: 'fa6-brands:bilibili',
-            url: 'https://space.bilibili.com/321153856',
-        },
+		{
+			name: 'QQ',
+			icon: 'fa6-brands:qq',
+			url: 'https://qm.qq.com/q/2jKJhKcCjm',
+		},
+		{
+			name: 'Bilibili',
+			icon: 'fa6-brands:bilibili',
+			url: 'https://space.bilibili.com/321153856',
+		},
 	],
 };
 

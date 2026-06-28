@@ -15,11 +15,11 @@ category: Life
 
 ## 学习上
 快要期末了有点紧张，毕竟是大学里的第一次期末考试，害怕挂科，数分和高代在我看来难入登天，上课已经很努力的认真去听老师讲课了，但还是听不懂，做题目也是懵的，看来在接下来的日子里要少打游戏努力学习了。除此之外，体育也是一个难搞的主，排球一点都不懂，但是期末考试要考，所以我还要练习排球。这个月13号还要考英语四级，加油，努力做到大一就拿下英语四级！！！
-![](../attachment/Share%20my%20life.2.png)
+![](attachments/Share%20my%20life.2.png)
 
 ## 生活上
 上个月过完生日后我就18岁了，成年了哈哈哈，给大家看看生日蛋糕，好好吃的哦！
-![](../attachment/e7b6d507128f1c87b2ebfdf32866a529.jpg)
+![](attachments/e7b6d507128f1c87b2ebfdf32866a529.jpg)
 
 最近几天也爱上了几首歌，全是许嵩的歌，虽然之前都听过，但是不知道歌名，现在知道了歌名后，也是彻底沦陷了！
 <iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width=400 height=80 src="https://i.y.qq.com/n2/m/outchain/player/index.html?songid=102296985&songtype=0

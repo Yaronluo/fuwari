@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "f0dba5ae1c1dad28",
+        "id": "a8326a94e8b557e1",
         "type": "tabs",
         "children": [
           {
-            "id": "774a88a9e3ddf265",
+            "id": "bd8d58244401decd",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "posts/Hi-2026.md",
+                "file": "posts/Share my life.1.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Hi-2026"
+              "title": "Share my life.1"
             }
           }
         ]
@@ -53,7 +53,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "tag:Newyear",
+                "query": "",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -170,36 +170,42 @@
       "command-palette:打开命令面板": false
     }
   },
-  "active": "774a88a9e3ddf265",
+  "active": "bd8d58244401decd",
   "lastOpenFiles": [
-    "posts/[Travel.md",
-    "posts/Hi-2026.md",
-    "posts/Travel Diary --厦门.md",
     "posts/Inbound Notice.md",
     "posts/Share my life.1.md",
-    "posts/Share my life.2.md",
+    "posts/Hi-2026.md",
     "posts/保姆级教程教你搭建个人Blog.md",
-    "attachment/bc559768063c98512f727e619b551dee.jpg",
-    "attachment/128d95a56fd69914e9bad9cffbb9435e.jpg",
-    "attachment/4b6739d8ba30acd9736f7d04feff5fc2.jpg",
-    "attachment/75597e9f1b3eaf060ccb1e857dc03d37.jpg",
-    "attachment/197e1a9b5137070e841097e33bbbce77.jpg",
-    "attachment/f82d6b5a7d9d34621a69b95d5a3960d0.jpg",
-    "attachment/057ff4131b7162d9476ccd52aa477bf4.jpg",
-    "attachment/7b787963fb2a656cebe5fb21e80c51d7 1.jpg",
-    "attachment/7b787963fb2a656cebe5fb21e80c51d7.jpg",
-    "attachment/6f78d768fdac521055af304409f815e5.jpg",
+    "posts/未命名.base",
+    "posts/未命名 1.base",
+    "posts/未命名 2.base",
+    "posts/未命名 3.base",
+    "posts/未命名 4.base",
+    "spec/about.md",
+    "posts/Travel Diary --厦门.md",
+    "posts/Share my life.2.md",
+    "posts/attachments/Travel Diary --厦门.png",
+    "posts/attachments/4b6739d8ba30acd9736f7d04feff5fc2.jpg",
+    "posts/attachments/4c5f3197979de6969966b419a0efee91.jpg",
+    "posts/attachments",
     "未命名",
+    "posts/2026-03-23.md",
+    "未命名.canvas",
+    "posts/[Travel.md",
+    "posts/attachments/bc559768063c98512f727e619b551dee.jpg",
+    "posts/attachments/128d95a56fd69914e9bad9cffbb9435e.jpg",
+    "posts/attachments/75597e9f1b3eaf060ccb1e857dc03d37.jpg",
+    "posts/attachments/197e1a9b5137070e841097e33bbbce77.jpg",
+    "posts/attachments/f82d6b5a7d9d34621a69b95d5a3960d0.jpg",
+    "posts/attachments/057ff4131b7162d9476ccd52aa477bf4.jpg",
+    "posts/attachments/7b787963fb2a656cebe5fb21e80c51d7 1.jpg",
     "posts/guide/未命名.md",
     "posts/“这里填写你的文章标题”.md",
-    "spec/about.md",
     "posts/2025-10-28.md",
     "posts/Share my life .1.md",
-    "attachment",
+    "posts/attachments/attachment",
     "images",
     "新建文件夹",
-    "未命名.base",
-    "2025-10-28.md",
-    "未命名.canvas"
+    "2025-10-28.md"
   ]
 }

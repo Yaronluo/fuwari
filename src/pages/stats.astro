@@ -1,20 +1,36 @@
 ---
-// src/pages/stats.astro
-import Layout from '../layouts/Layout.astro';
+// ✨ 核心修正：改用 MainGridLayout，才能获得侧边栏和全站导航
+import MainGridLayout from '../layouts/MainGridLayout.astro';
 ---
 
-<Layout title="网站统计">
-    <main class="card-base p-4 md:p-8">
-        <h1 class="text-2xl font-bold mb-4">网站统计</h1>
-        <p class="mb-4">以下是我的博客的实时访问数据，由 Umami 提供。</p>
+<MainGridLayout title="站点观测" description="网站实时访问统计">
+    <div class="card-base w-full p-6 md:p-8 flex flex-col gap-6 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] dark:bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:20px_20px]">
 
-        <!-- ✅ 删除这里的注释，让 iframe 生效 -->
-        <iframe
-                src="https://cloud.umami.is/share/1Dc4PAeDKgLAox0M"
-                class="w-full h-[600px] border-0 rounded-lg"
-                loading="lazy">
-                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-        </iframe>
+        <div class="text-center my-2 flex flex-col gap-2">
+            <h1 class="text-2xl sm:text-3xl font-black bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent tracking-wider drop-shadow-sm">
+                时光痕迹 · 站点观测中心
+            </h1>
+            <p class="text-neutral-500 dark:text-neutral-400 text-xs font-semibold tracking-widest bg-neutral-200/40 dark:bg-neutral-800/50 px-4 py-1 rounded-full inline-block self-center border border-neutral-200/30 dark:border-neutral-700/20">
+                「 所有的访问与交集，都是在时间长河里泛起的微小涟漪。 」
+            </p>
+        </div>
 
-    </main>
-</Layout>
+        <div class="relative w-full rounded-2xl overflow-hidden border border-neutral-200/50 dark:border-neutral-700/50 shadow-sm bg-white/50 dark:bg-black/20 backdrop-blur-sm">
+            <div class="absolute inset-0 flex items-center justify-center text-neutral-400 text-sm -z-10 animate-pulse">
+                正在接入数据终端... 📡
+            </div>
+
+            <iframe
+                    src="https://cloud.umami.is/share/1Dc4PAeDKgLAox0M"
+                    class="w-full h-[800px] border-0"
+                    loading="lazy"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                    title="Umami Analytics"
+            ></iframe>
+        </div>
+
+        <div class="text-center text-[10px] text-neutral-400 font-medium tracking-widest uppercase">
+            Real-time Data Stream Powered by Umami Cloud
+        </div>
+    </div>
+</MainGridLayout>
