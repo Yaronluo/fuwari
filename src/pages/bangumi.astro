@@ -1,8 +1,6 @@
 ---
-// ✨ 完美调用 Fuwari 官方的标准主网格模板
 import MainGridLayout from '../layouts/MainGridLayout.astro';
 
-// 🎯 【编译期凭证配置】打包时 Node.js 会使用这些凭证抓取数据
 const BANGUMI_USER = "1260226";
 const BANGUMI_TOKEN = "rWiHjG2JSuDoCwcCFmFz3yGqgHOMnK9yZnEFqE0z";
 
@@ -22,7 +20,7 @@ try {
         const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${cType.id}&limit=50`;
         const res = await fetch(url, {
             headers: {
-                'User-Agent': 'Fuwari-Bangumi-Static-Builder/1.0',
+                'User-Agent': 'Fuwari-Bangumi/1.0',
                 'Authorization': `Bearer ${BANGUMI_TOKEN}`
             }
         });
@@ -35,12 +33,10 @@ try {
     allCollections = results.flat().filter((item) => item && item.subject);
 
     allCollections.forEach((item: any) => {
-        if (String(item.type) in statusCounts) {
-            statusCounts[String(item.type)]++;
-        }
+        statusCounts[String(item.type)] = (statusCounts[String(item.type)] || 0) + 1;
     });
 } catch (error) {
-    console.log("💡 [Bangumi Builder] 提示：获取数据异常。");
+    console.error("获取 Bangumi 数据失败:", error);
 }
 ---
 
@@ -57,27 +53,27 @@ try {
         </div>
 
         <div class="flex flex-nowrap overflow-x-auto whitespace-nowrap gap-1.5 p-2 bg-neutral-200/20 dark:bg-black/10 rounded-2xl border border-neutral-200/20 dark:border-neutral-700/10 shadow-inner [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <button data-status-tab="all" class="status-tab-btn active flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-[var(--primary)] text-white shadow-sm scale-105">
-                全部明细 ✨ (<span>{allCollections.length}</span>)
+            <button data-status="all" class="tab-btn bg-[var(--primary)] text-white flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer shadow-sm scale-105">
+                全部明细 ✨ ({allCollections.length})
             </button>
-            <button data-status-tab="3" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm">
-                正在心动 💓 (<span>{statusCounts['3']}</span>)
+            <button data-status="3" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+                正在心动 💓 ({statusCounts['3']})
             </button>
-            <button data-status-tab="2" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm">
-                完结撒花 🎉 (<span>{statusCounts['2']}</span>)
+            <button data-status="2" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+                完结撒花 🎉 ({statusCounts['2']})
             </button>
-            <button data-status-tab="1" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm">
-                预定入坑 📺 (<span>{statusCounts['1']}</span>)
+            <button data-status="1" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+                预定入坑 📺 ({statusCounts['1']})
             </button>
-            <button data-status-tab="4" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm">
-                时空凝结 🕰️ (<span>{statusCounts['4']}</span>)
+            <button data-status="4" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+                时空凝结 🕰️ ({statusCounts['4']})
             </button>
-            <button data-status-tab="5" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm">
-                物理斩断 💔 (<span>{statusCounts['5']}</span>)
+            <button data-status="5" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+                物理斩断 💔 ({statusCounts['5']})
             </button>
         </div>
 
-        <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-4" id="bangumi-grid">
+        <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-4">
             {allCollections.length === 0 ? (
                     <div class="col-span-full text-center py-12 text-neutral-400 text-xs tracking-widest">此处空空如也，快去捕捉新的奇迹吧 ✨</div>
             ) : (
@@ -85,21 +81,17 @@ try {
                     const statusInfo = COLLECTION_TYPES.find(c => c.id === item.type);
                     const name = item.subject.name_cn || item.subject.name || 'Anime';
                     const score = item.subject.score ? item.subject.score.toFixed(1) : '暂无';
-
                     const rawImg = item.subject.images?.large || '';
                     const img = rawImg ? `https://images.weserv.nl/?url=${rawImg}` : '';
 
                     return (
                             <a href={`https://bgm.tv/subject/${item.subject.id}`} target="_blank" rel="noopener noreferrer"
-                               class="bangumi-card block group relative aspect-[2/3] rounded-2xl overflow-hidden bg-neutral-200/50 dark:bg-neutral-800/50 shadow-sm border border-neutral-200/30 dark:border-neutral-700/30 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-md hover:border-[var(--primary)]/40 cursor-pointer"
-                               data-status={item.type}>
-
+                               class="bangumi-item block group relative aspect-[2/3] rounded-2xl overflow-hidden bg-neutral-200/50 dark:bg-neutral-800/50 shadow-sm border border-neutral-200/30 dark:border-neutral-700/30 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-md hover:border-[var(--primary)]/40 cursor-pointer"
+                               data-type={item.type}>
                             <span class={`absolute top-2 left-2 z-10 px-2 py-0.5 text-[9px] font-black rounded-md tracking-wider shadow-sm ${statusInfo?.color || 'bg-neutral-500'}`}>
                                 {statusInfo?.label}
                             </span>
-
                                 <img src={img} alt={name} class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" referrerpolicy="no-referrer" />
-
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 text-left">
                                     <h3 class="text-white text-xs font-bold line-clamp-2 mb-1 leading-snug tracking-wide">{name}</h3>
                                     <div class="flex items-center gap-1 bg-white/10 dark:bg-black/20 px-1.5 py-0.5 rounded w-fit backdrop-blur-sm border border-white/5">
@@ -112,57 +104,46 @@ try {
                 })
             )}
         </div>
-
     </div>
 </MainGridLayout>
 
-<style>
-    /* 配合轻量级 JS，一键隐藏不属于当前分类的卡片 */
-    .bangumi-card.hidden {
-        display: none !important;
-    }
-</style>
-
 <script>
-    // 这段脚本只负责纯粹的“点击按钮 -> 修改 CSS 样式”，极致的零延迟！
-    function setupBangumiFilters() {
-        const tabBtns = document.querySelectorAll('.status-tab-btn');
-        const cards = document.querySelectorAll('.bangumi-card');
+    // 作者原汁原味的极简分类过滤脚本，只控制显示隐藏
+    function initBangumiFilter() {
+        const tabs = document.querySelectorAll('.tab-btn');
+        const items = document.querySelectorAll('.bangumi-item');
 
-        if (!tabBtns.length) return;
+        if (!tabs.length) return;
 
-        // 避免单页路由导致的重复绑定
-        tabBtns.forEach(btn => {
-            const newBtn = btn.cloneNode(true) as HTMLElement;
-            btn.replaceWith(newBtn);
+        tabs.forEach(tab => {
+            // 清理旧事件绑定
+            const newTab = tab.cloneNode(true) as HTMLElement;
+            tab.replaceWith(newTab);
         });
 
-        const newTabBtns = document.querySelectorAll('.status-tab-btn');
-
-        newTabBtns.forEach(btn => {
-            btn.addEventListener('click', (e: Event) => {
+        document.querySelectorAll('.tab-btn').forEach(tab => {
+            tab.addEventListener('click', (e) => {
                 const target = e.currentTarget as HTMLElement;
-                const statusType = target.dataset.statusTab;
+                const status = target.dataset.status;
 
-                // 1. 改变按钮选中样式
-                newTabBtns.forEach(b => {
-                    b.className = "status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm";
+                document.querySelectorAll('.tab-btn').forEach(t => {
+                    t.className = "tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer";
                 });
-                target.className = "status-tab-btn active flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-[var(--primary)] text-white shadow-sm scale-105";
+                target.className = "tab-btn bg-[var(--primary)] text-white flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer shadow-sm scale-105";
 
-                // 2. 秒切卡片过滤
-                cards.forEach(card => {
-                    const htmlCard = card as HTMLElement;
-                    if (statusType === 'all' || htmlCard.dataset.status === statusType) {
-                        htmlCard.classList.remove('hidden');
+                items.forEach(item => {
+                    const htmlItem = item as HTMLElement;
+                    if (status === 'all' || htmlItem.dataset.type === status) {
+                        htmlItem.style.display = 'block';
                     } else {
-                        htmlCard.classList.add('hidden');
+                        htmlItem.style.display = 'none';
                     }
                 });
             });
         });
     }
 
-    // 完美挂载，保障无缝跳转
-    document.addEventListener('astro:page-load', setupBangumiFilters);
+    initBangumiFilter();
+    document.addEventListener('swup:contentReplaced', initBangumiFilter);
+    document.addEventListener('astro:page-load', initBangumiFilter);
 </script>
