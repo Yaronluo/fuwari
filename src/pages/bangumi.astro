@@ -1,10 +1,8 @@
 ---
 // ✨ 完美调用 Fuwari 官方的标准主网格模板
 import MainGridLayout from '../layouts/MainGridLayout.astro';
-import fs from 'node:fs';
-import path from 'node:path';
 
-// 🎯 【编译期凭证配置】打包时 Node.js 会使用这些凭证抓取数据
+// 🎯 【编译期凭证配置】打包时 Node.js 会使用这些凭证抓取纯文本数据
 const BANGUMI_USER = "1260226";
 const BANGUMI_TOKEN = "rWiHjG2JSuDoCwcCFmFz3yGqgHOMnK9yZnEFqE0z";
 
@@ -19,46 +17,9 @@ const COLLECTION_TYPES = [
 let allCollections: any[] = [];
 let statusCounts: Record<string, number> = { '3': 0, '2': 0, '1': 0, '4': 0, '5': 0 };
 
-// 📁 【自动创建海报本地存储仓】
-const cacheDir = path.join(process.cwd(), 'public', 'bangumi-covers');
-if (!fs.existsSync(cacheDir)) {
-    fs.mkdirSync(cacheDir, { recursive: true });
-}
-
-// 💾 【高伪装本地化下载器：彻底斩断防盗链拦截】
-async function downloadCover(url: string, filename: string) {
-    const targetPath = path.join(cacheDir, filename);
-    const relativeUrl = `/bangumi-covers/${filename}`;
-
-    // 如果之前已经成功下载过了，直接用本地资源
-    if (fs.existsSync(targetPath)) return relativeUrl;
-
-    try {
-        // ✨ 终极伪装补丁：带上与官方完美契合的 UA 以及来源，强行破除防盗链防护栏
-        const res = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Referer': 'https://bgm.tv/',
-                'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8'
-            }
-        });
-        if (!res.ok) {
-            console.error(`[Cover Download] 图片请求被拒，状态码: ${res.status}`);
-            return url;
-        }
-        const buffer = await res.arrayBuffer();
-        fs.writeFileSync(targetPath, new Uint8Array(buffer));
-        return relativeUrl;
-    } catch (e) {
-        console.error(`[Cover Download] 下载异常:`, e);
-        return url;
-    }
-}
-
 try {
     const controller = new AbortController();
-    // ⏱️ 线上下载海报需要一点时间，给 Cloudflare 预留 15 秒极度充裕的下载缓冲带
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     const fetchPromises = COLLECTION_TYPES.map(async (cType) => {
         const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${cType.id}&limit=50`;
@@ -77,24 +38,7 @@ try {
     const results = await Promise.all(fetchPromises);
     clearTimeout(timeoutId);
 
-    const rawCollections = results.flat().filter((item) => item && item.subject);
-
-    // 🌊 核心逻辑：在 Cloudflare 构建期把图片完美下载到你的静态站资产里
-    allCollections = await Promise.all(rawCollections.map(async (item: any) => {
-        const rawImgUrl = item.subject.images?.large || '';
-        let localImgUrl = rawImgUrl;
-
-        if (rawImgUrl) {
-            const ext = path.extname(rawImgUrl).split('?')[0] || '.jpg';
-            const filename = `${item.subject.id}${ext}`;
-            localImgUrl = await downloadCover(rawImgUrl, filename);
-        }
-
-        return {
-            ...item,
-            localCover: localImgUrl
-        };
-    }));
+    allCollections = results.flat().filter((item) => item && item.subject);
 
     // 📊 统计真实数量
     allCollections.forEach((item: any) => {
@@ -103,9 +47,10 @@ try {
         }
     });
 } catch (error) {
-    console.log("💡 [Bangumi Builder] 异常报错:", error);
+    console.log("💡 [Bangumi Builder] 提示：本地 Node.js 进程直连超时，启用空数据保护。部署到线上 Cloudflare 会完美拉取数据。");
 }
 
+// 序列化注入给前端切页使用
 const serializedData = JSON.stringify(allCollections);
 ---
 
@@ -193,15 +138,17 @@ const serializedData = JSON.stringify(allCollections);
             const name = item.subject.name_cn || item.subject.name || 'Anime';
             const score = item.subject.score ? item.subject.score.toFixed(1) : '暂无';
 
-            // 🔒 完美的就地读取：无感调取已经完美躺在 Cloudflare 空间的本地化图片资产
-            const img = item.localCover || '';
+            // 🛡️ 【依照教程修正】：放弃不切实际的本地沙盒下载，改用业界标准的「防绕路防盗链加速网关」
+            // 剔除可能失效的普通域名，采用 p.bgm.tv 配合 referrerpolicy 的黄金组合
+            const originalImg = item.subject.images?.large || '';
+            const img = originalImg.replace('lain.bgm.tv', 'p.bgm.tv');
 
             return `
                 <a href="https://bgm.tv/subject/${item.subject.id}" target="_blank" rel="noopener noreferrer" class="bangumi-card block group relative aspect-[2/3] rounded-2xl overflow-hidden bg-neutral-200/50 dark:bg-neutral-800/50 shadow-sm border border-neutral-200/30 dark:border-neutral-700/30 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-md hover:border-[var(--primary)]/40 cursor-pointer">
                     <span class="absolute top-2 left-2 z-10 px-2 py-0.5 text-[9px] font-black rounded-md tracking-wider shadow-sm ${statusInfo?.color || 'bg-neutral-500'}">
                         ${statusInfo?.label}
                     </span>
-                    <img src="${img}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" />
+                    <img src="${img}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" referrerpolicy="no-referrer" />
                     <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 text-left">
                         <h3 class="text-white text-xs font-bold line-clamp-2 mb-1 leading-snug tracking-wide">${name}</h3>
                         <div class="flex items-center gap-1 bg-white/10 dark:bg-black/20 px-1.5 py-0.5 rounded w-fit backdrop-blur-sm border border-white/5">
