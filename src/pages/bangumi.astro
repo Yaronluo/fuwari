@@ -19,7 +19,7 @@ let statusCounts: Record<string, number> = { '3': 0, '2': 0, '1': 0, '4': 0, '5'
 
 try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 给构建期充分的请求时间
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     const fetchPromises = COLLECTION_TYPES.map(async (cType) => {
         const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${cType.id}&limit=50`;
@@ -38,10 +38,8 @@ try {
     const results = await Promise.all(fetchPromises);
     clearTimeout(timeoutId);
 
-    // 过滤并扁平化数据
     allCollections = results.flat().filter((item) => item && item.subject);
 
-    // 📊 统计各个分类的真实数量
     allCollections.forEach((item: any) => {
         if (String(item.type) in statusCounts) {
             statusCounts[String(item.type)]++;
@@ -51,7 +49,6 @@ try {
     console.log("💡 [Bangumi Builder] 提示：本地直连超时，启用空数据保护。部署到线上 Cloudflare 时会完美拉取。");
 }
 
-// 序列化注入给前端切页使用
 const serializedData = JSON.stringify(allCollections);
 ---
 
@@ -139,16 +136,18 @@ const serializedData = JSON.stringify(allCollections);
             const name = item.subject.name_cn || item.subject.name || 'Anime';
             const score = item.subject.score ? item.subject.score.toFixed(1) : '暂无';
 
-            // 🚀 【核心修复】完美复刻原作者的 weserv 全球图像代理缓存机制，彻底绕开防盗链！
+            // 使用 weserv 代理，实现免防盗链的全球极速分发
             const rawImg = item.subject.images?.large || '';
             const img = rawImg ? `https://images.weserv.nl/?url=${rawImg}` : '';
 
+            // ⚡ 核心提速改动：去掉了 loading="lazy"（懒加载），改为 decoding="async"
+            // 这意味着一翻页图片就会立刻开始下载并绘制，不再等待滚动，彻底告别“一个个蹦出来”的断层感
             return `
                 <a href="https://bgm.tv/subject/${item.subject.id}" target="_blank" rel="noopener noreferrer" class="bangumi-card block group relative aspect-[2/3] rounded-2xl overflow-hidden bg-neutral-200/50 dark:bg-neutral-800/50 shadow-sm border border-neutral-200/30 dark:border-neutral-700/30 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-md hover:border-[var(--primary)]/40 cursor-pointer">
                     <span class="absolute top-2 left-2 z-10 px-2 py-0.5 text-[9px] font-black rounded-md tracking-wider shadow-sm ${statusInfo?.color || 'bg-neutral-500'}">
                         ${statusInfo?.label}
                     </span>
-                    <img src="${img}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" referrerpolicy="no-referrer" />
+                    <img src="${img}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" decoding="async" referrerpolicy="no-referrer" />
                     <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 text-left">
                         <h3 class="text-white text-xs font-bold line-clamp-2 mb-1 leading-snug tracking-wide">${name}</h3>
                         <div class="flex items-center gap-1 bg-white/10 dark:bg-black/20 px-1.5 py-0.5 rounded w-fit backdrop-blur-sm border border-white/5">
@@ -221,6 +220,17 @@ const serializedData = JSON.stringify(allCollections);
         });
     }
 
-    // 🚀 初始化静态注入与渲染
+    // 🚀 双保险初始化机制：
+    // 1. 应对普通硬刷新，直接初始化
     initStaticBangumi();
+
+    // 2. 🛡️ 应对从主页无刷新点进来的情况：挂载专属的 Swup SPA 过渡钩子，彻底消灭首页进来的白屏！
+    if (!window._bangumi_swup_bound) {
+        if (window.swup && window.swup.hooks) {
+            window.swup.hooks.on('page:view', initStaticBangumi);
+        } else {
+            document.addEventListener('swup:contentReplaced', initStaticBangumi);
+        }
+        window._bangumi_swup_bound = true; // 确保不重复绑定
+    }
 </script>
