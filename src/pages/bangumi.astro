@@ -2,7 +2,7 @@
 // ✨ 完美调用 Fuwari 官方的标准主网格模板
 import MainGridLayout from '../layouts/MainGridLayout.astro';
 
-// 🎯 【编译期凭证配置】打包时 Node.js 会使用这些凭证抓取纯文本数据
+// 🎯 【编译期凭证配置】打包时 Node.js 会使用这些凭证抓取数据
 const BANGUMI_USER = "1260226";
 const BANGUMI_TOKEN = "rWiHjG2JSuDoCwcCFmFz3yGqgHOMnK9yZnEFqE0z";
 
@@ -18,13 +18,9 @@ let allCollections: any[] = [];
 let statusCounts: Record<string, number> = { '3': 0, '2': 0, '1': 0, '4': 0, '5': 0 };
 
 try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
     const fetchPromises = COLLECTION_TYPES.map(async (cType) => {
         const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${cType.id}&limit=50`;
         const res = await fetch(url, {
-            signal: controller.signal,
             headers: {
                 'User-Agent': 'Fuwari-Bangumi-Static-Builder/1.0',
                 'Authorization': `Bearer ${BANGUMI_TOKEN}`
@@ -36,8 +32,6 @@ try {
     });
 
     const results = await Promise.all(fetchPromises);
-    clearTimeout(timeoutId);
-
     allCollections = results.flat().filter((item) => item && item.subject);
 
     allCollections.forEach((item: any) => {
@@ -46,10 +40,8 @@ try {
         }
     });
 } catch (error) {
-    console.log("💡 [Bangumi Builder] 提示：本地直连超时，启用空数据保护。部署到线上 Cloudflare 时会完美拉取。");
+    console.log("💡 [Bangumi Builder] 提示：获取数据异常。");
 }
-
-const serializedData = JSON.stringify(allCollections);
 ---
 
 <MainGridLayout title="番剧观测" description="我的追番记录墙">
@@ -65,188 +57,112 @@ const serializedData = JSON.stringify(allCollections);
         </div>
 
         <div class="flex flex-nowrap overflow-x-auto whitespace-nowrap gap-1.5 p-2 bg-neutral-200/20 dark:bg-black/10 rounded-2xl border border-neutral-200/20 dark:border-neutral-700/10 shadow-inner [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <button data-status-tab="all" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+            <button data-status-tab="all" class="status-tab-btn active flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-[var(--primary)] text-white shadow-sm scale-105">
                 全部明细 ✨ (<span>{allCollections.length}</span>)
             </button>
-            <button data-status-tab="3" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+            <button data-status-tab="3" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm">
                 正在心动 💓 (<span>{statusCounts['3']}</span>)
             </button>
-            <button data-status-tab="2" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+            <button data-status-tab="2" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm">
                 完结撒花 🎉 (<span>{statusCounts['2']}</span>)
             </button>
-            <button data-status-tab="1" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+            <button data-status-tab="1" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm">
                 预定入坑 📺 (<span>{statusCounts['1']}</span>)
             </button>
-            <button data-status-tab="4" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+            <button data-status-tab="4" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm">
                 时空凝结 🕰️ (<span>{statusCounts['4']}</span>)
             </button>
-            <button data-status-tab="5" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+            <button data-status-tab="5" class="status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm">
                 物理斩断 💔 (<span>{statusCounts['5']}</span>)
             </button>
         </div>
 
-        <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-4" id="bangumi-grid" data-bangumi={serializedData}></div>
+        <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-4" id="bangumi-grid">
+            {allCollections.length === 0 ? (
+                    <div class="col-span-full text-center py-12 text-neutral-400 text-xs tracking-widest">此处空空如也，快去捕捉新的奇迹吧 ✨</div>
+            ) : (
+                allCollections.map((item: any) => {
+                    const statusInfo = COLLECTION_TYPES.find(c => c.id === item.type);
+                    const name = item.subject.name_cn || item.subject.name || 'Anime';
+                    const score = item.subject.score ? item.subject.score.toFixed(1) : '暂无';
 
-        <div id="bangumi-pagination" class="flex justify-center items-center gap-4 mt-4 hidden">
-            <button id="btn-prev" class="px-4 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-neutral-200/40 dark:bg-neutral-800/40 text-neutral-600 dark:text-neutral-400 border border-neutral-200/20 dark:border-neutral-700/20 hover:bg-[var(--primary)] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400 shadow-sm">
-                上一页 👈
-            </button>
-            <span id="page-indicator" class="text-xs font-black text-neutral-500 dark:text-neutral-400 tracking-widest bg-neutral-200/20 dark:bg-black/10 px-3 py-1 rounded-lg border border-neutral-200/10">
-                1 / 1
-            </span>
-            <button id="btn-next" class="px-4 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-neutral-200/40 dark:bg-neutral-800/40 text-neutral-600 dark:text-neutral-400 border border-neutral-200/20 dark:border-neutral-700/20 hover:bg-[var(--primary)] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400 shadow-sm">
-                下一页 👉
-            </button>
+                    const rawImg = item.subject.images?.large || '';
+                    const img = rawImg ? `https://images.weserv.nl/?url=${rawImg}` : '';
+
+                    return (
+                            <a href={`https://bgm.tv/subject/${item.subject.id}`} target="_blank" rel="noopener noreferrer"
+                               class="bangumi-card block group relative aspect-[2/3] rounded-2xl overflow-hidden bg-neutral-200/50 dark:bg-neutral-800/50 shadow-sm border border-neutral-200/30 dark:border-neutral-700/30 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-md hover:border-[var(--primary)]/40 cursor-pointer"
+                               data-status={item.type}>
+
+                            <span class={`absolute top-2 left-2 z-10 px-2 py-0.5 text-[9px] font-black rounded-md tracking-wider shadow-sm ${statusInfo?.color || 'bg-neutral-500'}`}>
+                                {statusInfo?.label}
+                            </span>
+
+                                <img src={img} alt={name} class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" referrerpolicy="no-referrer" />
+
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 text-left">
+                                    <h3 class="text-white text-xs font-bold line-clamp-2 mb-1 leading-snug tracking-wide">{name}</h3>
+                                    <div class="flex items-center gap-1 bg-white/10 dark:bg-black/20 px-1.5 py-0.5 rounded w-fit backdrop-blur-sm border border-white/5">
+                                        <svg class="w-3 h-3 text-amber-300 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                        <span class="text-amber-300 text-[10px] font-black tracking-wider">{score}</span>
+                                    </div>
+                                </div>
+                            </a>
+                    )
+                })
+            )}
         </div>
 
     </div>
 </MainGridLayout>
 
+<style>
+    /* 配合轻量级 JS，一键隐藏不属于当前分类的卡片 */
+    .bangumi-card.hidden {
+        display: none !important;
+    }
+</style>
+
 <script>
-    // 🚀 精准制导：使用 Astro 官方的页面加载钩子，完美应对所有无刷新跳转！
-    document.addEventListener('astro:page-load', () => {
-        const gridEl = document.getElementById('bangumi-grid');
-        if (!gridEl) return; // 如果读者不在番剧页面，安静退出
+    // 这段脚本只负责纯粹的“点击按钮 -> 修改 CSS 样式”，极致的零延迟！
+    function setupBangumiFilters() {
+        const tabBtns = document.querySelectorAll('.status-tab-btn');
+        const cards = document.querySelectorAll('.bangumi-card');
 
-        const rawData = gridEl.dataset.bangumi;
-        if (!rawData) return;
-        const allCollections = JSON.parse(rawData);
+        if (!tabBtns.length) return;
 
-        const ITEMS_PER_PAGE = 9;
-        const COLLECTION_TYPES = [
-            { id: 3, label: '正在心动', color: 'bg-emerald-400 dark:bg-emerald-500 text-white' },
-            { id: 2, label: '完结撒花', color: 'bg-pink-400 dark:bg-pink-500 text-white' },
-            { id: 1, label: '预定入坑', color: 'bg-sky-400 dark:bg-sky-500 text-white' },
-            { id: 4, label: '时空凝结', color: 'bg-purple-400 dark:bg-purple-500 text-white' },
-            { id: 5, label: '物理斩断', color: 'bg-neutral-400 text-white' }
-        ];
-
-        let currentStatus = "all";
-        let currentPage = 1;
-
-        // ✨ 严谨的 TypeScript 元素捕获
-        let prevBtn = document.getElementById('btn-prev') as HTMLButtonElement | null;
-        let nextBtn = document.getElementById('btn-next') as HTMLButtonElement | null;
-        const indicator = document.getElementById('page-indicator');
-        const paginationBar = document.getElementById('bangumi-pagination');
-        let tabBtns = document.querySelectorAll('.status-tab-btn');
-
-        // 🛡️ 核心防重复绑定：在 SPA 路由下，通过克隆节点清洗掉所有的旧事件，避免点击一次翻两页
-        if (prevBtn) {
-            const newPrev = prevBtn.cloneNode(true) as HTMLButtonElement;
-            prevBtn.replaceWith(newPrev);
-            prevBtn = newPrev;
-        }
-        if (nextBtn) {
-            const newNext = nextBtn.cloneNode(true) as HTMLButtonElement;
-            nextBtn.replaceWith(newNext);
-            nextBtn = newNext;
-        }
-        tabBtns.forEach((btn) => {
+        // 避免单页路由导致的重复绑定
+        tabBtns.forEach(btn => {
             const newBtn = btn.cloneNode(true) as HTMLElement;
             btn.replaceWith(newBtn);
         });
-        tabBtns = document.querySelectorAll('.status-tab-btn'); // 重新获取干干净净的按钮组
 
-        const renderGrid = (itemsToRender: any[]) => {
-            if (itemsToRender.length === 0) {
-                gridEl.innerHTML = `<div class="col-span-full text-center py-12 text-neutral-400 text-xs tracking-widest">此处空空如也，快去捕捉新的奇迹吧 ✨</div>`;
-                return;
-            }
+        const newTabBtns = document.querySelectorAll('.status-tab-btn');
 
-            gridEl.innerHTML = itemsToRender.map((item: any) => {
-                const statusInfo = COLLECTION_TYPES.find(c => c.id === item.type);
-                const name = item.subject.name_cn || item.subject.name || 'Anime';
-                const score = item.subject.score ? item.subject.score.toFixed(1) : '暂无';
-
-                // 🚀 使用 Weserv 全球极速图像缓存，防盗链且秒开
-                const rawImg = item.subject.images?.large || '';
-                const img = rawImg ? `https://images.weserv.nl/?url=${rawImg}` : '';
-
-                return `
-                    <a href="https://bgm.tv/subject/${item.subject.id}" target="_blank" rel="noopener noreferrer" class="bangumi-card block group relative aspect-[2/3] rounded-2xl overflow-hidden bg-neutral-200/50 dark:bg-neutral-800/50 shadow-sm border border-neutral-200/30 dark:border-neutral-700/30 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-md hover:border-[var(--primary)]/40 cursor-pointer">
-                        <span class="absolute top-2 left-2 z-10 px-2 py-0.5 text-[9px] font-black rounded-md tracking-wider shadow-sm ${statusInfo?.color || 'bg-neutral-500'}">
-                            ${statusInfo?.label}
-                        </span>
-                        <img src="${img}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" decoding="async" referrerpolicy="no-referrer" />
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 text-left">
-                            <h3 class="text-white text-xs font-bold line-clamp-2 mb-1 leading-snug tracking-wide">${name}</h3>
-                            <div class="flex items-center gap-1 bg-white/10 dark:bg-black/20 px-1.5 py-0.5 rounded w-fit backdrop-blur-sm border border-white/5">
-                                <svg class="w-3 h-3 text-amber-300 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                <span class="text-amber-300 text-[10px] font-black tracking-wider">${score}</span>
-                            </div>
-                        </div>
-                    </a>
-                `;
-            }).join('');
-        };
-
-        const updateUI = () => {
-            const filteredCollections = currentStatus === "all"
-                ? allCollections
-                : allCollections.filter((item: any) => String(item.type) === currentStatus);
-
-            const totalPages = Math.ceil(filteredCollections.length / ITEMS_PER_PAGE) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-
-            const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-            const endIdx = startIdx + ITEMS_PER_PAGE;
-            const pageItems = filteredCollections.slice(startIdx, endIdx);
-
-            renderGrid(pageItems);
-
-            if (prevBtn) prevBtn.disabled = (currentPage === 1);
-            if (nextBtn) nextBtn.disabled = (currentPage === totalPages);
-            if (indicator) indicator.textContent = `${currentPage} / ${totalPages}`;
-
-            if (paginationBar) {
-                if (totalPages <= 1) paginationBar.classList.add('hidden');
-                else paginationBar.classList.remove('hidden');
-            }
-
-            tabBtns.forEach((btn: Element) => {
-                const htmlBtn = btn as HTMLElement;
-                if (htmlBtn.dataset.statusTab === currentStatus) {
-                    htmlBtn.className = "status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-[var(--primary)] text-white shadow-sm scale-105";
-                } else {
-                    htmlBtn.className = "status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm";
-                }
-            });
-        };
-
-        // 重新绑定全新的事件监听
-        tabBtns.forEach((btn: Element) => {
+        newTabBtns.forEach(btn => {
             btn.addEventListener('click', (e: Event) => {
                 const target = e.currentTarget as HTMLElement;
-                if (target && target.dataset.statusTab) {
-                    currentStatus = target.dataset.statusTab;
-                    currentPage = 1;
-                    updateUI();
-                }
+                const statusType = target.dataset.statusTab;
+
+                // 1. 改变按钮选中样式
+                newTabBtns.forEach(b => {
+                    b.className = "status-tab-btn flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 hover:shadow-sm";
+                });
+                target.className = "status-tab-btn active flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-[var(--primary)] text-white shadow-sm scale-105";
+
+                // 2. 秒切卡片过滤
+                cards.forEach(card => {
+                    const htmlCard = card as HTMLElement;
+                    if (statusType === 'all' || htmlCard.dataset.status === statusType) {
+                        htmlCard.classList.remove('hidden');
+                    } else {
+                        htmlCard.classList.add('hidden');
+                    }
+                });
             });
         });
+    }
 
-        prevBtn?.addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
-                updateUI();
-                gridEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        });
-
-        nextBtn?.addEventListener('click', () => {
-            const filteredCollections = currentStatus === "all"
-                ? allCollections
-                : allCollections.filter((item: any) => String(item.type) === currentStatus);
-            const totalPages = Math.ceil(filteredCollections.length / ITEMS_PER_PAGE) || 1;
-            if (currentPage < totalPages) {
-                currentPage++;
-                updateUI();
-                gridEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        });
-
-        // 🚀 初始化起飞
-        updateUI();
-    });
+    // 完美挂载，保障无缝跳转
+    document.addEventListener('astro:page-load', setupBangumiFilters);
 </script>
