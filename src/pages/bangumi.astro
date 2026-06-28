@@ -43,6 +43,7 @@ try {
 <MainGridLayout title="番剧观测" description="我的追番记录墙">
     <div class="card-base w-full p-6 md:p-8 flex flex-col gap-6 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] dark:bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:20px_20px]">
 
+        <!-- Header -->
         <div class="text-center my-2 flex flex-col gap-2">
             <h1 class="text-2xl sm:text-3xl font-black bg-gradient-to-r from-emerald-400 via-pink-400 to-orange-400 bg-clip-text text-transparent tracking-wider drop-shadow-sm">
                 恶作剧覆盖下的绝对偏爱方程式
@@ -52,6 +53,7 @@ try {
             </p>
         </div>
 
+        <!-- 过滤器 -->
         <div class="flex flex-nowrap overflow-x-auto whitespace-nowrap gap-1.5 p-2 bg-neutral-200/20 dark:bg-black/10 rounded-2xl border border-neutral-200/20 dark:border-neutral-700/10 shadow-inner [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button data-status="all" class="tab-btn bg-[var(--primary)] text-white flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer shadow-sm scale-105">
                 全部明细 ✨ ({allCollections.length})
@@ -73,7 +75,8 @@ try {
             </button>
         </div>
 
-        <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+        <!-- 3行3列主网格墙 -->
+        <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-4" id="bangumi-grid">
             {allCollections.length === 0 ? (
                     <div class="col-span-full text-center py-12 text-neutral-400 text-xs tracking-widest">此处空空如也，快去捕捉新的奇迹吧 ✨</div>
             ) : (
@@ -93,7 +96,7 @@ try {
                             </span>
                                 <img src={img} alt={name} class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" referrerpolicy="no-referrer" />
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 text-left">
-                                    <h3 class="text-white text-xs font-bold line-clamp-2 mb-1 leading-snug tracking-wide">{name}</h3>
+                                    <h3 class="text-white text-xs font-bold line-clamp-2 mb-1 leading-snug tracking-wide">${name}</h3>
                                     <div class="flex items-center gap-1 bg-white/10 dark:bg-black/20 px-1.5 py-0.5 rounded w-fit backdrop-blur-sm border border-white/5">
                                         <svg class="w-3 h-3 text-amber-300 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                                         <span class="text-amber-300 text-[10px] font-black tracking-wider">{score}</span>
@@ -104,46 +107,135 @@ try {
                 })
             )}
         </div>
+
+        <!-- 纯静态分页控制器 -->
+        <div id="bangumi-pagination" class="flex justify-center items-center gap-4 mt-4">
+            <button id="btn-prev" class="px-4 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-neutral-200/40 dark:bg-neutral-800/40 text-neutral-600 dark:text-neutral-400 border border-neutral-200/20 dark:border-neutral-700/20 hover:bg-[var(--primary)] hover:text-white disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400 shadow-sm">
+                上一页 👈
+            </button>
+            <span id="page-indicator" class="text-xs font-black text-neutral-500 dark:text-neutral-400 tracking-widest bg-neutral-200/20 dark:bg-black/10 px-3 py-1 rounded-lg border border-neutral-200/10">
+                1 / 1
+            </span>
+            <button id="btn-next" class="px-4 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-neutral-200/40 dark:bg-neutral-800/40 text-neutral-600 dark:text-neutral-400 border border-neutral-200/20 dark:border-neutral-700/20 hover:bg-[var(--primary)] hover:text-white disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400 shadow-sm">
+                下一页 👉
+            </button>
+        </div>
+
     </div>
 </MainGridLayout>
 
 <script>
-    // 作者原汁原味的极简分类过滤脚本，只控制显示隐藏
-    function initBangumiFilter() {
+    function initBangumiFilterAndPagination() {
         const tabs = document.querySelectorAll('.tab-btn');
-        const items = document.querySelectorAll('.bangumi-item');
+        let prevBtn = document.getElementById('btn-prev') as HTMLButtonElement | null;
+        let nextBtn = document.getElementById('btn-next') as HTMLButtonElement | null;
+        const indicator = document.getElementById('page-indicator');
+        const paginationBar = document.getElementById('bangumi-pagination');
+        const grid = document.getElementById('bangumi-grid');
 
-        if (!tabs.length) return;
+        if (!tabs.length || !grid) return;
 
-        tabs.forEach(tab => {
-            // 清理旧事件绑定
-            const newTab = tab.cloneNode(true) as HTMLElement;
-            tab.replaceWith(newTab);
-        });
+        // 🛡️ 强制执行一次重绘，物理根治 Swup 引起的 3*3 网格布局错位问题
+        grid.style.display = 'none';
+        grid.offsetHeight;
+        grid.style.display = '';
 
+        // 分页核心变量
+        const ITEMS_PER_PAGE = 9; // 🔥 锁死 3行3列共9个番剧
+        let currentStatus = 'all';
+        let currentPage = 1;
+
+        // 清洗旧事件绑定，防止单页路由反复叠加导致点击混乱
+        if (prevBtn) { const n = prevBtn.cloneNode(true) as HTMLButtonElement; prevBtn.replaceWith(n); prevBtn = n; }
+        if (nextBtn) { const n = nextBtn.cloneNode(true) as HTMLButtonElement; nextBtn.replaceWith(n); nextBtn = n; }
+        tabs.forEach(tab => { const n = tab.cloneNode(true) as HTMLElement; tab.replaceWith(n); });
+
+        // 核心更新渲染逻辑：仅用 CSS 隐藏/显示节点，速度拉满
+        function updateDisplay() {
+            const items = document.querySelectorAll('.bangumi-item');
+
+            // 1. 筛选出当前分类下的有效节点
+            const filteredItems: HTMLElement[] = [];
+            items.forEach(item => {
+                const htmlItem = item as HTMLElement;
+                if (currentStatus === 'all' || htmlItem.dataset.type === currentStatus) {
+                    filteredItems.push(htmlItem);
+                } else {
+                    htmlItem.style.display = 'none'; // 属于其他分类的直接出局
+                }
+            });
+
+            // 2. 计算当前分页
+            const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+            const endIdx = startIdx + ITEMS_PER_PAGE;
+
+            // 3. 控制符合当前页面的 9 个卡片显示，其余的隐藏
+            filteredItems.forEach((htmlItem, index) => {
+                if (index >= startIdx && index < endIdx) {
+                    htmlItem.style.display = 'block'; // 本页的 3*3 卡片闪现出来
+                } else {
+                    htmlItem.style.display = 'none';
+                }
+            });
+
+            // 4. 更新分页控制条状态
+            if (prevBtn) prevBtn.disabled = (currentPage === 1);
+            if (nextBtn) nextBtn.disabled = (currentPage === totalPages);
+            if (indicator) indicator.textContent = `${currentPage} / ${totalPages}`;
+            if (paginationBar) {
+                if (totalPages <= 1) paginationBar.style.display = 'none';
+                else paginationBar.style.display = 'flex';
+            }
+        }
+
+        // 绑定分类切换事件
         document.querySelectorAll('.tab-btn').forEach(tab => {
             tab.addEventListener('click', (e) => {
                 const target = e.currentTarget as HTMLElement;
-                const status = target.dataset.status;
+                currentStatus = target.dataset.status || 'all';
+                currentPage = 1; // 切换分类时重置回第一页
 
+                // 切换按钮的选中高亮特效
                 document.querySelectorAll('.tab-btn').forEach(t => {
                     t.className = "tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer";
                 });
                 target.className = "tab-btn bg-[var(--primary)] text-white flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer shadow-sm scale-105";
 
-                items.forEach(item => {
-                    const htmlItem = item as HTMLElement;
-                    if (status === 'all' || htmlItem.dataset.type === status) {
-                        htmlItem.style.display = 'block';
-                    } else {
-                        htmlItem.style.display = 'none';
-                    }
-                });
+                updateDisplay();
             });
         });
+
+        // 绑定翻页按钮点击事件
+        prevBtn?.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                updateDisplay();
+                grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        });
+
+        nextBtn?.addEventListener('click', () => {
+            const items = document.querySelectorAll('.bangumi-item');
+            const filteredCount = Array.from(items).filter(i => currentStatus === 'all' || (i as HTMLElement).dataset.type === currentStatus).length;
+            const totalPages = Math.ceil(filteredCount / ITEMS_PER_PAGE) || 1;
+
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateDisplay();
+                grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        });
+
+        // 初始化第一次执行
+        updateDisplay();
     }
 
-    initBangumiFilter();
-    document.addEventListener('swup:contentReplaced', initBangumiFilter);
-    document.addEventListener('astro:page-load', initBangumiFilter);
+    // 完美挂载单页路由的各种生命周期，确保任何时候点击进来都是 3*3 九宫格且事件灵敏
+    initBangumiFilterAndPagination();
+    document.addEventListener('swup:contentReplaced', initBangumiFilterAndPagination);
+    document.addEventListener('astro:page-load', initBangumiFilterAndPagination);
 </script>
