@@ -8,10 +8,9 @@ on:
   workflow_dispatch: # 允许你在 GitHub 网页上直接手动点按钮触发
 
 jobs:
-  build:
+  trigger-build:
     runs-on: ubuntu-latest
     steps:
-      - name: 敲击 Cloudflare 重新打包
+      - name: 触发 Cloudflare Pages 构建
         run: |
-          # 请把下面引号里的链接，换成你刚刚在 Cloudflare 复制的那串 URL
           curl -X POST "https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/c60a5cc3-5002-46e3-be7d-a4d82d8ffc85"
