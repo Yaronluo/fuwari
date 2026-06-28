@@ -25,28 +25,40 @@ if (!fs.existsSync(cacheDir)) {
     fs.mkdirSync(cacheDir, { recursive: true });
 }
 
-// 💾 【Node.js 流式下载器】
+// 💾 【高伪装本地化下载器：彻底斩断防盗链拦截】
 async function downloadCover(url: string, filename: string) {
     const targetPath = path.join(cacheDir, filename);
     const relativeUrl = `/bangumi-covers/${filename}`;
 
+    // 如果之前已经成功下载过了，直接用本地资源
     if (fs.existsSync(targetPath)) return relativeUrl;
 
     try {
-        const res = await fetch(url, { headers: { 'User-Agent': 'Fuwari-Bangumi-Image-Downloader/1.0' } });
-        if (!res.ok) return url;
+        // ✨ 终极伪装补丁：带上与官方完美契合的 UA 以及来源，强行破除防盗链防护栏
+        const res = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': 'https://bgm.tv/',
+                'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8'
+            }
+        });
+        if (!res.ok) {
+            console.error(`[Cover Download] 图片请求被拒，状态码: ${res.status}`);
+            return url;
+        }
         const buffer = await res.arrayBuffer();
-        // ✨ 【核心修正】：使用严格兼容的 Uint8Array，彻底消灭第 40 行的 Buffer 类型报错
         fs.writeFileSync(targetPath, new Uint8Array(buffer));
         return relativeUrl;
     } catch (e) {
+        console.error(`[Cover Download] 下载异常:`, e);
         return url;
     }
 }
 
 try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    // ⏱️ 线上下载海报需要一点时间，给 Cloudflare 预留 15 秒极度充裕的下载缓冲带
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     const fetchPromises = COLLECTION_TYPES.map(async (cType) => {
         const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${cType.id}&limit=50`;
@@ -67,7 +79,7 @@ try {
 
     const rawCollections = results.flat().filter((item) => item && item.subject);
 
-    // 🌊 核心并发将海报源源不断下载到本地
+    // 🌊 核心逻辑：在 Cloudflare 构建期把图片完美下载到你的静态站资产里
     allCollections = await Promise.all(rawCollections.map(async (item: any) => {
         const rawImgUrl = item.subject.images?.large || '';
         let localImgUrl = rawImgUrl;
@@ -91,7 +103,7 @@ try {
         }
     });
 } catch (error) {
-    console.log("💡 [Bangumi Builder] 提示：本地 Node.js 进程直连超时，启用保护。部署到线上 Cloudflare 会完美拉取数据。");
+    console.log("💡 [Bangumi Builder] 异常报错:", error);
 }
 
 const serializedData = JSON.stringify(allCollections);
@@ -180,6 +192,8 @@ const serializedData = JSON.stringify(allCollections);
             const statusInfo = COLLECTION_TYPES.find(c => c.id === item.type);
             const name = item.subject.name_cn || item.subject.name || 'Anime';
             const score = item.subject.score ? item.subject.score.toFixed(1) : '暂无';
+
+            // 🔒 完美的就地读取：无感调取已经完美躺在 Cloudflare 空间的本地化图片资产
             const img = item.localCover || '';
 
             return `
@@ -187,7 +201,7 @@ const serializedData = JSON.stringify(allCollections);
                     <span class="absolute top-2 left-2 z-10 px-2 py-0.5 text-[9px] font-black rounded-md tracking-wider shadow-sm ${statusInfo?.color || 'bg-neutral-500'}">
                         ${statusInfo?.label}
                     </span>
-                    <img src="${img}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" referrerpolicy="no-referrer" />
+                    <img src="${img}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" />
                     <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 text-left">
                         <h3 class="text-white text-xs font-bold line-clamp-2 mb-1 leading-snug tracking-wide">${name}</h3>
                         <div class="flex items-center gap-1 bg-white/10 dark:bg-black/20 px-1.5 py-0.5 rounded w-fit backdrop-blur-sm border border-white/5">
