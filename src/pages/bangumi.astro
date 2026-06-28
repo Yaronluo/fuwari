@@ -19,7 +19,7 @@ let statusCounts: Record<string, number> = { '3': 0, '2': 0, '1': 0, '4': 0, '5'
 
 try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 给构建期充分的请求时间
 
     const fetchPromises = COLLECTION_TYPES.map(async (cType) => {
         const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${cType.id}&limit=50`;
@@ -38,16 +38,17 @@ try {
     const results = await Promise.all(fetchPromises);
     clearTimeout(timeoutId);
 
+    // 过滤并扁平化数据
     allCollections = results.flat().filter((item) => item && item.subject);
 
-    // 📊 统计真实数量
+    // 📊 统计各个分类的真实数量
     allCollections.forEach((item: any) => {
         if (String(item.type) in statusCounts) {
             statusCounts[String(item.type)]++;
         }
     });
 } catch (error) {
-    console.log("💡 [Bangumi Builder] 提示：本地 Node.js 进程直连超时，启用空数据保护。部署到线上 Cloudflare 会完美拉取数据。");
+    console.log("💡 [Bangumi Builder] 提示：本地直连超时，启用空数据保护。部署到线上 Cloudflare 时会完美拉取。");
 }
 
 // 序列化注入给前端切页使用
@@ -138,10 +139,9 @@ const serializedData = JSON.stringify(allCollections);
             const name = item.subject.name_cn || item.subject.name || 'Anime';
             const score = item.subject.score ? item.subject.score.toFixed(1) : '暂无';
 
-            // 🛡️ 【依照教程修正】：放弃不切实际的本地沙盒下载，改用业界标准的「防绕路防盗链加速网关」
-            // 剔除可能失效的普通域名，采用 p.bgm.tv 配合 referrerpolicy 的黄金组合
-            const originalImg = item.subject.images?.large || '';
-            const img = originalImg.replace('lain.bgm.tv', 'p.bgm.tv');
+            // 🚀 【核心修复】完美复刻原作者的 weserv 全球图像代理缓存机制，彻底绕开防盗链！
+            const rawImg = item.subject.images?.large || '';
+            const img = rawImg ? `https://images.weserv.nl/?url=${rawImg}` : '';
 
             return `
                 <a href="https://bgm.tv/subject/${item.subject.id}" target="_blank" rel="noopener noreferrer" class="bangumi-card block group relative aspect-[2/3] rounded-2xl overflow-hidden bg-neutral-200/50 dark:bg-neutral-800/50 shadow-sm border border-neutral-200/30 dark:border-neutral-700/30 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-md hover:border-[var(--primary)]/40 cursor-pointer">
@@ -221,5 +221,6 @@ const serializedData = JSON.stringify(allCollections);
         });
     }
 
+    // 🚀 初始化静态注入与渲染
     initStaticBangumi();
 </script>
