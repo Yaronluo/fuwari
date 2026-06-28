@@ -121,121 +121,93 @@ try {
 </MainGridLayout>
 
 <script>
-    function initBangumiFilterAndPagination() {
+    function initStaticPagination() {
+        const grid = document.getElementById('bangumi-grid');
+        const items = document.querySelectorAll('.bangumi-item');
         const tabs = document.querySelectorAll('.tab-btn');
-        let prevBtn = document.getElementById('btn-prev') as HTMLButtonElement | null;
-        let nextBtn = document.getElementById('btn-next') as HTMLButtonElement | null;
+        const prevBtn = document.getElementById('btn-prev') as HTMLButtonElement | null;
+        const nextBtn = document.getElementById('btn-next') as HTMLButtonElement | null;
         const indicator = document.getElementById('page-indicator');
         const paginationBar = document.getElementById('bangumi-pagination');
-        const grid = document.getElementById('bangumi-grid');
 
-        if (!tabs.length || !grid) return false; // 🛡️ 如果没抓到节点，返回 false 报告异常
+        if (!grid || !items.length) return;
 
-        // 🛡️ 物理重绘网格布局，确保排版归位
-        grid.style.display = 'none';
-        grid.offsetHeight;
-        grid.style.display = '';
-
-        const ITEMS_PER_PAGE = 9;
+        const ITEMS_PER_PAGE = 9; // 3行3列固定9个
         let currentStatus = 'all';
         let currentPage = 1;
 
-        if (prevBtn) { const n = prevBtn.cloneNode(true) as HTMLButtonElement; prevBtn.replaceWith(n); prevBtn = n; }
-        if (nextBtn) { const n = nextBtn.cloneNode(true) as HTMLButtonElement; nextBtn.replaceWith(n); nextBtn = n; }
-        tabs.forEach(tab => { const n = tab.cloneNode(true) as HTMLElement; tab.replaceWith(n); });
+        // 核心计算显示逻辑
+        function render() {
+            const visibleItems: HTMLElement[] = [];
 
-        function updateDisplay() {
-            const items = document.querySelectorAll('.bangumi-item');
-            const filteredItems: HTMLElement[] = [];
-
+            // 1. 分类隐藏
             items.forEach(item => {
-                const htmlItem = item as HTMLElement;
-                if (currentStatus === 'all' || htmlItem.dataset.type === currentStatus) {
-                    filteredItems.push(htmlItem);
+                const el = item as HTMLElement;
+                if (currentStatus === 'all' || el.dataset.type === currentStatus) {
+                    visibleItems.push(el);
                 } else {
-                    htmlItem.style.display = 'none';
+                    el.style.display = 'none';
                 }
             });
 
-            const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE) || 1;
+            // 2. 边界约束计算
+            const totalPages = Math.ceil(visibleItems.length / ITEMS_PER_PAGE) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
             if (currentPage < 1) currentPage = 1;
 
-            const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-            const endIdx = startIdx + ITEMS_PER_PAGE;
+            const start = (currentPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
 
-            filteredItems.forEach((htmlItem, index) => {
-                if (index >= startIdx && index < endIdx) {
-                    htmlItem.style.display = 'block';
+            // 3. 严格分拨 3x3 页面可见元素
+            visibleItems.forEach((el, index) => {
+                if (index >= start && index < end) {
+                    el.style.display = 'block'; // 完美的块级网格内容显现
                 } else {
-                    htmlItem.style.display = 'none';
+                    el.style.display = 'none';
                 }
             });
 
+            // 4. 控制栏同步
             if (prevBtn) prevBtn.disabled = (currentPage === 1);
             if (nextBtn) nextBtn.disabled = (currentPage === totalPages);
             if (indicator) indicator.textContent = `${currentPage} / ${totalPages}`;
             if (paginationBar) {
-                if (totalPages <= 1) paginationBar.style.display = 'none';
-                else paginationBar.style.display = 'flex';
+                paginationBar.style.display = totalPages <= 1 ? 'none' : 'flex';
             }
         }
 
-        document.querySelectorAll('.tab-btn').forEach(tab => {
+        // 分类页签点击劫持
+        tabs.forEach(tab => {
             tab.addEventListener('click', (e) => {
                 const target = e.currentTarget as HTMLElement;
                 currentStatus = target.dataset.status || 'all';
                 currentPage = 1;
 
-                document.querySelectorAll('.tab-btn').forEach(t => {
-                    t.className = "tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer";
-                });
+                tabs.forEach(t => t.className = "tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer");
                 target.className = "tab-btn bg-[var(--primary)] text-white flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer shadow-sm scale-105";
 
-                updateDisplay();
+                render();
             });
         });
 
+        // 左右翻页动作
         prevBtn?.addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
-                updateDisplay();
-                grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
+            if (currentPage > 1) { currentPage--; render(); grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
         });
 
         nextBtn?.addEventListener('click', () => {
-            const items = document.querySelectorAll('.bangumi-item');
-            const filteredCount = Array.from(items).filter(i => currentStatus === 'all' || (i as HTMLElement).dataset.type === currentStatus).length;
-            const totalPages = Math.ceil(filteredCount / ITEMS_PER_PAGE) || 1;
-
-            if (currentPage < totalPages) {
+            if (currentPage < Math.ceil(Array.from(items).filter(i => currentStatus === 'all' || (i as HTMLElement).dataset.type === currentStatus).length / ITEMS_PER_PAGE)) {
                 currentPage++;
-                updateDisplay();
+                render();
                 grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         });
 
-        updateDisplay();
-        return true; // 初始化成功
+        render();
     }
 
-    // 🚀 终极杀招：DOM 动态监视重置引擎
-    // 不管 Swup 的路由缓存怎么卡、时间差多离谱，只要发现进入了包含番剧墙的 DOM，立刻无条件激活初始化
-    const startObserver = () => {
-        if (initBangumiFilterAndPagination()) return;
-
-        const observer = new MutationObserver((_, obs) => {
-            if (initBangumiFilterAndPagination()) {
-                obs.disconnect(); // 一旦精准捕获并成功渲染，立刻解除监听，释放内存
-            }
-        });
-
-        observer.observe(document.body, { childList: true, subtree: true });
-    };
-
-    // 多重生命周期夹击挂载，确保 100% 毫无死角
-    startObserver();
-    document.addEventListener('swup:contentReplaced', startObserver);
-    document.addEventListener('astro:page-load', startObserver);
+    // ⚡ 【核心修正】彻底契合新版 Fuwari / Astro 原生单页视图过渡标准周期
+    // 告别一切不稳定的临时宏任务，让事件在页面渲染好的第一时刻直接安全唤醒！
+    initStaticPagination();
+    document.addEventListener('astro:page-load', initStaticPagination);
 </script>
