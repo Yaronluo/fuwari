@@ -123,12 +123,12 @@
 
 		if (prevBtn) {
 			prevBtn.addEventListener('click', handlePrevClick);
-			eventListeners.push(() => prevBtn.removeEventListener('click', handlePrevClick));
+			eventListeners.push(() => prevBtn?.removeEventListener('click', handlePrevClick));
 		}
 
 		if (nextBtn) {
 			nextBtn.addEventListener('click', handleNextClick);
-			eventListeners.push(() => nextBtn.removeEventListener('click', handleNextClick));
+			eventListeners.push(() => nextBtn?.removeEventListener('click', handleNextClick));
 		}
 
 		render();

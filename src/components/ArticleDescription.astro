@@ -26,11 +26,7 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
 </div>
 
 <script>
-    // Astro 组件中的 <script> 标签会自动在客户端运行
-    // 使用 requestIdleCallback 确保在 DOM 渲染完成后执行
-
     function initTyping() {
-        // 使用更精确的选择器，避免多组件实例冲突
         const descElements = document.querySelectorAll('.article-description .description-content');
 
         descElements.forEach((descElement: Element) => {
@@ -50,37 +46,39 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
             descElement.classList.remove('typing-complete');
 
             let index = 0;
-            const typeSpeed = 25; // 打字速度（毫秒）
+            const typeSpeed = 25;
 
             function typeWriter() {
-                if (index < text.length) {
-                    descElement.textContent += text.charAt(index);
+                if (index < text!.length) {
+                    descElement.textContent += text!.charAt(index);
                     index++;
                     setTimeout(typeWriter, typeSpeed);
                 } else {
-                    // 打字完成后，添加类来隐藏光标
                     descElement.classList.add('typing-complete');
                 }
             }
 
-            // 立即开始打字效果
             typeWriter();
         });
     }
 
-    // 确保在 DOM 渲染完成后执行
-    if (typeof document !== 'undefined') {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initTyping);
-        } else {
-            // DOM 已加载，直接执行
-            if (typeof requestIdleCallback !== 'undefined') {
-                requestIdleCallback(initTyping);
-            } else {
-                // 浏览器不支持 requestIdleCallback，使用 setTimeout 降级
-                setTimeout(initTyping, 0);
-            }
+    // 首次加载时执行
+    initTyping();
+
+    // 🎯 关键修复：注册 Swup 钩子，确保页面切换后重新初始化打字机效果
+    function setupSwupHooks() {
+        if (window.swup?.hooks) {
+            window.swup.hooks.on('page:view', () => {
+                // Swup 页面切换完成后重新初始化打字机
+                initTyping();
+            });
         }
+    }
+
+    if (window.swup) {
+        setupSwupHooks();
+    } else {
+        document.addEventListener('swup:enable', setupSwupHooks);
     }
 </script>
 

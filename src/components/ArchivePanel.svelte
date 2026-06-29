@@ -38,7 +38,7 @@ function formatDate(date: Date) {
 }
 
 function formatTag(tagList: string[]) {
-	return tagList.map((t) => `#${t}`).join(" ");
+	return (tagList || []).map((t) => `#${t}`).join(" ");
 }
 
 onMount(async () => {

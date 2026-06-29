@@ -350,7 +350,7 @@ try {
 
 创建 `.env` 文件（已在 `.gitignore` 中，不会提交到 git）：
 
-```env
+```ini
 PUBLIC_BANGUMI_USER=你的用户ID
 PUBLIC_BANGUMI_TOKEN=你的API_Token
 ```
