@@ -26,48 +26,62 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
 </div>
 
 <script>
-    // 🎯 关键修改 2: 使用 client:load 后，不再需要复杂的事件监听
-    // 脚本会自动在组件挂载后执行，直接调用函数即可
+    // Astro 组件中的 <script> 标签会自动在客户端运行
+    // 使用 requestIdleCallback 确保在 DOM 渲染完成后执行
 
     function initTyping() {
-        const descElement = document.querySelector('.article-description .description-content');
+        // 使用更精确的选择器，避免多组件实例冲突
+        const descElements = document.querySelectorAll('.article-description .description-content');
 
-        // 如果找不到元素，或者已经初始化过，则退出
-        if (!descElement || descElement.hasAttribute('data-typed')) {
-            return;
-        }
-
-        // 标记为已初始化，防止重复执行
-        descElement.setAttribute('data-typed', 'true');
-
-        const text = descElement.getAttribute('data-description');
-        if (!text) return;
-
-        // 先清空零宽空格，然后从第一个字开始打
-        descElement.textContent = '';
-        descElement.classList.remove('typing-complete');
-
-        let index = 0;
-        const typeSpeed = 25; // 打字速度（毫秒）
-
-        function typeWriter() {
-            if (!descElement || !text) return;
-            if (index < text.length) {
-                descElement.textContent += text.charAt(index);
-                index++;
-                setTimeout(typeWriter, typeSpeed);
-            } else {
-                // 打字完成后，添加类来隐藏光标
-                descElement.classList.add('typing-complete');
+        descElements.forEach((descElement: Element) => {
+            // 如果已经初始化过，则跳过
+            if (descElement.hasAttribute('data-typed')) {
+                return;
             }
-        }
 
-        // 立即开始打字效果
-        typeWriter();
+            // 标记为已初始化，防止重复执行
+            descElement.setAttribute('data-typed', 'true');
+
+            const text = descElement.getAttribute('data-description');
+            if (!text) return;
+
+            // 先清空零宽空格，然后从第一个字开始打
+            descElement.textContent = '';
+            descElement.classList.remove('typing-complete');
+
+            let index = 0;
+            const typeSpeed = 25; // 打字速度（毫秒）
+
+            function typeWriter() {
+                if (index < text.length) {
+                    descElement.textContent += text.charAt(index);
+                    index++;
+                    setTimeout(typeWriter, typeSpeed);
+                } else {
+                    // 打字完成后，添加类来隐藏光标
+                    descElement.classList.add('typing-complete');
+                }
+            }
+
+            // 立即开始打字效果
+            typeWriter();
+        });
     }
 
-    // 直接调用函数
-    initTyping();
+    // 确保在 DOM 渲染完成后执行
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initTyping);
+        } else {
+            // DOM 已加载，直接执行
+            if (typeof requestIdleCallback !== 'undefined') {
+                requestIdleCallback(initTyping);
+            } else {
+                // 浏览器不支持 requestIdleCallback，使用 setTimeout 降级
+                setTimeout(initTyping, 0);
+            }
+        }
+    }
 </script>
 
 <style>
