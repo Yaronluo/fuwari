@@ -22,8 +22,8 @@ draft: false
 
 1. 访问 [Bangumi](https://bgm.tv/) 并登录你的账号
 2. 记录你的用户 ID（可以在个人主页 URL 中找到，如 `bgm.tv/user/1260226` 中的 `1260226`）
-3. 进入 [access-token(API Token)获取页面](https://next.bgm.tv/demo/access-token)
-4. 创建一个新的个人令牌，获取 `access Token(API Token)`
+3. 进入 [access-token(API_Token)获取页面](https://next.bgm.tv/demo/access-token)
+4. 创建一个新的个人令牌，获取 `access Token(API_Token)`
 
 ### 2. 确认 Fuwari 项目已安装 Svelte
 
@@ -394,7 +394,7 @@ export const navBarConfig: NavBarConfig = {
 
 输入命令`git commit -m "你的提交信息"`提交更改，其中**你的提交信息**可以更改
 
-输入命令`git push`推送更改你的更改到Github
+输入命令`git push`推送你的更改到Github
 
 ## 步骤六：定时同步（可选）
 
