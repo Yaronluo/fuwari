@@ -1,35 +1,38 @@
 ---
 title: Fuwari 拓展 - 添加番剧墙
-published: 2026-06-29
+published: 2026-06-30
 tags:
   - Blog
-  - Tutorial
 description: 在 Fuwari 主题的博客中添加 Bangumi 番剧墙，展示你的追番记录
 category: Technology
 series: 博客
-draft: true
+draft: false
 ---
+# Foreword
+刚刚搭建好的Fuwari主题的Blog太简约，功能太少了？本篇文章将帮助你在你的Blog中加上自己的番剧墙，记录自己的二次元之旅并将其展现在自己的Blog上。这是我第二次分享技术，希望能够帮助到你！
 
-# Fuwari 拓展 - 添加番剧墙
+作者的自言自语：拖延症什么时候能改啊，都过了半年了才憋出两个文章，还说尽量一个月更新一篇...
 
-本教程将帮助你在 Fuwari 主题的博客中添加 Bangumi 番剧墙，展示你的追番记录。
-
+---
+# 前言
+在开始之前你可以先去[我的番剧墙](https://yaronluo.com/bangumi/)看看效果，如果觉得满意的话，那就请跟着我的步骤一步步来实现这个效果吧！
 ## 前置准备
 
 ### 1. 获取 Bangumi API Token
 
 1. 访问 [Bangumi](https://bgm.tv/) 并登录你的账号
-2. 进入 [设置页面](https://bgm.tv/settings/api)
-3. 创建一个新的应用，获取 `Access Token`
-4. 记录你的用户 ID（可以在个人主页 URL 中找到，如 `bgm.tv/user/1260226` 中的 `1260226`）
+2. 记录你的用户 ID（可以在个人主页 URL 中找到，如 `bgm.tv/user/1260226` 中的 `1260226`）
+3. 进入 [access-token(API Token)获取页面](https://next.bgm.tv/demo/access-token)
+4. 创建一个新的个人令牌，获取 `access Token(API Token)`
 
 ### 2. 确认 Fuwari 项目已安装 Svelte
 
 Fuwari 默认已支持 Svelte，无需额外安装。
 
+# 操作步骤
 ## 步骤一：创建番剧墙页面
 
-创建文件 `src/pages/bangumi.astro`：
+创建文件 `src/pages/bangumi.astro`添加：
 
 ```astro
 ---
@@ -194,10 +197,11 @@ try {
     </div>
 </MainGridLayout>
 ```
-
+> [!IMPORTANT]
+> 代码中的你的用户ID要改成自己的！！！
 ## 步骤二：创建交互组件
 
-创建文件 `src/components/BangumiPanel.svelte`：
+创建文件 `src/components/BangumiPanel.svelte`添加：
 
 ```svelte
 <script lang="ts">
@@ -345,30 +349,28 @@ try {
 ```
 
 ## 步骤三：配置环境变量
-
-### 本地开发
-
-创建 `.env` 文件（已在 `.gitignore` 中，不会提交到 git）：
+### 本地操作
+直接在主目录创建 `.env` 文件（已在 `.gitignore` 中，不会提交到 git）添加：
 
 ```ini
 PUBLIC_BANGUMI_USER=你的用户ID
 PUBLIC_BANGUMI_TOKEN=你的API_Token
 ```
 
-### 生产环境（Cloudflare Pages）
+### 生产环境（Cloudflare）
 
-1. 进入 Cloudflare Dashboard → Workers & Pages → 你的项目
-2. 点击 **Settings** → **变量**
-3. 添加以下变量：
+1. 进入 [Cloudflare控制面板(Dashboard)](https://dash.cloudflare.com/) → Workers & Pages → 你的项目
+2. 点击 **设置(Settings)** → **变量和密钥(Variables and secrets)**
+3. 添加以下变量(其它内容保持默认)：
 
-| 变量名 | 值 |
-|-------|-----|
-| `PUBLIC_BANGUMI_USER` | 你的用户ID |
+| 变量名                    | 值           |
+| ---------------------- | ----------- |
+| `PUBLIC_BANGUMI_USER`  | 你的用户ID      |
 | `PUBLIC_BANGUMI_TOKEN` | 你的API_Token |
-
+![](attachments/Fuwari拓展-添加番剧墙.png)
 ## 步骤四：添加导航链接
 
-编辑 `src/config.ts`，在 `navBarConfig.links` 中添加：
+编辑 `src/config.ts`，在 `navBarConfig.links` 中：
 
 ```typescript
 export const navBarConfig: NavBarConfig = {
@@ -382,11 +384,23 @@ export const navBarConfig: NavBarConfig = {
 };
 ```
 
-## 步骤五：定时同步（可选）
+## 步骤五：查看你的番剧墙
 
-如果你使用 Cloudflare Pages，可以设置定时自动更新：
+先在终端输入`pnpm dev`本地预览你的番剧墙
 
-1. 创建 `.github/workflows/bangumi-sync.yml`：
+如果没有问题的话git到你的网站上
+
+输入命令`git add .`添加所有更改
+
+输入命令`git commit -m "你的提交信息"`提交更改，其中**你的提交信息**可以更改
+
+输入命令`git push`推送更改你的更改到Github
+
+## 步骤六：定时同步（可选）
+
+因为番剧墙是静态页面，当你在Bangumi上更新自己的番剧数据时候，页面不会自动更新，所以使用 Cloudflare Pages，可以设置定时自动更新：
+
+1. 主目录创建 `.github/workflows/bangumi-sync.yml`：
 
 ```yaml
 name: 自动同步追番数据
@@ -406,11 +420,12 @@ jobs:
           curl -X POST "https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/你的WebhookURL"
 ```
 
-2. 在 Cloudflare Pages 获取 Webhook URL：
+2. 在  [Cloudflare控制面板(Dashboard)](https://dash.cloudflare.com/) 获取 Webhook URL：
    - 进入你的 Pages 项目
-   - 点击 **Settings** → **Functions & Deployments** → **Create deployment hook**
-   - 复制生成的 URL 并替换到上面的 YAML 文件中
+   - 点击 **设置(Settings)** → **部署挂钩(Deploy hooks)** → **生成一个新的挂钩**
+   - **复制生成的 URL 并替换到上面的 YAML 文件中**(就是上面代码冒号里面内容全部替换为你的)
 
+# 关于这个番剧墙
 ## 功能说明
 
 - **分类筛选**：支持按观看状态筛选（正在心动、完结撒花、预定入坑等）
@@ -441,6 +456,7 @@ jobs:
 1. 确保使用了 Fuwari 主题的 CSS 变量
 2. 检查 Tailwind CSS 类是否正确
 
----
+# 最后
+相信你已经成功在自己的Blog上弄好了自己的番剧墙，感谢你的浏览！我会继续分享更多技术教程的，如果看完这个文章你仍然不懂，或者我的文章有误，你可以通过社交媒体联系我
 
-完成以上步骤后，访问 `/bangumi/` 即可看到你的番剧墙！
+***今天就这样吧，希望下次你还在这里！***

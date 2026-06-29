@@ -1,5 +1,5 @@
 ---
-title: 保姆级教程教你搭建fuwari主题的个人Blog
+title: 保姆级教程教你搭建Fuwari主题的个人Blog
 published: 2025-11-07
 description: 一步步教你从零开始搭建Fuwari主题的个人Blog
 tags:

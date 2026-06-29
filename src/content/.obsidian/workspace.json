@@ -35,8 +35,7 @@
               "title": "Fuwari拓展-添加番剧墙"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -185,15 +184,16 @@
       "command-palette:打开命令面板": false
     }
   },
-  "active": "3172cad30c7e8b0f",
+  "active": "bd8d58244401decd",
   "lastOpenFiles": [
-    "posts/Fuwari拓展-加上番剧墙.md",
     "posts/Fuwari拓展-添加番剧墙.md",
+    "posts/保姆级教程教你搭建个人Blog.md",
     "posts/Hi-2026.md",
+    "posts/attachments/Fuwari拓展-添加番剧墙.png",
+    "posts/Fuwari拓展-加上番剧墙.md",
     "posts/Fuwari拓展-添加番剧墙.md.tmp.58340.2d36974bf0d6",
     "posts/Share my life.1.md",
     "posts/Share my life.2.md",
-    "posts/保姆级教程教你搭建个人Blog.md",
     "posts/Inbound Notice.md",
     "posts/未命名.base",
     "posts/未命名 1.base",
@@ -216,7 +216,6 @@
     "posts/attachments/197e1a9b5137070e841097e33bbbce77.jpg",
     "posts/attachments/f82d6b5a7d9d34621a69b95d5a3960d0.jpg",
     "posts/attachments/057ff4131b7162d9476ccd52aa477bf4.jpg",
-    "posts/attachments/7b787963fb2a656cebe5fb21e80c51d7 1.jpg",
     "posts/guide/未命名.md",
     "posts/“这里填写你的文章标题”.md",
     "posts/2025-10-28.md",
