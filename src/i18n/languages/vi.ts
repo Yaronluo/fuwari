@@ -9,7 +9,8 @@ export const vi: Translation = {
 
 	[Key.tags]: "Thẻ",
 	[Key.categories]: "Danh mục",
-	[Key.recentPosts]: "Bài viết mới nhất",
+	[Key.recentPosts]: "Bài viết gần đây",
+	[Key.series]: "Series",
 
 	[Key.comments]: "Bình luận",
 

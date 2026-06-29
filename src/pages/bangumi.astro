@@ -2,8 +2,8 @@
 import MainGridLayout from '../layouts/MainGridLayout.astro';
 import BangumiPanel from '@components/BangumiPanel.svelte';
 
-const BANGUMI_USER = "1260226";
-const BANGUMI_TOKEN = "rWiHjG2JSuDoCwcCFmFz3yGqgHOMnK9yZnEFqE0z";
+const BANGUMI_USER = import.meta.env.PUBLIC_BANGUMI_USER || "1260226";
+const BANGUMI_TOKEN = import.meta.env.PUBLIC_BANGUMI_TOKEN || "";
 
 const COLLECTION_TYPES = [
     { id: 3, label: '正在心动', color: 'bg-emerald-400 dark:bg-emerald-500 text-white' },
@@ -15,8 +15,14 @@ const COLLECTION_TYPES = [
 
 let allCollections: any[] = [];
 let statusCounts: Record<string, number> = { '3': 0, '2': 0, '1': 0, '4': 0, '5': 0 };
+let errorMessage: string | null = null;
+let isLoading = true;
 
 try {
+    if (!BANGUMI_TOKEN) {
+        throw new Error("未配置 BANGUMI_TOKEN 环境变量");
+    }
+
     const fetchPromises = COLLECTION_TYPES.map(async (cType) => {
         const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${cType.id}&limit=50`;
         const res = await fetch(url, {
@@ -25,7 +31,10 @@ try {
                 'Authorization': `Bearer ${BANGUMI_TOKEN}`
             }
         });
-        if (!res.ok) return [];
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`API 请求失败 (${res.status}): ${errorText}`);
+        }
         const resData = await res.json();
         return (resData.data || []).map((item: any) => ({ ...item, type: cType.id }));
     });
@@ -38,6 +47,9 @@ try {
     });
 } catch (error) {
     console.error("获取 Bangumi 数据失败:", error);
+    errorMessage = error instanceof Error ? error.message : "未知错误";
+} finally {
+    isLoading = false;
 }
 ---
 
@@ -53,46 +65,70 @@ try {
             </p>
         </div>
 
-        <div class="flex flex-nowrap overflow-x-auto whitespace-nowrap gap-1.5 p-2 bg-neutral-200/20 dark:bg-black/10 rounded-2xl border border-neutral-200/20 dark:border-neutral-700/10 shadow-inner [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <button data-status="all" class="tab-btn bg-[var(--primary)] text-white flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer shadow-sm scale-105">
-                全部明细 ✨ ({allCollections.length})
-            </button>
-            <button data-status="3" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
-                正在心动 💓 ({statusCounts['3']})
-            </button>
-            <button data-status="2" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
-                完结撒花 🎉 ({statusCounts['2']})
-            </button>
-            <button data-status="1" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
-                预定入坑 📺 ({statusCounts['1']})
-            </button>
-            <button data-status="4" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
-                时空凝结 🕰️ ({statusCounts['4']})
-            </button>
-            <button data-status="5" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
-                物理斩断 💔 ({statusCounts['5']})
-            </button>
-        </div>
+        {isLoading ? (
+            <div class="flex justify-center items-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-2 border-[var(--primary)] border-t-transparent"></div>
+            </div>
+        ) : errorMessage ? (
+            <div class="text-center py-12 px-4">
+                <div class="text-red-400 text-sm font-semibold mb-2">数据加载失败</div>
+                <div class="text-neutral-500 text-xs">{errorMessage}</div>
+            </div>
+        ) : allCollections.length === 0 ? (
+            <div class="text-center py-12 text-neutral-400 text-xs tracking-widest">此处空空如也，快去捕捉新的奇迹吧 ✨</div>
+        ) : (
+            <>
+                <div class="flex flex-nowrap overflow-x-auto whitespace-nowrap gap-1.5 p-2 bg-neutral-200/20 dark:bg-black/10 rounded-2xl border border-neutral-200/20 dark:border-neutral-700/10 shadow-inner [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <button data-status="all" class="tab-btn bg-[var(--primary)] text-white flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer shadow-sm scale-105">
+                        全部明细 ✨ ({allCollections.length})
+                    </button>
+                    <button data-status="3" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+                        正在心动 💓 ({statusCounts['3']})
+                    </button>
+                    <button data-status="2" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+                        完结撒花 🎉 ({statusCounts['2']})
+                    </button>
+                    <button data-status="1" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+                        预定入坑 📺 ({statusCounts['1']})
+                    </button>
+                    <button data-status="4" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+                        时空凝结 🕰️ ({statusCounts['4']})
+                    </button>
+                    <button data-status="5" class="tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer">
+                        物理斩断 💔 ({statusCounts['5']})
+                    </button>
+                </div>
 
-        <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-4" id="bangumi-grid">
-            {allCollections.length === 0 ? (
-                    <div class="col-span-full text-center py-12 text-neutral-400 text-xs tracking-widest">此处空空如也，快去捕捉新的奇迹吧 ✨</div>
-            ) : (
-                allCollections.map((item: any) => {
-                    const statusInfo = COLLECTION_TYPES.find(c => c.id === item.type);
-                    const name = item.subject.name_cn || item.subject.name || 'Anime';
-                    const score = item.subject.score ? item.subject.score.toFixed(1) : '暂无';
-                    const rawImg = item.subject.images?.large || '';
-                    const img = rawImg ? `https://images.weserv.nl/?url=${rawImg}` : '';
+                <div class="grid grid-cols-3 gap-4" id="bangumi-grid">
+                    {allCollections.map((item: any) => {
+                        const statusInfo = COLLECTION_TYPES.find(c => c.id === item.type);
+                        const name = item.subject.name_cn || item.subject.name || 'Anime';
+                        const score = item.subject.score ? item.subject.score.toFixed(1) : '暂无';
+                        const rawImg = item.subject.images?.large || '';
+                        const hasImage = !!rawImg;
+                        const img = hasImage ? `https://images.weserv.nl/?url=${rawImg}` : '';
+                        const statusLabel = statusInfo?.label || '未知';
+                        const statusColor = statusInfo?.color || 'bg-neutral-500';
 
-                    return (
+                        return (
                             <a href={`https://bgm.tv/subject/${item.subject.id}`} target="_blank" rel="noopener noreferrer"
                                class="bangumi-item block group relative aspect-[2/3] rounded-2xl overflow-hidden bg-neutral-200/50 dark:bg-neutral-800/50 shadow-sm border border-neutral-200/30 dark:border-neutral-700/30 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-md hover:border-[var(--primary)]/40 cursor-pointer"
                                data-type={item.type}>
-                            <span class={`absolute top-2 left-2 z-10 px-2 py-0.5 text-[9px] font-black rounded-md tracking-wider shadow-sm ${statusInfo?.color || 'bg-neutral-500'}`}>
-                                {statusInfo?.label}
-                            </span>
-                                <img src={img} alt={name} class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" referrerpolicy="no-referrer" />
+                                <span class={`absolute top-2 left-2 z-10 px-2 py-0.5 text-[9px] font-black rounded-md tracking-wider shadow-sm ${statusColor}`}>
+                                    {statusLabel}
+                                </span>
+                                {hasImage ? (
+                                    <>
+                                        <img src={img} alt={name} class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+                                        <div class="w-full h-full hidden items-center justify-center bg-neutral-200/50 dark:bg-neutral-800/50">
+                                            <span class="text-neutral-400 text-xs">图片加载失败</span>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div class="w-full h-full flex items-center justify-center bg-neutral-200/50 dark:bg-neutral-800/50">
+                                        <span class="text-neutral-400 text-xs">暂无图片</span>
+                                    </div>
+                                )}
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 text-left">
                                     <h3 class="text-white text-xs font-bold line-clamp-2 mb-1 leading-snug tracking-wide">{name}</h3>
                                     <div class="flex items-center gap-1 bg-white/10 dark:bg-black/20 px-1.5 py-0.5 rounded w-fit backdrop-blur-sm border border-white/5">
@@ -101,23 +137,25 @@ try {
                                     </div>
                                 </div>
                             </a>
-                    )
-                })
-            )}
-        </div>
+                        )
+                    })}
+                </div>
 
-        <div id="bangumi-pagination" class="flex justify-center items-center gap-4 mt-4">
-            <button id="btn-prev" class="px-4 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-neutral-200/40 dark:bg-neutral-800/40 text-neutral-600 dark:text-neutral-400 border border-neutral-200/20 dark:border-neutral-700/20 hover:bg-[var(--primary)] hover:text-white disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400 shadow-sm">
-                上一页 👈
-            </button>
-            <span id="page-indicator" class="text-xs font-black text-neutral-500 dark:text-neutral-400 tracking-widest bg-neutral-200/20 dark:bg-black/10 px-3 py-1 rounded-lg border border-neutral-200/10">
-                1 / 1
-            </span>
-            <button id="btn-next" class="px-4 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-neutral-200/40 dark:bg-neutral-800/40 text-neutral-600 dark:text-neutral-400 border border-neutral-200/20 dark:border-neutral-700/20 hover:bg-[var(--primary)] hover:text-white disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400 shadow-sm">
-                下一页 👉
-            </button>
-        </div>
+                <div id="bangumi-pagination" class="flex justify-center items-center gap-4 mt-4">
+                    <button id="btn-prev" class="px-4 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-neutral-200/40 dark:bg-neutral-800/40 text-neutral-600 dark:text-neutral-400 border border-neutral-200/20 dark:border-neutral-700/20 hover:bg-[var(--primary)] hover:text-white disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400 shadow-sm">
+                        上一页 👈
+                    </button>
+                    <span id="page-indicator" class="text-xs font-black text-neutral-500 dark:text-neutral-400 tracking-widest bg-neutral-200/20 dark:bg-black/10 px-3 py-1 rounded-lg border border-neutral-200/10">
+                        1 / 1
+                    </span>
+                    <button id="btn-next" class="px-4 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-neutral-200/40 dark:bg-neutral-800/40 text-neutral-600 dark:text-neutral-400 border border-neutral-200/20 dark:border-neutral-700/20 hover:bg-[var(--primary)] hover:text-white disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400 shadow-sm">
+                        下一页 👉
+                    </button>
+                </div>
+
+                <BangumiPanel client:load />
+            </>
+        )}
 
     </div>
-    <BangumiPanel client:load />
 </MainGridLayout>

@@ -1,21 +1,30 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 
-	let grid: HTMLElement;
-	let items: NodeListOf<HTMLElement>;
-	let tabs: NodeListOf<HTMLElement>;
-	let prevBtn: HTMLButtonElement;
-	let nextBtn: HTMLButtonElement;
-	let indicator: HTMLElement;
-	let paginationBar: HTMLElement;
+	let grid: HTMLElement | null = null;
+	let items: NodeListOf<HTMLElement> | null = null;
+	let tabs: NodeListOf<HTMLElement> | null = null;
+	let prevBtn: HTMLElement | null = null;
+	let nextBtn: HTMLElement | null = null;
+	let indicator: HTMLElement | null = null;
+	let paginationBar: HTMLElement | null = null;
 
 	const ITEMS_PER_PAGE = 9;
 	let currentStatus = 'all';
 	let currentPage = 1;
 	let totalPages = 1;
 
+	// 事件监听器引用，用于清理
+	const eventListeners: Array<() => void> = [];
+
 	function render() {
-		if (!items.length) return;
+		if (!items || !items.length) {
+			// 当没有项目时，隐藏分页栏
+			if (paginationBar) {
+				paginationBar.style.display = 'none';
+			}
+			return;
+		}
 
 		const visibleItems: HTMLElement[] = [];
 
@@ -59,9 +68,11 @@
 		currentStatus = target.dataset.status || 'all';
 		currentPage = 1;
 
-		tabs.forEach(t => {
-			t.className = "tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer";
-		});
+		if (tabs) {
+			tabs.forEach(t => {
+				t.className = "tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer";
+			});
+		}
 		target.className = "tab-btn bg-[var(--primary)] text-white flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer shadow-sm scale-105";
 
 		render();
@@ -84,33 +95,48 @@
 	}
 
 	onMount(() => {
-		grid = document.getElementById('bangumi-grid') as HTMLElement;
+		grid = document.getElementById('bangumi-grid');
 		items = document.querySelectorAll('.bangumi-item');
 		tabs = document.querySelectorAll('.tab-btn');
-		prevBtn = document.getElementById('btn-prev') as HTMLButtonElement;
-		nextBtn = document.getElementById('btn-next') as HTMLButtonElement;
-		indicator = document.getElementById('page-indicator') as HTMLElement;
-		paginationBar = document.getElementById('bangumi-pagination') as HTMLElement;
+		prevBtn = document.getElementById('btn-prev');
+		nextBtn = document.getElementById('btn-next');
+		indicator = document.getElementById('page-indicator');
+		paginationBar = document.getElementById('bangumi-pagination');
 
-		if (!grid || !items.length) return;
+		if (!grid) {
+			console.error('[BangumiPanel] 未找到 #bangumi-grid 元素');
+			return;
+		}
+
+		if (!items || !items.length) {
+			console.warn('[BangumiPanel] 未找到 .bangumi-item 元素');
+			return;
+		}
 
 		// 绑定事件
-		tabs.forEach(tab => {
-			tab.addEventListener('click', handleTabClick);
-		});
+		if (tabs) {
+			tabs.forEach(tab => {
+				tab.addEventListener('click', handleTabClick);
+				eventListeners.push(() => tab.removeEventListener('click', handleTabClick));
+			});
+		}
 
-		prevBtn?.addEventListener('click', handlePrevClick);
-		nextBtn?.addEventListener('click', handleNextClick);
+		if (prevBtn) {
+			prevBtn.addEventListener('click', handlePrevClick);
+			eventListeners.push(() => prevBtn.removeEventListener('click', handlePrevClick));
+		}
+
+		if (nextBtn) {
+			nextBtn.addEventListener('click', handleNextClick);
+			eventListeners.push(() => nextBtn.removeEventListener('click', handleNextClick));
+		}
 
 		render();
 
 		// 清理函数
 		return () => {
-			tabs.forEach(tab => {
-				tab.removeEventListener('click', handleTabClick);
-			});
-			prevBtn?.removeEventListener('click', handlePrevClick);
-			nextBtn?.removeEventListener('click', handleNextClick);
+			eventListeners.forEach(cleanup => cleanup());
+			eventListeners.length = 0;
 		};
 	});
 </script>

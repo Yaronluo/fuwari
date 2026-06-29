@@ -51,6 +51,7 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
         const typeSpeed = 25; // 打字速度（毫秒）
 
         function typeWriter() {
+            if (!descElement || !text) return;
             if (index < text.length) {
                 descElement.textContent += text.charAt(index);
                 index++;
