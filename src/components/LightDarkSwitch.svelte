@@ -58,21 +58,21 @@ function hidePanel() {
 </script>
 
 <!-- z-50 make the panel higher than other float panels -->
-<div class="relative z-50" role="menu" tabindex="-1" onmouseleave={hidePanel}>
-    <button aria-label="Light/Dark Mode" role="menuitem" class="relative btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90" id="scheme-switch" onclick={toggleScheme} onmouseenter={showPanel}>
-        <div class="absolute" class:opacity-0={mode !== LIGHT_MODE}>
-            <Icon icon="material-symbols:wb-sunny-outline-rounded" class="text-[1.25rem]"></Icon>
+<div class="relative z-50 flex items-center justify-center" role="menu" tabindex="-1" onmouseleave={hidePanel}>
+    <button aria-label="Light/Dark Mode" role="menuitem" class="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 bg-white/70 dark:bg-black/40 backdrop-blur-md border border-white/30 dark:border-white/10 shadow-lg hover:shadow-xl hover:scale-110 active:scale-95" id="scheme-switch" onclick={toggleScheme} onmouseenter={showPanel}>
+        <div class="absolute transition-opacity duration-300 text-[var(--primary)]" class:opacity-0={mode !== LIGHT_MODE}>
+            <Icon icon="material-symbols:wb-sunny-outline-rounded" class="text-[1.5rem]"></Icon>
         </div>
-        <div class="absolute" class:opacity-0={mode !== DARK_MODE}>
-            <Icon icon="material-symbols:dark-mode-outline-rounded" class="text-[1.25rem]"></Icon>
+        <div class="absolute transition-opacity duration-300 text-[var(--primary)]" class:opacity-0={mode !== DARK_MODE}>
+            <Icon icon="material-symbols:dark-mode-outline-rounded" class="text-[1.5rem]"></Icon>
         </div>
-        <div class="absolute" class:opacity-0={mode !== AUTO_MODE}>
-            <Icon icon="material-symbols:radio-button-partial-outline" class="text-[1.25rem]"></Icon>
+        <div class="absolute transition-opacity duration-300 text-[var(--primary)]" class:opacity-0={mode !== AUTO_MODE}>
+            <Icon icon="material-symbols:radio-button-partial-outline" class="text-[1.5rem]"></Icon>
         </div>
     </button>
 
-    <div id="light-dark-panel" class="hidden lg:block absolute transition float-panel-closed top-11 -right-2 pt-5" >
-        <div class="card-base float-panel p-2">
+    <div id="light-dark-panel" class="hidden absolute transition float-panel-closed bottom-full left-0 mb-3 lg:block" >
+        <div class="card-base float-panel p-2 bg-white/70 dark:bg-black/40 backdrop-blur-lg shadow-xl border border-white/20 dark:border-white/10">
             <button class="flex transition whitespace-nowrap items-center !justify-start w-full btn-plain scale-animation rounded-lg h-9 px-3 font-medium active:scale-95 mb-0.5"
                     class:current-theme-btn={mode === LIGHT_MODE}
                     onclick={() => switchScheme(LIGHT_MODE)}

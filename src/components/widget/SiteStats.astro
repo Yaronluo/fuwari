@@ -1,5 +1,6 @@
 ---
 import WidgetLayout from "./WidgetLayout.astro";
+import { Icon } from "astro-icon/components";
 
 interface Props {
 	class?: string;
@@ -12,11 +13,11 @@ const style = Astro.props.style;
 const SITE_START_DATE = "2025-12-01";
 ---
 
-<WidgetLayout name="站点统计" id="site-stats" class={className} style={style}>
+<WidgetLayout name="站点统计" id="site-stats" class={className} style={style} icon="material-symbols:analytics-outline-rounded">
     <div class="flex flex-col gap-3 px-1">
         <!-- 运行时间 -->
         <div class="flex items-start gap-2.5">
-            <span class="site-stats-icon">🕐</span>
+            <Icon name="material-symbols:timer-outline-rounded" class="site-stats-icon text-[oklch(0.65_0.15_var(--hue))]" />
             <div class="flex flex-col">
                 <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">已运行</span>
                 <span id="site-running-time" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
@@ -29,7 +30,7 @@ const SITE_START_DATE = "2025-12-01";
 
         <!-- 总访客数 UV -->
         <div class="flex items-start gap-2.5">
-            <span class="site-stats-icon">👤</span>
+            <Icon name="material-symbols:group-outline-rounded" class="site-stats-icon text-[oklch(0.65_0.15_var(--hue))]" />
             <div class="flex flex-col">
                 <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">总访客</span>
                 <span id="busuanzi_value_site_uv" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
@@ -42,7 +43,7 @@ const SITE_START_DATE = "2025-12-01";
 
         <!-- 总访问量 PV -->
         <div class="flex items-start gap-2.5">
-            <span class="site-stats-icon">📖</span>
+            <Icon name="material-symbols:trending-up-rounded" class="site-stats-icon text-[oklch(0.65_0.15_var(--hue))]" />
             <div class="flex flex-col">
                 <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">总访问</span>
                 <span id="busuanzi_value_site_pv" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
@@ -86,9 +87,10 @@ const SITE_START_DATE = "2025-12-01";
 
 <style>
     .site-stats-icon {
-        font-size: 1.15rem;
-        line-height: 1;
-        margin-top: 0.15rem;
+        width: 1.35rem;
+        height: 1.35rem;
+        flex-shrink: 0;
+        margin-top: 0.1rem;
     }
     .tabular-nums {
         font-variant-numeric: tabular-nums;

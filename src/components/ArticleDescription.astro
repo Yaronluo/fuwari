@@ -92,19 +92,29 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
 
     .article-description {
         margin: 1.5rem 0 2rem 0;
-        padding: 1rem 1.25rem;
-        border-left: 4px solid var(--desc-primary);
-        background: var(--card-bg);
-        border-radius: 0 8px 8px 0;
+        padding: 0 0.5rem 1rem 0.5rem;
+        background: transparent;
+        border-bottom: 2px dashed var(--line-divider);
         position: relative;
+    }
+    :global(.dark) .article-description {
+        background: transparent;
     }
 
     .description-content {
-        color: var(--desc-text);
+        color: var(--tw-prose-body);
         font-size: 1.05rem;
         line-height: 1.7;
-        font-style: italic; /* 使用斜体，更像引言 */
+        font-style: normal; /* 不用斜体，中文斜体渲染往往发虚/锯齿 */
+        font-weight: 400;
         min-height: 1.7em; /* 防止光标导致高度跳动 */
+        opacity: 0.8;
+    }
+    :global(.dark) .description-content {
+        color: rgba(255, 255, 255, 0.8);
+    }
+    :global(html:not(.dark)) .description-content {
+        color: rgba(0, 0, 0, 0.75);
     }
 
     /* 打字机光标效果 */
@@ -113,7 +123,7 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
         color: var(--desc-primary);
         animation: blink-cursor 1s infinite;
         font-weight: bold;
-        font-style: normal; /* 光标保持正体 */
+        font-style: normal;
     }
 
     /* 打字完成后隐藏光标 */

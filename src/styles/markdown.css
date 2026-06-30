@@ -98,11 +98,11 @@
     }
 
     blockquote {
-        @apply not-italic border-transparent relative;
+        @apply not-italic border-transparent relative bg-black/[0.03] dark:bg-white/[0.04] px-6 py-4 rounded-2xl;
         font-weight: inherit;
 
         &:before {
-            @apply content-[''] absolute -left-1 block transition bg-[var(--btn-regular-bg)] h-full w-1 rounded-full;
+            @apply content-none;
         }
 
         /* Remove the double quotes from default styles */

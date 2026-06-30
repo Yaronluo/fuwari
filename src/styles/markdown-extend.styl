@@ -1,6 +1,17 @@
 .custom-md
 
   blockquote.admonition
+    background: transparent !important
+    position: relative
+    z-index: 1
+    &:after
+      content: ''
+      position: absolute
+      inset: 0
+      z-index: -1
+      border-radius: inherit
+      opacity: 0.1
+      pointer-events: none
     .bdm-title
       display: flex
       align-items: center
@@ -21,6 +32,9 @@
         mask-repeat: no-repeat
         transform: translateY(-0.0625rem)
     &.bdm-tip
+      border-left: 4px solid var(--admonitions-color-tip)
+      &:after
+        background: var(--admonitions-color-tip)
       .bdm-title
         color: var(--admonitions-color-tip)
 
@@ -31,6 +45,9 @@
       &:before
         background: var(--admonitions-color-tip)
     &.bdm-note
+      border-left: 4px solid var(--admonitions-color-note)
+      &:after
+        background: var(--admonitions-color-note)
       .bdm-title
         color: var(--admonitions-color-note)
 
@@ -41,6 +58,9 @@
       &:before
         background: var(--admonitions-color-note)
     &.bdm-important
+      border-left: 4px solid var(--admonitions-color-important)
+      &:after
+        background: var(--admonitions-color-important)
       .bdm-title
         color: var(--admonitions-color-important)
 
@@ -51,6 +71,9 @@
       &:before
         background: var(--admonitions-color-important)
     &.bdm-warning
+      border-left: 4px solid var(--admonitions-color-warning)
+      &:after
+        background: var(--admonitions-color-warning)
       .bdm-title
         color: var(--admonitions-color-warning)
 
@@ -61,6 +84,9 @@
       &:before
         background: var(--admonitions-color-warning)
     &.bdm-caution
+      border-left: 4px solid var(--admonitions-color-caution)
+      &:after
+        background: var(--admonitions-color-caution)
       .bdm-title
         color: var(--admonitions-color-caution)
 

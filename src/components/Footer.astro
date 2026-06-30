@@ -9,15 +9,20 @@ const currentYear = new Date().getFullYear();
 <div class="transition border-t border-black/10 dark:border-white/15 my-10 border-dashed mx-32"></div>
 
 <!-- 页脚内容 -->
-<div class="transition border-dashed border-[oklch(85%_0.01_var(--hue))] dark:border-white/15 rounded-2xl mb-12 flex flex-col items-center justify-center px-6 py-8">
+<div class="relative overflow-hidden transition border-dashed border-[oklch(85%_0.01_var(--hue))] dark:border-white/15 rounded-2xl mb-12 flex flex-col items-center justify-center px-6 py-8">
+    <!-- 樱花飘落画布 -->
+    <sakura-canvas class="absolute top-0 left-0 w-full h-full pointer-events-none z-0 opacity-60">
+        <canvas class="w-full h-full"></canvas>
+    </sakura-canvas>
+
     <!-- 动态一言（Hitokoto） -->
-    <hitokoto-quote class="block mb-4 text-[var(--text-70)] font-bold italic font-serif cursor-pointer hover:opacity-80 transition-opacity" title="点击刷新一言">
+    <hitokoto-quote class="relative z-10 block mb-4 text-[var(--text-70)] font-bold italic font-serif cursor-pointer hover:opacity-80 transition-opacity" title="点击刷新一言">
         「<span class="hitokoto-text">正在寻找灵魂深处的共鸣...</span>」
         <span class="hitokoto-author text-sm font-medium ml-2 opacity-70 hidden md:inline-block"></span>
     </hitokoto-quote>
 
     <!-- 主要信息 -->
-    <div class="transition text-[var(--text-60)] text-sm text-center">
+    <div class="relative z-10 transition text-[var(--text-60)] text-sm text-center">
         &copy; <span id="copyright-year">{currentYear}</span> {profileConfig.name}.
         Made with <span class="text-red-500 animate-pulse">❤️</span> in China.<br>
 
@@ -112,4 +117,87 @@ class HitokotoQuote extends HTMLElement {
     }
 }
 customElements.define('hitokoto-quote', HitokotoQuote);
+
+class Sakura {
+    constructor(w, h) {
+        this.reset(w, h, true);
+    }
+    reset(w, h, isInit) {
+        this.x = Math.random() * w;
+        this.y = isInit ? Math.random() * h : -20;
+        this.size = Math.random() * 6 + 4; 
+        this.speedY = Math.random() * 0.5 + 0.2; 
+        this.speedX = Math.random() * 0.5 - 0.25; 
+        this.angle = Math.random() * Math.PI * 2;
+        this.spin = Math.random() * 0.02 - 0.01;
+        this.opacity = Math.random() * 0.5 + 0.2;
+        this.color = `rgba(255, 183, 197, ${this.opacity})`;
+    }
+    update(w, h) {
+        this.y += this.speedY;
+        this.x += this.speedX + Math.sin(this.y * 0.01) * 0.5; 
+        this.angle += this.spin;
+        if (this.y > h + 20 || this.x < -20 || this.x > w + 20) {
+            this.reset(w, h, false);
+        }
+    }
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(this.size / 2, -this.size / 2, this.size, -this.size / 3, 0, this.size);
+        ctx.bezierCurveTo(-this.size, -this.size / 3, -this.size / 2, -this.size / 2, 0, 0);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+class SakuraCanvasElement extends HTMLElement {
+    connectedCallback() {
+        setTimeout(() => this.init(), 0);
+    }
+    
+    init() {
+        this.canvas = this.querySelector('canvas');
+        if (!this.canvas) return;
+        this.ctx = this.canvas.getContext('2d');
+        this.sakuras = [];
+        this.numSakuras = 25; 
+        
+        this.resize = () => {
+            this.canvas.width = this.offsetWidth;
+            this.canvas.height = this.offsetHeight;
+        };
+        
+        this.resize();
+        window.addEventListener('resize', this.resize);
+        
+        for (let i = 0; i < this.numSakuras; i++) {
+            this.sakuras.push(new Sakura(this.canvas.width, this.canvas.height));
+        }
+        
+        this.animId = requestAnimationFrame(() => this.animate());
+    }
+    
+    disconnectedCallback() {
+        if (this.resize) window.removeEventListener('resize', this.resize);
+        if (this.animId) cancelAnimationFrame(this.animId);
+    }
+    
+    animate() {
+        if (!this.canvas) return;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.sakuras.forEach(s => {
+            s.update(this.canvas.width, this.canvas.height);
+            s.draw(this.ctx);
+        });
+        this.animId = requestAnimationFrame(() => this.animate());
+    }
+}
+if (!customElements.get('sakura-canvas')) {
+    customElements.define('sakura-canvas', SakuraCanvasElement);
+}
 </script>

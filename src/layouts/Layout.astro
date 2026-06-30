@@ -4,6 +4,7 @@ import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
 import ConfigCarrier from "@components/ConfigCarrier.astro";
+import LightDarkSwitch from "@components/LightDarkSwitch.svelte";
 import { profileConfig, siteConfig } from "@/config";
 import {
 	AUTO_MODE,
@@ -73,7 +74,7 @@ const bannerOffset =
 ---
 
 <!DOCTYPE html>
-<html lang={siteLang} class="bg-[var(--page-bg)] transition text-[14px] md:text-[16px]"
+<html lang={siteLang} class="transition text-[14px] md:text-[16px]"
 	  data-overlayscrollbars-initialize
 >
 	<head>
@@ -149,7 +150,7 @@ const bannerOffset =
 		<link rel="alternate" type="application/rss+xml" title={profileConfig.name} href={`${Astro.site}rss.xml`}/>
 
 	</head>
-	<body class=" min-h-screen transition " class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
+	<body class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900 dark:to-gray-800 bg-fixed min-h-screen transition " class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
 		  data-overlayscrollbars-initialize
 	>
 		<ConfigCarrier></ConfigCarrier>
@@ -159,6 +160,11 @@ const bannerOffset =
 			<div id="reading-progress" class="h-full w-0 rounded-r-full transition-none"
 				 style="background: linear-gradient(90deg, oklch(0.7 0.15 var(--hue)), oklch(0.75 0.18 calc(var(--hue) + 30)));">
 			</div>
+		</div>
+
+		<!-- 悬浮的亮暗色切换按钮 -->
+		<div class="fixed bottom-6 left-6 md:bottom-8 md:left-8 z-[9999] pointer-events-auto">
+			<LightDarkSwitch client:only="svelte" />
 		</div>
 
 		<slot />
@@ -485,9 +491,20 @@ function scrollFunction() {
 		}
 	}
 
+	// 导航栏分离/合并动画 - 顶部分开，向下滚动合并
+	const navbarContainer = document.getElementById('navbar-container');
+	if (navbarContainer) {
+		const scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
+		if (scrollPos > 20) {
+			navbarContainer.classList.add('is-scrolled');
+		} else {
+			navbarContainer.classList.remove('is-scrolled');
+		}
+	}
+
 	if (!bannerEnabled) return
 	if (navbar) {
-		const NAVBAR_HEIGHT = 72
+		const NAVBAR_HEIGHT = 56
 		const MAIN_PANEL_EXCESS_HEIGHT = MAIN_PANEL_OVERLAPS_BANNER_HEIGHT * 16			// The height the main panel overlaps the banner
 
 		let bannerHeight = BANNER_HEIGHT
@@ -606,10 +623,28 @@ const setup = () => {
 		{ before: true },
 	)
 }
-
 if (window.swup) {
 	setup()
 } else {
 	document.addEventListener("swup:enable", setup)
 }
 </script>
+
+<script>
+	// 网页标签卖萌特效 (动态 Title)
+	let originTitle = '';
+	let titleTime;
+	document.addEventListener('visibilitychange', function () {
+		if (document.hidden) {
+			originTitle = document.title;
+			document.title = '(っ °Д °;)っ 页面崩溃啦！';
+			clearTimeout(titleTime);
+		} else {
+			document.title = '(*/ω＼*) 骗你的啦~';
+			titleTime = setTimeout(function () {
+				document.title = originTitle;
+			}, 2000);
+		}
+	});
+</script>
+

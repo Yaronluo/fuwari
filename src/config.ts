@@ -12,7 +12,7 @@ export const siteConfig: SiteConfig = {
 	subtitle: "Yaron's Blog",
 	lang: "zh_CN", // Language code, e.g. 'en', 'zh_CN', 'ja', etc.
 	themeColor: {
-		hue: 265, // Default hue for the theme color, from 0 to 360. e.g. red: 0, teal: 200, cyan: 250, pink: 345
+		hue: 10, // Default hue for the theme color, from 0 to 360. e.g. red: 0, teal: 200, cyan: 250, pink: 345
 		fixed: true, // Hide the theme color picker for visitors
 	},
 	banner: {
@@ -44,8 +44,8 @@ export const navBarConfig: NavBarConfig = {
 		LinkPreset.Home,
 		LinkPreset.Archive,
 		LinkPreset.Series,
-		{ name: "网站统计", url: "/stats/" },
-		{ name: "番剧观测", url: "/bangumi/" }, // ✨ 在这里为你新增了追番页面的入口
+		{ name: "网站统计", url: "/stats/", icon: "fa6-solid:chart-pie" },
+		{ name: "番剧观测", url: "/bangumi/", icon: "fa6-solid:tv" }, // ✨ 在这里为你新增了追番页面的入口
 		LinkPreset.About,
 		//{
 		//name: "GitHub",
