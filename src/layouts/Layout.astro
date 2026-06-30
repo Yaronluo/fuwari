@@ -153,6 +153,14 @@ const bannerOffset =
 		  data-overlayscrollbars-initialize
 	>
 		<ConfigCarrier></ConfigCarrier>
+
+		<!-- 阅读进度条 -->
+		<div id="reading-progress-bar" class="fixed top-0 left-0 w-full h-[3px] z-[9999] pointer-events-none opacity-0 transition-opacity duration-300">
+			<div id="reading-progress" class="h-full w-0 rounded-r-full transition-none"
+				 style="background: linear-gradient(90deg, oklch(0.7 0.15 var(--hue)), oklch(0.75 0.18 calc(var(--hue) + 30)));">
+			</div>
+		</div>
+
 		<slot />
 
 		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
@@ -494,7 +502,46 @@ function scrollFunction() {
 		}
 	}
 }
-window.onscroll = scrollFunction
+window.onscroll = function() {
+	scrollFunction();
+	updateReadingProgress();
+}
+
+// 阅读进度条逻辑
+function updateReadingProgress() {
+	const progressBar = document.getElementById('reading-progress-bar');
+	const progress = document.getElementById('reading-progress');
+	const postContainer = document.getElementById('post-container');
+
+	if (!progressBar || !progress) return;
+
+	// 只在文章页面显示
+	if (!postContainer) {
+		progressBar.style.opacity = '0';
+		return;
+	}
+
+	const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+	const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+
+	if (scrollHeight <= 0) {
+		progressBar.style.opacity = '0';
+		return;
+	}
+
+	const percent = Math.min((scrollTop / scrollHeight) * 100, 100);
+
+	if (scrollTop > 50) {
+		progressBar.style.opacity = '1';
+	} else {
+		progressBar.style.opacity = '0';
+	}
+
+	progress.style.width = `${percent}%`;
+}
+
+// 初始化进度条
+updateReadingProgress();
 
 window.onresize = () => {
 	// calculate the --banner-height-extend, which needs to be a multiple of 4 to avoid blurry text

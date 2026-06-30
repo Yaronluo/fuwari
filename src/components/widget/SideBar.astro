@@ -4,6 +4,7 @@ import Categories from "./Categories.astro";
 import Profile from "./Profile.astro";
 import Tag from "./Tags.astro";
 import Series from './Series.astro'
+import SiteStats from './SiteStats.astro'
 
 interface Props {
 	class?: string;
@@ -24,5 +25,6 @@ const series = Astro.props.series
         </div>
         <Categories class="onload-animation" style="animation-delay: 150ms"></Categories>
         <Tag class="onload-animation" style="animation-delay: 200ms"></Tag>
+        <SiteStats class="onload-animation" style="animation-delay: 250ms"></SiteStats>
     </div>
 </div>

@@ -10,6 +10,12 @@ const currentYear = new Date().getFullYear();
 
 <!-- 页脚内容 -->
 <div class="transition border-dashed border-[oklch(85%_0.01_var(--hue))] dark:border-white/15 rounded-2xl mb-12 flex flex-col items-center justify-center px-6 py-8">
+    <!-- 动态一言（Hitokoto） -->
+    <hitokoto-quote class="block mb-4 text-[var(--text-70)] font-bold italic font-serif cursor-pointer hover:opacity-80 transition-opacity" title="点击刷新一言">
+        「<span class="hitokoto-text">正在寻找灵魂深处的共鸣...</span>」
+        <span class="hitokoto-author text-sm font-medium ml-2 opacity-70 hidden md:inline-block"></span>
+    </hitokoto-quote>
+
     <!-- 主要信息 -->
     <div class="transition text-[var(--text-60)] text-sm text-center">
         &copy; <span id="copyright-year">{currentYear}</span> {profileConfig.name}.
@@ -61,3 +67,49 @@ const currentYear = new Date().getFullYear();
         animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
 </style>
+
+<script>
+class HitokotoQuote extends HTMLElement {
+    constructor() {
+        super();
+        this.fetchQuote();
+        // 点击刷新一言
+        this.addEventListener('click', () => {
+            const textEl = this.querySelector('.hitokoto-text');
+            if (textEl) textEl.textContent = "获取中...";
+            this.fetchQuote();
+        });
+    }
+
+    async fetchQuote() {
+        const textEl = this.querySelector('.hitokoto-text');
+        const authorEl = this.querySelector('.hitokoto-author');
+        if (!textEl) return;
+        
+        try {
+            const response = await fetch('https://v1.hitokoto.cn');
+            const data = await response.json();
+            
+            // 添加淡入淡出动画效果
+            textEl.style.opacity = '0';
+            if (authorEl) authorEl.style.opacity = '0';
+            
+            setTimeout(() => {
+                textEl.textContent = data.hitokoto;
+                if (authorEl) authorEl.textContent = `—— ${data.from}`;
+                
+                textEl.style.transition = 'opacity 0.5s';
+                textEl.style.opacity = '1';
+                if (authorEl) {
+                    authorEl.style.transition = 'opacity 0.5s';
+                    authorEl.style.opacity = '0.7';
+                }
+            }, 300);
+            
+        } catch (err) {
+            textEl.textContent = "获取一言失败";
+        }
+    }
+}
+customElements.define('hitokoto-quote', HitokotoQuote);
+</script>

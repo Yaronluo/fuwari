@@ -1,0 +1,96 @@
+---
+import WidgetLayout from "./WidgetLayout.astro";
+
+interface Props {
+	class?: string;
+	style?: string;
+}
+const className = Astro.props.class;
+const style = Astro.props.style;
+
+// ===== 在这里修改你的建站日期 =====
+const SITE_START_DATE = "2025-12-01";
+---
+
+<WidgetLayout name="站点统计" id="site-stats" class={className} style={style}>
+    <div class="flex flex-col gap-3 px-1">
+        <!-- 运行时间 -->
+        <div class="flex items-start gap-2.5">
+            <span class="site-stats-icon">🕐</span>
+            <div class="flex flex-col">
+                <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">已运行</span>
+                <span id="site-running-time" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
+                    加载中...
+                </span>
+            </div>
+        </div>
+
+        <div class="border-t border-dashed border-black/10 dark:border-white/10"></div>
+
+        <!-- 总访客数 UV -->
+        <div class="flex items-start gap-2.5">
+            <span class="site-stats-icon">👤</span>
+            <div class="flex flex-col">
+                <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">总访客</span>
+                <span id="busuanzi_value_site_uv" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
+                    --
+                </span>
+            </div>
+        </div>
+
+        <div class="border-t border-dashed border-black/10 dark:border-white/10"></div>
+
+        <!-- 总访问量 PV -->
+        <div class="flex items-start gap-2.5">
+            <span class="site-stats-icon">📖</span>
+            <div class="flex flex-col">
+                <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">总访问</span>
+                <span id="busuanzi_value_site_pv" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
+                    --
+                </span>
+            </div>
+        </div>
+    </div>
+</WidgetLayout>
+
+<!-- 不蒜子统计脚本 -->
+<script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<!-- 运行时间计算脚本 -->
+<script define:vars={{ SITE_START_DATE }}>
+    function updateRunningTime() {
+        const startDate = new Date(SITE_START_DATE);
+        const now = new Date();
+        const diff = now.getTime() - startDate.getTime();
+
+        if (diff < 0) {
+            const el = document.getElementById('site-running-time');
+            if (el) el.textContent = '即将启航 ✨';
+            return;
+        }
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        const el = document.getElementById('site-running-time');
+        if (el) {
+            el.textContent = `${days} 天 ${hours} 时 ${minutes} 分 ${seconds} 秒`;
+        }
+    }
+
+    updateRunningTime();
+    setInterval(updateRunningTime, 1000);
+</script>
+
+<style>
+    .site-stats-icon {
+        font-size: 1.15rem;
+        line-height: 1;
+        margin-top: 0.15rem;
+    }
+    .tabular-nums {
+        font-variant-numeric: tabular-nums;
+    }
+</style>
