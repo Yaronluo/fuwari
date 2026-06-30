@@ -1,0 +1,183 @@
+---
+import { profileConfig } from "../config";
+import ImageWrapper from "./misc/ImageWrapper.astro";
+import { Icon } from "astro-icon/components";
+---
+
+<div id="hero-section" class="relative w-full h-[calc(100vh-6.5rem)] min-h-[500px] flex flex-col items-center justify-center">
+    <!-- Main Content Area -->
+    <div class="w-full max-w-[var(--page-width)] px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-12 md:gap-8 z-10 onload-animation">
+        
+        <!-- Left: Text & Social -->
+        <div class="flex flex-col items-start text-left flex-1 space-y-4 w-full md:w-auto">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black/80 dark:text-white/90 leading-tight md:whitespace-nowrap">
+                Hi everyone, I'm <span class="whitespace-nowrap"><span class="text-[var(--primary)]">{profileConfig.name}</span> <span class="animate-wave inline-block origin-bottom-right ml-1">✌️</span></span>
+            </h1>
+            <h2 class="text-xl md:text-2xl text-black/70 dark:text-white/70 font-medium leading-relaxed">
+                {profileConfig.bio}
+            </h2>
+            <p class="text-sm md:text-base text-black/40 dark:text-white/40 font-bold tracking-widest uppercase mt-2">
+                Warm · Cozy · Lovely
+            </p>
+            
+            <!-- Social Icons -->
+            <div class="flex flex-wrap gap-3 pt-4">
+                {profileConfig.links.map((link) => (
+                    <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={link.name}
+                       class="w-10 h-10 rounded-full bg-black/80 dark:bg-white/90 text-white dark:text-black flex items-center justify-center hover:scale-110 hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-xl hover:bg-[var(--primary)] dark:hover:bg-[var(--primary)] dark:hover:text-white">
+                        <Icon name={link.icon} class="text-xl" />
+                    </a>
+                ))}
+            </div>
+        </div>
+
+        <!-- Right: Avatar -->
+        <div class="flex-shrink-0 flex items-center justify-center w-56 h-56 md:w-72 md:h-72 lg:w-[22rem] lg:h-[22rem] rounded-full overflow-hidden shadow-2xl border-4 border-white/50 dark:border-black/50 transition-transform duration-500 hover:scale-105">
+            <ImageWrapper src={profileConfig.avatar || ""} alt="Avatar" class="w-full h-full object-cover" />
+        </div>
+        
+    </div>
+
+    <!-- Bottom: Pure Love Quote & Scroll Down -->
+    <div class="absolute bottom-8 left-0 w-full flex flex-col items-center justify-center space-y-4 z-10 onload-animation" style="animation-delay: 300ms;">
+        <pure-love-quote class="block text-[var(--text-60)] text-sm md:text-base font-serif font-medium tracking-wide cursor-pointer hover:opacity-80 transition-opacity px-4 text-center" title="点击刷新台词">
+            「<span class="quote-text">正在寻找灵魂深处的共鸣...</span>」
+            <span class="quote-author text-xs font-normal ml-2 opacity-70 hidden md:inline-block"></span>
+        </pure-love-quote>
+        
+        <button id="scroll-down-btn" class="text-[var(--primary)] hover:text-[var(--primary)]/80 transition-colors animate-bounce p-2 mt-2" aria-label="Scroll down">
+            <Icon name="material-symbols:keyboard-arrow-down-rounded" class="text-4xl" />
+        </button>
+    </div>
+</div>
+
+<style>
+    @keyframes wave {
+        0%, 100% { transform: rotate(0deg); }
+        25% { transform: rotate(15deg); }
+        50% { transform: rotate(-5deg); }
+        75% { transform: rotate(15deg); }
+    }
+    .animate-wave {
+        animation: wave 2s infinite;
+    }
+</style>
+
+<script is:inline>
+    class PureLoveQuote extends HTMLElement {
+        constructor() {
+            super();
+            this.fetchQuote();
+            this.addEventListener('click', () => {
+                const textEl = this.querySelector('.quote-text');
+                if (textEl) textEl.textContent = "获取中...";
+                this.fetchQuote();
+            });
+        }
+
+        async fetchQuote() {
+            const textEl = this.querySelector('.quote-text');
+            const authorEl = this.querySelector('.quote-author');
+            if (!textEl) return;
+            
+            const pureLoveQuotes = [
+                { text: "只要记住你的名字，不管你在世界的哪个地方，我一定会，去见你。", from: "你的名字" },
+                { text: "在这个瞬间，我仿佛明白了‘永远’、‘心’和‘灵魂’的所在。", from: "秒速五厘米" },
+                { text: "我喜欢你，比地球上的任何一个人都要喜欢。", from: "名侦探柯南" },
+                { text: "哪怕是世界毁灭，我也想再见你一面。", from: "你的名字" },
+                { text: "因为有了喜欢的人，所以原本毫无色彩的世界，瞬间变得五彩斑斓。", from: "四月是你的谎言" },
+                { text: "我所知道的关于你的事情，希望能再多一点。", from: "月色真美" },
+                { text: "与其说是连在一起，不如说是你早已成为了我的一部分。", from: "擅长捉弄的高木同学" },
+                { text: "能遇见你，真的是太好了。", from: "CLANNAD" },
+                { text: "如果能实现，我想和你一起去看海。", from: "CLANNAD" },
+                { text: "无论在哪里遇到你，我都会再次喜欢上你。", from: "Angel Beats!" },
+                { text: "我想成为你的专属，不管世界变成什么样。", from: "青春猪头少年不会梦到兔女郎学姐" },
+                { text: "我一定会拯救你，无论重来多少次。", from: "命运石之门" },
+                { text: "我喜欢你，所以希望你也能笑。", from: "可塑性记忆" },
+                { text: "和你一起仰望的星空，是我最珍贵的宝物。", from: "化物語" },
+                { text: "如果我是雨的话，能不能像把不曾交会的天空与大地连接起来那样，把某人的心串联起来呢？", from: "死神" },
+                { text: "我想和你一起，看一辈子的风景。", from: "CLANNAD" },
+                { text: "不管你变成什么样，我都会一直喜欢你。", from: "擅长捉弄的高木同学" },
+                { text: "只要有你在我身边，我就不会迷惘。", from: "刀剑神域" },
+                { text: "我想告诉你，我喜欢你，这份心情，直到永远。", from: "玉子爱情故事" },
+                { text: "只要能看着你，我就觉得很幸福了。", from: "好想告诉你" },
+                { text: "我喜欢你，不是因为你是谁，而是因为在你面前我才是真正的我。", from: "辉夜大小姐想让我告白" },
+                { text: "即便跨越千年的时光，我也依然深爱着你。", from: "犬夜叉" },
+                { text: "我的心里，永远都有你的位置。", from: "冰菓" },
+                { text: "如果这是梦，我希望永远不要醒来。", from: "境界的彼方" },
+                { text: "我只想，每一天都能看到你的笑容。", from: "堀与宫村" },
+                { text: "就算记忆消失，这份感情也绝对不会消失。", from: "魔法禁书目录" },
+                { text: "能和你相遇，是我这辈子最幸运的事。", from: "龙与虎" },
+                { text: "因为你，我爱上了这个世界。", from: "中二病也要谈恋爱！" },
+                { text: "我喜欢你，不是朋友那种喜欢，是想做你女朋友的那种喜欢。", from: "青春之旅" },
+                { text: "我希望能成为你的力量，哪怕只有一点点。", from: "某科学的超电磁炮" },
+                { text: "如果世界对你恶语相向，我就对你说上一世情话。", from: "魔法少女小圆" },
+                { text: "只要能陪在你身边，无论去哪里我都愿意。", from: "零之使魔" },
+                { text: "我喜欢你，这份心意，绝对不会输给任何人。", from: "伪恋" },
+                { text: "因为你在那里，所以我才会在这里。", from: "凉宫春日的忧郁" },
+                { text: "我的眼里只有你，再也容不下其他人。", from: "纯白交响曲" },
+                { text: "我想保护你，不仅是现在，还有未来。", from: "结城友奈是勇者" },
+                { text: "我喜欢你，无论发生什么，这份心意都不会改变。", from: "告白实行委员会" },
+                { text: "能和你在一起，就是我最大的幸福。", from: "徒然喜欢你" },
+                { text: "我的世界，因为你而变得完整。", from: "宅男腐女恋爱真难" },
+                { text: "我喜欢你，哪怕只是远远地看着你，我也觉得很满足。", from: "邻座的怪同学" },
+                { text: "我想和你一起，走过每一个春夏秋冬。", from: "元气少女缘结神" },
+                { text: "只要是你，无论变成什么样我都能认出来。", from: "狼与香辛料" },
+                { text: "我的心，早就已经被你填满了。", from: "会长是女仆大人！" },
+                { text: "我想成为能配得上你的人。", from: "樱花庄的宠物女孩" },
+                { text: "我喜欢你，所以想把最好的一切都给你。", from: "只要你说你爱我" },
+                { text: "能认识你，是我漫长生命中最美好的奇迹。", from: "葬送的芙莉莲" },
+                { text: "我的梦想，就是让你幸福。", from: "Fate/stay night" },
+                { text: "我想和你一起，创造属于我们的回忆。", from: "冰菓" },
+                { text: "就算发了一千条短信，心与心之间的距离也不曾拉近过一厘米。", from: "秒速五厘米" },
+                { text: "就算世界末日到来，我也会紧紧握住你的手。", from: "末日时在做什么？有没有空？可以来拯救吗？" }
+            ];
+
+            try {
+                const data = pureLoveQuotes[Math.floor(Math.random() * pureLoveQuotes.length)];
+                
+                textEl.style.opacity = '0';
+                if (authorEl) authorEl.style.opacity = '0';
+                
+                setTimeout(() => {
+                    textEl.textContent = data.text;
+                    if (authorEl) authorEl.textContent = `—— 《${data.from}》`;
+                    
+                    textEl.style.transition = 'opacity 0.5s';
+                    textEl.style.opacity = '1';
+                    if (authorEl) {
+                        authorEl.style.transition = 'opacity 0.5s';
+                        authorEl.style.opacity = '0.7';
+                    }
+                }, 300);
+                
+            } catch (err) {
+                textEl.textContent = "获取台词失败";
+            }
+        }
+    }
+    if (!customElements.get('pure-love-quote')) {
+        customElements.define('pure-love-quote', PureLoveQuote);
+    }
+
+    function setupHeroScroll() {
+        const scrollBtn = document.getElementById('scroll-down-btn');
+        if (scrollBtn) {
+            scrollBtn.addEventListener('click', () => {
+                const mainGrid = document.getElementById('main-grid');
+                if (mainGrid) {
+                    const y = mainGrid.getBoundingClientRect().top + window.scrollY - 80;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                }
+            });
+        }
+    }
+
+    if (window.swup) {
+        setupHeroScroll();
+        window.swup.hooks.on('page:view', setupHeroScroll);
+    } else {
+        document.addEventListener('swup:enable', setupHeroScroll);
+        setupHeroScroll();
+    }
+</script>

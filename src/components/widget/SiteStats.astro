@@ -55,10 +55,10 @@ const SITE_START_DATE = "2025-12-01";
 </WidgetLayout>
 
 <!-- 不蒜子统计脚本 -->
-<script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<script is:inline async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 
 <!-- 运行时间计算脚本 -->
-<script define:vars={{ SITE_START_DATE }}>
+<script is:inline define:vars={{ SITE_START_DATE }}>
     function updateRunningTime() {
         const startDate = new Date(SITE_START_DATE);
         const now = new Date();

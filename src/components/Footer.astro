@@ -16,7 +16,7 @@ const currentYear = new Date().getFullYear();
     </sakura-canvas>
 
     <!-- 动态一言（Hitokoto） -->
-    <hitokoto-quote class="relative z-10 block mb-4 text-[var(--text-70)] font-bold italic font-serif cursor-pointer hover:opacity-80 transition-opacity" title="点击刷新一言">
+    <hitokoto-quote class="relative z-10 block mb-4 text-[var(--text-70)] font-serif font-medium tracking-wide cursor-pointer hover:opacity-80 transition-opacity" title="点击刷新一言">
         「<span class="hitokoto-text">正在寻找灵魂深处的共鸣...</span>」
         <span class="hitokoto-author text-sm font-medium ml-2 opacity-70 hidden md:inline-block"></span>
     </hitokoto-quote>
@@ -73,7 +73,7 @@ const currentYear = new Date().getFullYear();
     }
 </style>
 
-<script>
+<script is:inline>
 class HitokotoQuote extends HTMLElement {
     constructor() {
         super();
@@ -92,7 +92,8 @@ class HitokotoQuote extends HTMLElement {
         if (!textEl) return;
         
         try {
-            const response = await fetch('https://v1.hitokoto.cn');
+            // c=d (Literature), c=i (Poetry), c=k (Philosophy)
+            const response = await fetch('https://v1.hitokoto.cn?c=d&c=i&c=k');
             const data = await response.json();
             
             // 添加淡入淡出动画效果
