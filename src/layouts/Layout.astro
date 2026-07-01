@@ -150,9 +150,11 @@ const bannerOffset =
 		<link rel="alternate" type="application/rss+xml" title={profileConfig.name} href={`${Astro.site}rss.xml`}/>
 
 	</head>
-	<body class="bg-gradient-to-br from-pink-100 via-white to-rose-100 dark:from-gray-900 dark:via-rose-950 dark:to-gray-900 bg-fixed min-h-screen transition " class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
+	<body class="min-h-screen transition " class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
 		  data-overlayscrollbars-initialize
 	>
+		<!-- Background layer to avoid bg-fixed performance issues on mobile -->
+		<div class="fixed inset-0 z-[-1] bg-gradient-to-br from-pink-100 via-white to-rose-100 dark:from-gray-900 dark:via-rose-950 dark:to-gray-900 transition"></div>
 		<ConfigCarrier></ConfigCarrier>
 
 		<!-- 阅读进度条 -->
@@ -648,3 +650,11 @@ if (window.swup) {
 	});
 </script>
 
+<script is:inline>
+	// 修复移动端在部分浏览器（如 Safari、Chrome）中右滑返回时的白屏问题 (BFCache)
+	window.addEventListener('pageshow', (event) => {
+		if (event.persisted) {
+			window.location.reload();
+		}
+	});
+</script>
