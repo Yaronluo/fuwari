@@ -6,8 +6,10 @@
 	let tabs: NodeListOf<HTMLElement> | null = null;
 	let prevBtn: HTMLElement | null = null;
 	let nextBtn: HTMLElement | null = null;
-	let indicator: HTMLElement | null = null;
+	let pageIndicator: HTMLElement | null = null;
 	let paginationBar: HTMLElement | null = null;
+	let hoverIndicator: HTMLElement | null = null;
+	let tabsContainer: HTMLElement | null = null;
 
 	const ITEMS_PER_PAGE = 9;
 	let currentStatus = 'all';
@@ -16,6 +18,13 @@
 
 	// 事件监听器引用，用于清理
 	const eventListeners: Array<() => void> = [];
+
+	function updateHoverIndicator(target: HTMLElement) {
+		if (!hoverIndicator) return;
+		hoverIndicator.style.width = `${target.offsetWidth * 0.8}px`;
+		hoverIndicator.style.left = `${target.offsetLeft + (target.offsetWidth * 0.1)}px`;
+		hoverIndicator.style.opacity = '1';
+	}
 
 	function render() {
 		if (!items || !items.length) {
@@ -57,7 +66,7 @@
 		// 4. 控制栏同步
 		if (prevBtn) prevBtn.disabled = (currentPage === 1);
 		if (nextBtn) nextBtn.disabled = (currentPage === totalPages);
-		if (indicator) indicator.textContent = `${currentPage} / ${totalPages}`;
+		if (pageIndicator) pageIndicator.textContent = `${currentPage} / ${totalPages}`;
 		if (paginationBar) {
 			paginationBar.style.display = totalPages <= 1 ? 'none' : 'flex';
 		}
@@ -70,10 +79,11 @@
 
 		if (tabs) {
 			tabs.forEach(t => {
-				t.className = "tab-btn bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-[var(--primary)] hover:text-white hover:scale-105 flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer";
+				t.className = "tab-btn bangumi-tab bangumi-tab-inactive z-10";
 			});
 		}
-		target.className = "tab-btn bg-[var(--primary)] text-white flex-shrink-0 px-3 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer shadow-sm scale-105";
+		target.className = "tab-btn bangumi-tab bangumi-tab-active z-10";
+		updateHoverIndicator(target);
 
 		render();
 	}
@@ -100,8 +110,10 @@
 		tabs = document.querySelectorAll('.tab-btn');
 		prevBtn = document.getElementById('btn-prev');
 		nextBtn = document.getElementById('btn-next');
-		indicator = document.getElementById('page-indicator');
+		pageIndicator = document.getElementById('page-indicator');
 		paginationBar = document.getElementById('bangumi-pagination');
+		hoverIndicator = document.getElementById('bangumi-indicator');
+		tabsContainer = document.getElementById('bangumi-tabs-container');
 
 		if (!grid) {
 			console.error('[BangumiPanel] 未找到 #bangumi-grid 元素');
@@ -118,7 +130,21 @@
 			tabs.forEach(tab => {
 				tab.addEventListener('click', handleTabClick);
 				eventListeners.push(() => tab.removeEventListener('click', handleTabClick));
+
+				const handleEnter = (e: Event) => updateHoverIndicator(e.currentTarget as HTMLElement);
+				tab.addEventListener('mouseenter', handleEnter);
+				eventListeners.push(() => tab.removeEventListener('mouseenter', handleEnter));
 			});
+		}
+		
+		if (tabsContainer) {
+			const handleLeave = () => {
+				const activeTab = document.querySelector('.bangumi-tab-active') as HTMLElement;
+				if (activeTab) updateHoverIndicator(activeTab);
+				else if (hoverIndicator) hoverIndicator.style.opacity = '0';
+			};
+			tabsContainer.addEventListener('mouseleave', handleLeave);
+			eventListeners.push(() => tabsContainer?.removeEventListener('mouseleave', handleLeave));
 		}
 
 		if (prevBtn) {
@@ -130,6 +156,12 @@
 			nextBtn.addEventListener('click', handleNextClick);
 			eventListeners.push(() => nextBtn?.removeEventListener('click', handleNextClick));
 		}
+
+		// 初始化流动光标位置
+		setTimeout(() => {
+			const activeTab = document.querySelector('.bangumi-tab-active') as HTMLElement;
+			if (activeTab) updateHoverIndicator(activeTab);
+		}, 100);
 
 		render();
 

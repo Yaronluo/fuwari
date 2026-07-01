@@ -24,14 +24,10 @@ Welcome to my little blog! ٩(๑^o^๑)۶
 I'm Yaron, from Hunan, and I'm currently a university student majoring in Computer Science and Technology!
 
 My hobbies are football, gaming, watching anime, and listening to music.
-
-For football, my favorite player is Cristiano Ronaldo. I love his never-give-up spirit and his eternal hunger for victory. As for teams, my favorite club is Real Madrid—`"Hala Madrid! In a world full of colors, I choose pure white!"`
-
-For competitive multiplayer games, I love `LOLM`, `Delta Force`, and `Counter-Strike 2`. For single-player/casual games, I enjoy `Stardew Valley`, `Minecraft`, and some horror games ✧(≖◡≖✿)
-
-When it comes to anime, I'm a huge fan of pure romance. **Let pure love rule the world, okay?!** If you're interested, you can check out my [“Anime Tracker”](https://yaronluo.com/bangumi/) to see my watch list.
-
-For music, I love Jay Chou, G.E.M., Vae (Xu Song), David Tao, and many others... If you're curious, you can head over to my [QQ Music](https://c6.y.qq.com/base/fcgi-bin/u?__=YkxsLjK3HadO) to explore more, hehe (●'◡'●)
+- For football, my favorite player is Cristiano Ronaldo. I love his never-give-up spirit and his eternal hunger for victory. As for teams, my favorite club is Real Madrid—`"Hala Madrid! In a world full of colors, I choose pure white!"`
+- For competitive multiplayer games, I love `LOLM`, `Delta Force`, and `Counter-Strike 2`. For single-player/casual games, I enjoy `Stardew Valley`, `Minecraft`, and some horror games ✧(≖◡≖✿)
+- When it comes to anime, I'm a huge fan of pure romance. **Let pure love rule the world, okay?!** If you're interested, you can check out my [“Anime Tracker”](https://yaronluo.com/bangumi/) to see my watch list.
+- For music, I love Jay Chou, G.E.M., Vae (Xu Song), David Tao, and many others... If you're curious, you can head over to my [QQ Music](https://c6.y.qq.com/base/fcgi-bin/u?__=YkxsLjK3HadO) to explore more, hehe (●'◡'●)  
 
 My ultimate dream is to **make money—lots of money** 💸~ hehe. (And... I also really want to get a cute girlfriend /(ㄒoㄒ)/~~)
 
