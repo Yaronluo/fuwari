@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "posts/Fuwari拓展-添加番剧墙.md",
+                "file": "spec/about.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Fuwari拓展-添加番剧墙"
+              "title": "about"
             }
           }
         ],
@@ -109,7 +109,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "attachment/4c5f3197979de6969966b419a0efee91.jpg",
+                "file": "spec/about.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -119,7 +119,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "4c5f3197979de6969966b419a0efee91 的反向链接列表"
+              "title": "about 的反向链接列表"
             }
           },
           {
@@ -128,12 +128,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "posts/Share my life.1.md",
+                "file": "spec/about.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Share my life.1 的出链列表"
+              "title": "about 的出链列表"
             }
           },
           {
@@ -157,13 +157,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "attachment/4c5f3197979de6969966b419a0efee91.jpg",
+                "file": "spec/about.md",
                 "followCursor": true,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "4c5f3197979de6969966b419a0efee91 的大纲"
+              "title": "about 的大纲"
             }
           }
         ],
