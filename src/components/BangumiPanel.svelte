@@ -79,10 +79,12 @@
 
 		if (tabs) {
 			tabs.forEach(t => {
-				t.className = "tab-btn bangumi-tab bangumi-tab-inactive z-10";
+				t.classList.remove("bangumi-tab-active");
+				t.classList.add("bangumi-tab-inactive");
 			});
 		}
-		target.className = "tab-btn bangumi-tab bangumi-tab-active z-10";
+		target.classList.remove("bangumi-tab-inactive");
+		target.classList.add("bangumi-tab-active");
 		updateHoverIndicator(target);
 
 		render();
