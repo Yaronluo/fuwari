@@ -77,13 +77,17 @@ const currentYear = new Date().getFullYear();
 class HitokotoQuote extends HTMLElement {
     constructor() {
         super();
-        this.fetchQuote();
         // 点击刷新一言
         this.addEventListener('click', () => {
             const textEl = this.querySelector('.hitokoto-text');
             if (textEl) textEl.textContent = "获取中...";
             this.fetchQuote();
         });
+    }
+
+    connectedCallback() {
+        // 使用 setTimeout 确保 DOM 子元素已经完全挂载
+        setTimeout(() => this.fetchQuote(), 0);
     }
 
     async fetchQuote() {
