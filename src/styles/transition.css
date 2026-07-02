@@ -4,7 +4,6 @@ html.is-changing .transition-swup-fade {
 }
 html.is-animating .transition-swup-fade {
     @apply opacity-0;
-    transform: scale(0.98);
 }
 
 /* Fade-in animations for components (scale-in from inside out) */
@@ -25,7 +24,18 @@ html.is-animating .transition-swup-fade {
     animation-fill-mode: backwards;
 }
 #navbar {
-    animation-delay: 0ms
+    animation: 350ms ease-out fade-in-opacity;
+    animation-fill-mode: backwards;
+    animation-delay: 0ms;
+}
+
+@keyframes fade-in-opacity {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
 }
 #sidebar {
     animation-delay: 100ms

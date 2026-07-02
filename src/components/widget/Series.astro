@@ -11,16 +11,18 @@ interface Props {
     class?: string
     style?: string
     series: string
+    isCard?: boolean
 }
 const className = Astro.props.class
 const style = Astro.props.style
 const seriesName = Astro.props.series
+const isCard = Astro.props.isCard
 
 const series = await getPostSeries(seriesName)
 
 const isCollapsed = series.length >= 10
 ---
-<WidgetLayout name={i18n(I18nKey.series) + " - " + series[0].data.series} id="series" isCollapsed={isCollapsed} collapsedHeight={COLLAPSED_HEIGHT} class={className} style={style}>
+<WidgetLayout name={i18n(I18nKey.series) + " - " + series[0].data.series} id="series" isCollapsed={isCollapsed} collapsedHeight={COLLAPSED_HEIGHT} class={className} style={style} isCard={isCard}>
     <div class="flex flex-col gap-1">
         {series.map(t => (
                 <a href={getPostUrlBySlug(t.slug)}
