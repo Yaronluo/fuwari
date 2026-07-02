@@ -17,18 +17,27 @@ import { Icon } from "astro-icon/components";
                 {profileConfig.bio}
             </h2>
             <p class="text-sm md:text-base text-black/40 dark:text-white/40 font-bold tracking-widest uppercase mt-2">
-                Warm · Cozy · Lovely
+                纯爱 · 开朗 · 幸福
             </p>
             
             <!-- Social Icons -->
-            <div class="flex flex-wrap justify-center md:justify-start gap-3 pt-4">
-                {profileConfig.links.map((link, index) => (
-                    <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={link.name}
-                       class="social-hero-link w-10 h-10 rounded-full bg-black/80 dark:bg-white/90 text-white dark:text-black flex items-center justify-center hover:scale-110 hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-xl hover:bg-[var(--primary)] dark:hover:bg-[var(--primary)] dark:hover:text-white"
-                       style={`animation-delay: ${index * 80 + 300}ms;`}>
-                        <Icon name={link.icon} class="text-xl" />
-                    </a>
-                ))}
+            <div class="flex flex-wrap justify-center md:justify-start gap-4 pt-4">
+                {profileConfig.links.map((link, index) => {
+                    const nameLower = link.name.toLowerCase();
+                    let brandClass = "default-link";
+                    if (nameLower.includes("github")) brandClass = "github-link";
+                    else if (nameLower.includes("qq")) brandClass = "qq-link";
+                    else if (nameLower.includes("bilibili")) brandClass = "bilibili-link";
+                    else if (nameLower.includes("twitter") || nameLower.includes("x")) brandClass = "twitter-link";
+                    
+                    return (
+                        <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={link.name}
+                           class={`social-hero-link w-10 h-10 rounded-full backdrop-blur-md border border-white/40 dark:border-white/10 flex items-center justify-center hover:scale-110 hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-xl ${brandClass}`}
+                           style={`animation-delay: ${index * 80 + 300}ms;`}>
+                            <Icon name={link.icon} class="text-xl" />
+                        </a>
+                    );
+                })}
             </div>
         </div>
 
@@ -41,7 +50,7 @@ import { Icon } from "astro-icon/components";
 
     <!-- Bottom: Pure Love Quote & Scroll Down -->
     <div class="absolute bottom-8 left-0 w-full flex flex-col items-center justify-center space-y-4 z-10 onload-animation" style="animation-delay: 300ms;">
-        <pure-love-quote class="block text-[var(--text-60)] text-sm md:text-base font-serif font-medium tracking-wide cursor-pointer hover:opacity-80 transition-opacity px-4 text-center" title="点击刷新台词">
+        <pure-love-quote class="block text-black/60 dark:text-white/60 text-sm md:text-base font-serif font-medium tracking-wide cursor-pointer hover:opacity-80 transition-opacity px-4 text-center" title="点击刷新台词">
             「<span class="quote-text">正在寻找灵魂深处的共鸣...</span>」
             <span class="quote-author text-xs font-normal ml-2 opacity-70 hidden md:inline-block"></span>
         </pure-love-quote>
@@ -67,6 +76,75 @@ import { Icon } from "astro-icon/components";
         opacity: 0;
         animation: 450ms cubic-bezier(0.34, 1.56, 0.64, 1) pop-up-item;
         animation-fill-mode: both;
+    }
+
+    /* Icon Tilt Animation */
+    .social-hero-link svg {
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .social-hero-link:hover svg {
+        transform: rotate(12deg) scale(1.15);
+    }
+
+    /* Brand Colors for Frosted Glass */
+    .social-hero-link.github-link {
+        background-color: rgba(36, 41, 46, 0.15);
+        color: #24292e;
+    }
+    :global(.dark) .social-hero-link.github-link {
+        background-color: rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+    }
+    .social-hero-link.qq-link {
+        background-color: rgba(18, 183, 245, 0.15);
+        color: #12b7f5;
+    }
+    .social-hero-link.bilibili-link {
+        background-color: rgba(251, 114, 153, 0.15);
+        color: #fb7299;
+    }
+    .social-hero-link.twitter-link {
+        background-color: rgba(29, 161, 242, 0.15);
+        color: #1da1f2;
+    }
+    .social-hero-link.default-link {
+        background-color: rgba(150, 150, 150, 0.15);
+        color: var(--primary);
+    }
+
+    .social-hero-link:hover {
+        color: #ffffff;
+    }
+    
+    /* Hover Glow & Fill (Color Diffusion) */
+    .social-hero-link.github-link:hover {
+        background-color: #24292e;
+        box-shadow: 0 0 24px 4px rgba(36, 41, 46, 0.4);
+    }
+    :global(.dark) .social-hero-link.github-link:hover {
+        background-color: #ffffff;
+        color: #24292e;
+        box-shadow: 0 0 24px 4px rgba(255, 255, 255, 0.4);
+    }
+    
+    .social-hero-link.qq-link:hover {
+        background-color: #12b7f5;
+        box-shadow: 0 0 24px 4px rgba(18, 183, 245, 0.4);
+    }
+    
+    .social-hero-link.bilibili-link:hover {
+        background-color: #fb7299;
+        box-shadow: 0 0 24px 4px rgba(251, 114, 153, 0.4);
+    }
+    
+    .social-hero-link.twitter-link:hover {
+        background-color: #1da1f2;
+        box-shadow: 0 0 24px 4px rgba(29, 161, 242, 0.4);
+    }
+    
+    .social-hero-link.default-link:hover {
+        background-color: var(--primary);
+        box-shadow: 0 0 24px 4px var(--primary);
     }
 
     @keyframes pop-up-item {

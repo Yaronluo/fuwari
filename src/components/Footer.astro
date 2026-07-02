@@ -16,13 +16,13 @@ const currentYear = new Date().getFullYear();
     </sakura-canvas>
 
     <!-- 动态一言（Hitokoto） -->
-    <hitokoto-quote class="relative z-10 block mb-4 text-[var(--text-70)] font-serif font-medium tracking-wide cursor-pointer hover:opacity-80 transition-opacity" title="点击刷新一言">
+    <hitokoto-quote class="relative z-10 block mb-4 text-black/70 dark:text-white/70 font-serif font-medium tracking-wide cursor-pointer hover:opacity-80 transition-opacity" title="点击刷新一言">
         「<span class="hitokoto-text">正在寻找灵魂深处的共鸣...</span>」
         <span class="hitokoto-author text-sm font-medium ml-2 opacity-70 hidden md:inline-block"></span>
     </hitokoto-quote>
 
     <!-- 主要信息 -->
-    <div class="relative z-10 transition text-[var(--text-60)] text-sm text-center">
+    <div class="relative z-10 transition text-black/50 dark:text-white/50 text-sm text-center">
         &copy; <span id="copyright-year">{currentYear}</span> {profileConfig.name}.
         Made with <span class="text-red-500 animate-pulse">❤️</span> in China.<br>
 
@@ -45,15 +45,15 @@ const currentYear = new Date().getFullYear();
         </div>
 
         <!-- 备案信息（如果需要） -->
-        <div class="mt-3 text-xs text-[var(--text-40)]">
-            <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" class="hover:text-[var(--text-60)] transition">
+        <div class="mt-3 text-xs text-black/40 dark:text-white/40">
+            <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" class="hover:text-black/70 dark:hover:text-white/70 transition">
                 <!-- 这里填写你的备案号 -->
                 <!-- 京ICP备xxxxxxxx号 -->
             </a>
         </div>
 
         <!-- 技术栈信息 -->
-        <div class="mt-4 text-xs text-[var(--text-40)]">
+        <div class="mt-4 text-xs text-black/50 dark:text-white/50">
             Powered by
             <a class="transition link text-[var(--primary)] font-medium hover:underline" target="_blank" href="https://astro.build">Astro</a> &
             <a class="transition link text-[var(--primary)] font-medium hover:underline" target="_blank" href="https://github.com/saicaca/fuwari">Fuwari</a>
