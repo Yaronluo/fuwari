@@ -3,26 +3,26 @@ html.is-changing .transition-swup-fade {
     @apply transition-all duration-200
 }
 html.is-animating .transition-swup-fade {
-    @apply opacity-0 translate-y-4
+    @apply opacity-0;
+    transform: scale(0.98);
 }
 
-/* Fade-in animations for components */
-@keyframes fade-in-up {
+/* Fade-in animations for components (scale-in from inside out) */
+@keyframes fade-in-scale {
     0% {
-        transform: translateY(2rem);
+        transform: scale(0.98);
         opacity: 0;
     }
     100% {
-        transform: translateY(0);
+        transform: scale(1);
         opacity: 1;
     }
 }
 
 /* Main components */
 .onload-animation {
-    opacity: 0;
-    animation: 300ms fade-in-up;
-    animation-fill-mode: forwards;
+    animation: 350ms cubic-bezier(0.16, 1, 0.3, 1) fade-in-scale;
+    animation-fill-mode: backwards;
 }
 #navbar {
     animation-delay: 0ms

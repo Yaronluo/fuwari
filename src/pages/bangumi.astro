@@ -60,7 +60,7 @@ try {
             <h1 class="text-2xl sm:text-3xl font-black bg-gradient-to-r from-emerald-400 via-pink-400 to-orange-400 bg-clip-text text-transparent tracking-wider drop-shadow-sm">
                 恶作剧覆盖下的绝对偏爱方程式
             </h1>
-            <p class="text-neutral-500 dark:text-neutral-400 text-xs font-semibold tracking-widest bg-neutral-200/40 dark:bg-neutral-800/50 px-4 py-1 rounded-full inline-block self-center border border-neutral-200/30 dark:border-neutral-700/20">
+            <p class="text-neutral-500 dark:text-neutral-400 text-xs font-semibold tracking-widest bg-white/30 dark:bg-black/40 backdrop-blur-md px-4 py-1 rounded-full inline-block self-center border border-white/30 dark:border-white/10">
                 「 笨蛋，每次处心积虑的捉弄，都是我无法直视你双眼时，最笨拙的告白。 」
             </p>
         </div>
@@ -78,7 +78,7 @@ try {
             <div class="text-center py-12 text-neutral-400 text-xs tracking-widest">此处空空如也，快去捕捉新的奇迹吧 ✨</div>
         ) : (
             <>
-                <div class="relative flex flex-nowrap overflow-x-auto justify-start md:justify-between items-center gap-1 sm:gap-2 md:gap-1 p-1 md:p-1.5 bg-white/40 dark:bg-black/30 backdrop-blur-xl rounded-2xl md:rounded-full border border-white/50 dark:border-white/10 shadow-sm mb-6 mx-auto w-full [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" id="bangumi-tabs-container">
+                <div class="relative flex flex-nowrap overflow-x-auto justify-start md:justify-between items-center gap-1 sm:gap-2 md:gap-1 p-1 md:p-1.5 bg-white/35 dark:bg-black/45 backdrop-blur-2xl rounded-2xl md:rounded-full border border-white/40 dark:border-white/10 shadow-sm mb-6 mx-auto w-full [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" id="bangumi-tabs-container">
                     <div id="bangumi-indicator" class="absolute bottom-0 md:bottom-1 h-[3px] rounded-full bg-gradient-to-r from-transparent via-[var(--primary)] to-transparent transition-all duration-300 opacity-0 pointer-events-none z-0"></div>
                     <button data-status="all" class="tab-btn bangumi-tab bangumi-tab-active z-10 md:flex-1">
                         全部明细 ✨ <span class="text-xs md:text-[9px] opacity-70">({allCollections.length})</span>
@@ -115,7 +115,7 @@ try {
 
                         return (
                             <a href={`https://bgm.tv/subject/${item.subject.id}`} target="_blank" rel="noopener noreferrer"
-                               class="bangumi-item block group relative aspect-[2/3] rounded-2xl overflow-hidden bg-neutral-200/50 dark:bg-neutral-800/50 shadow-sm border border-neutral-200/30 dark:border-neutral-700/30 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-md hover:border-[var(--primary)]/40 cursor-pointer"
+                               class="bangumi-item block group relative aspect-[2/3] rounded-2xl overflow-hidden bg-white/35 dark:bg-black/45 backdrop-blur-md shadow-sm border border-white/30 dark:border-white/10 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-md hover:border-[var(--primary)]/40 cursor-pointer"
                                data-type={item.type}>
                                 <span class={`absolute top-2 left-2 z-10 px-2 py-0.5 text-[9px] font-black rounded-md tracking-wider shadow-sm ${statusColor}`}>
                                     {statusLabel}

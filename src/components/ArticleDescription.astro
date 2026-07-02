@@ -10,18 +10,16 @@ const { description } = Astro.props;
 if (!description || description.trim() === '') {
     return null;
 }
-
-// 🎯 关键修改：使用零宽空格作为占位符
-const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
 ---
 
-<div class="article-description">
+<div class="article-description onload-animation">
     <!--
-      🎯 关键修改 1: 服务端只渲染零宽空格
-      这样页面有内容但用户看不见，避免布局跳动
+      🎯 性能与重排（Reflow）优化：
+      服务端直接渲染完整的未打字文本（透明），确立完整布局高度，
+      防止客户端打字时由于行数不断增加触发大篇幅文章的 Reflow（重排）导致页面闪烁与跳动。
     -->
     <div class="description-content" data-description={description}>
-        {placeholder}
+        <span class="typed-text"></span><span class="typing-cursor">|</span><span class="untyped-text" style="opacity: 0; pointer-events: none; user-select: none;">{description}</span>
     </div>
 </div>
 
@@ -38,27 +36,57 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
             // 标记为已初始化，防止重复执行
             descElement.setAttribute('data-typed', 'true');
 
-            const text = descElement.getAttribute('data-description');
+            const text = descElement.getAttribute('data-description') || '';
             if (!text) return;
 
-            // 先清空零宽空格，然后从第一个字开始打
-            descElement.textContent = '';
-            descElement.classList.remove('typing-complete');
+            const typedSpan = descElement.querySelector('.typed-text') as HTMLElement;
+            const untypedSpan = descElement.querySelector('.untyped-text') as HTMLElement;
+            const cursorSpan = descElement.querySelector('.typing-cursor') as HTMLElement;
+
+            if (!typedSpan || !untypedSpan || !cursorSpan) return;
 
             let index = 0;
             const typeSpeed = 25;
 
             function typeWriter() {
-                if (index < text!.length) {
-                    descElement.textContent += text!.charAt(index);
+                if (index <= text.length) {
+                    typedSpan.textContent = text.slice(0, index);
+                    untypedSpan.textContent = text.slice(index);
                     index++;
                     setTimeout(typeWriter, typeSpeed);
                 } else {
+                    cursorSpan.style.display = 'none';
                     descElement.classList.add('typing-complete');
                 }
             }
 
-            typeWriter();
+            function startTyping() {
+                // 确保打字开始前，清空已打字部分，未打字部分保持完整以占位
+                typedSpan.textContent = '';
+                untypedSpan.textContent = text;
+                typeWriter();
+            }
+
+            // 🎯 优化：等待载入/缩放动画结束后再开始打字，防止动画和打字同时进行导致视觉混乱
+            const parent = descElement.closest('.article-description');
+            
+            // 安全机制：如果由于某种原因没有触发 animationend，设置 800ms 的兜底定时器
+            let fallbackTimer = setTimeout(() => {
+                parent?.removeEventListener('animationend', onAnimationEnd);
+                startTyping();
+            }, 800);
+
+            function onAnimationEnd() {
+                clearTimeout(fallbackTimer);
+                startTyping();
+            }
+
+            if (parent && parent.classList.contains('onload-animation')) {
+                parent.addEventListener('animationend', onAnimationEnd, { once: true });
+            } else {
+                clearTimeout(fallbackTimer);
+                startTyping();
+            }
         });
     }
 
@@ -105,9 +133,9 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
         color: var(--tw-prose-body);
         font-size: 1.05rem;
         line-height: 1.7;
-        font-style: normal; /* 不用斜体，中文斜体渲染往往发虚/锯齿 */
+        font-style: normal;
         font-weight: 400;
-        min-height: 1.7em; /* 防止光标导致高度跳动 */
+        min-height: 1.7em;
         opacity: 0.8;
     }
     :global(.dark) .description-content {
@@ -118,17 +146,13 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
     }
 
     /* 打字机光标效果 */
-    .description-content::after {
-        content: '|';
+    .typing-cursor {
         color: var(--desc-primary);
         animation: blink-cursor 1s infinite;
         font-weight: bold;
         font-style: normal;
-    }
-
-    /* 打字完成后隐藏光标 */
-    .description-content.typing-complete::after {
-        display: none;
+        margin: 0 1px;
+        display: inline-block;
     }
 
     /* 光标闪烁动画 */
@@ -141,5 +165,3 @@ const placeholder = '\u200B'; // 零宽空格，看不见但占据空间
         }
     }
 </style>
-
-

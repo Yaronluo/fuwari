@@ -154,7 +154,12 @@ const bannerOffset =
 		  data-overlayscrollbars-initialize
 	>
 		<!-- Background layer to avoid bg-fixed performance issues on mobile -->
-		<div class="fixed inset-0 z-[-1] bg-gradient-to-br from-pink-100 via-white to-rose-100 dark:from-gray-900 dark:via-rose-950 dark:to-gray-900 transition"></div>
+		<div class="fixed inset-0 z-[-1] overflow-hidden bg-gradient-to-br from-pink-50 via-white to-rose-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 transition-colors duration-500">
+			<!-- Blurred colorful blobs for Glassmorphism pop -->
+			<div class="absolute -top-[10%] -left-[10%] w-[55%] h-[55%] rounded-full bg-gradient-to-tr from-pink-300/30 to-purple-300/30 dark:from-purple-900/20 dark:to-pink-900/20 blur-[90px] pointer-events-none transition-colors duration-500"></div>
+			<div class="absolute -bottom-[10%] -right-[10%] w-[65%] h-[65%] rounded-full bg-gradient-to-br from-blue-200/30 to-rose-200/30 dark:from-rose-900/20 dark:to-blue-900/20 blur-[110px] pointer-events-none transition-colors duration-500"></div>
+			<div class="absolute top-[35%] right-[15%] w-[35%] h-[35%] rounded-full bg-gradient-to-br from-yellow-200/20 to-pink-200/20 dark:from-yellow-900/15 dark:to-pink-950/15 blur-[80px] pointer-events-none transition-colors duration-500"></div>
+		</div>
 		<ConfigCarrier></ConfigCarrier>
 
 		<!-- 阅读进度条 -->
