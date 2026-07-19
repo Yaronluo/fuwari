@@ -160,6 +160,7 @@ import { Icon } from "astro-icon/components";
 </style>
 
 <script is:inline>
+    (() => {
     class PureLoveQuote extends HTMLElement {
         constructor() {
             super();
@@ -261,7 +262,8 @@ import { Icon } from "astro-icon/components";
 
     function setupHeroScroll() {
         const scrollBtn = document.getElementById('scroll-down-btn');
-        if (scrollBtn) {
+        if (scrollBtn && scrollBtn.dataset.scrollBound !== 'true') {
+            scrollBtn.dataset.scrollBound = 'true';
             scrollBtn.addEventListener('click', () => {
                 const mainGrid = document.getElementById('main-grid');
                 if (mainGrid) {
@@ -272,11 +274,19 @@ import { Icon } from "astro-icon/components";
         }
     }
 
-    if (window.swup) {
-        setupHeroScroll();
-        window.swup.hooks.on('page:view', setupHeroScroll);
-    } else {
-        document.addEventListener('swup:enable', setupHeroScroll);
-        setupHeroScroll();
+    setupHeroScroll();
+
+    if (!window.__fuwariHeroScrollHookRegistered) {
+        window.__fuwariHeroScrollHookRegistered = true;
+
+        if (window.swup) {
+            window.swup.hooks.on('page:view', setupHeroScroll);
+        } else {
+            document.addEventListener('swup:enable', () => {
+                window.swup.hooks.on('page:view', setupHeroScroll);
+                setupHeroScroll();
+            }, { once: true });
+        }
     }
+    })();
 </script>

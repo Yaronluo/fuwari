@@ -638,28 +638,38 @@ if (window.swup) {
 </script>
 
 <script is:inline>
-	// 网页标签卖萌特效 (动态 Title)
-	let originTitle = '';
-	let titleTime;
-	document.addEventListener('visibilitychange', function () {
-		if (document.hidden) {
-			originTitle = document.title;
-			document.title = '(っ °Д °;)っ 页面崩溃啦！';
-			clearTimeout(titleTime);
-		} else {
-			document.title = '(*/ω＼*) 骗你的啦~';
-			titleTime = setTimeout(function () {
-				document.title = originTitle;
-			}, 2000);
-		}
-	});
+	(() => {
+		if (window.__fuwariDynamicTitleInitialized) return;
+		window.__fuwariDynamicTitleInitialized = true;
+
+		// 网页标签卖萌特效 (动态 Title)
+		let originTitle = '';
+		let titleTime;
+		document.addEventListener('visibilitychange', function () {
+			if (document.hidden) {
+				originTitle = document.title;
+				document.title = '(っ °Д °;)っ 页面崩溃啦！';
+				clearTimeout(titleTime);
+			} else {
+				document.title = '(*/ω＼*) 骗你的啦~';
+				titleTime = setTimeout(function () {
+					document.title = originTitle;
+				}, 2000);
+			}
+		});
+	})();
 </script>
 
 <script is:inline>
-	// 修复移动端在部分浏览器（如 Safari、Chrome）中右滑返回时的白屏问题 (BFCache)
-	window.addEventListener('pageshow', (event) => {
-		if (event.persisted) {
-			window.location.reload();
-		}
-	});
+	(() => {
+		if (window.__fuwariPageShowInitialized) return;
+		window.__fuwariPageShowInitialized = true;
+
+		// 修复移动端在部分浏览器（如 Safari、Chrome）中右滑返回时的白屏问题 (BFCache)
+		window.addEventListener('pageshow', (event) => {
+			if (event.persisted) {
+				window.location.reload();
+			}
+		});
+	})();
 </script>

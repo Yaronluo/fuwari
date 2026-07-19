@@ -74,6 +74,7 @@ const currentYear = new Date().getFullYear();
 </style>
 
 <script is:inline>
+(() => {
 class HitokotoQuote extends HTMLElement {
     constructor() {
         super();
@@ -121,7 +122,9 @@ class HitokotoQuote extends HTMLElement {
         }
     }
 }
-customElements.define('hitokoto-quote', HitokotoQuote);
+if (!customElements.get('hitokoto-quote')) {
+    customElements.define('hitokoto-quote', HitokotoQuote);
+}
 
 class Sakura {
     constructor(w, h) {
@@ -205,4 +208,5 @@ class SakuraCanvasElement extends HTMLElement {
 if (!customElements.get('sakura-canvas')) {
     customElements.define('sakura-canvas', SakuraCanvasElement);
 }
+})();
 </script>

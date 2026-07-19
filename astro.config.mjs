@@ -38,7 +38,7 @@ export default defineConfig({
 			animationClass: "transition-swup-", // see https://swup.js.org/options/#animationselector
 			// the default value `transition-` cause transition delay
 			// when the Tailwind class `transition-all` is used
-			containers: ["main", "#toc", "#series", "#top-full-width-wrapper", "#sidebar-widgets"],
+			containers: ["#main-grid", "#toc", "#top-full-width-wrapper"],
 			smoothScrolling: true,
 			cache: true,
 			preload: true,
