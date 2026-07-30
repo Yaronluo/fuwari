@@ -44,7 +44,7 @@ const coverWidth = "28%";
 
 const { remarkPluginFrontmatter } = await entry.render();
 ---
-<div class:list={["card-base flex flex-col-reverse md:flex-col w-full rounded-[var(--radius-large)] overflow-hidden relative transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:hover:shadow-black/20", className]} style={style}>
+<div class:list={["card-base flex flex-col-reverse md:flex-col w-full rounded-[var(--radius-large)] overflow-hidden relative transition-all duration-300 !shadow-none hover:-translate-y-1 hover:!shadow-none", className]} style={style}>
     <a href={url} class="absolute inset-0 z-0" aria-label={title}></a>
     <div class:list={["pl-6 md:pl-9 pr-6 md:pr-9 pt-6 md:pt-7 pb-6 relative z-10", {"w-full": !hasCover, "w-full md:w-[calc(100%_-_var(--coverWidth)_-_12px)]": hasCover}]}>
        {pinned && <div class="absolute top-2 right-2 text-[var(--primary)]">

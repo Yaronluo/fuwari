@@ -11,13 +11,15 @@ const style = Astro.props.style;
 
 // ===== 在这里修改你的建站日期 =====
 const SITE_START_DATE = "2025-12-01";
+const UMAMI_API_BASE = "https://cloud.umami.is/analytics/us";
+const UMAMI_SHARE_ID = "1Dc4PAeDKgLAox0M";
 ---
 
 <WidgetLayout name="站点统计" id="site-stats" class={className} style={style} icon="material-symbols:analytics-outline-rounded">
     <div class="flex flex-col gap-3 px-1">
         <!-- 运行时间 -->
         <div class="flex items-start gap-2.5">
-            <Icon name="material-symbols:timer-outline-rounded" class="site-stats-icon text-[oklch(0.65_0.15_var(--hue))]" />
+            <Icon name="material-symbols:timer-outline-rounded" class="site-stats-icon text-[var(--tea)]" />
             <div class="flex flex-col">
                 <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">已运行</span>
                 <span id="site-running-time" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
@@ -30,11 +32,11 @@ const SITE_START_DATE = "2025-12-01";
 
         <!-- 总访客数 UV -->
         <div class="flex items-start gap-2.5">
-            <Icon name="material-symbols:group-outline-rounded" class="site-stats-icon text-[oklch(0.65_0.15_var(--hue))]" />
+            <Icon name="material-symbols:group-outline-rounded" class="site-stats-icon text-[var(--azusa-blue)]" />
             <div class="flex flex-col">
                 <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">总访客</span>
-                <span id="busuanzi_value_site_uv" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
-                    --
+                <span id="umami-site-visitors" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
+                    加载中...
                 </span>
             </div>
         </div>
@@ -43,46 +45,109 @@ const SITE_START_DATE = "2025-12-01";
 
         <!-- 总访问量 PV -->
         <div class="flex items-start gap-2.5">
-            <Icon name="material-symbols:trending-up-rounded" class="site-stats-icon text-[oklch(0.65_0.15_var(--hue))]" />
+            <Icon name="material-symbols:trending-up-rounded" class="site-stats-icon text-[var(--mio-purple)]" />
             <div class="flex flex-col">
                 <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">总访问</span>
-                <span id="busuanzi_value_site_pv" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
-                    --
+                <span id="umami-site-pageviews" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
+                    加载中...
                 </span>
             </div>
         </div>
     </div>
 </WidgetLayout>
 
-<!-- 不蒜子统计脚本 -->
-<script is:inline async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<!-- 运行时间与 Umami 统计脚本 -->
+<script is:inline define:vars={{ SITE_START_DATE, UMAMI_API_BASE, UMAMI_SHARE_ID }}>
+    (() => {
+        const formatNumber = new Intl.NumberFormat('zh-CN');
 
-<!-- 运行时间计算脚本 -->
-<script is:inline define:vars={{ SITE_START_DATE }}>
-    function updateRunningTime() {
-        const startDate = new Date(SITE_START_DATE);
-        const now = new Date();
-        const diff = now.getTime() - startDate.getTime();
-
-        if (diff < 0) {
+        function updateRunningTime() {
+            const startDate = new Date(SITE_START_DATE);
+            const now = new Date();
+            const diff = now.getTime() - startDate.getTime();
             const el = document.getElementById('site-running-time');
-            if (el) el.textContent = '即将启航 ✨';
-            return;
-        }
 
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            if (!el) return;
+            if (diff < 0) {
+                el.textContent = '即将启航 ✨';
+                return;
+            }
 
-        const el = document.getElementById('site-running-time');
-        if (el) {
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
             el.textContent = `${days} 天 ${hours} 时 ${minutes} 分 ${seconds} 秒`;
         }
-    }
 
-    updateRunningTime();
-    setInterval(updateRunningTime, 1000);
+        async function loadUmamiStats(root) {
+            const visitorsEl = document.getElementById('umami-site-visitors');
+            const pageviewsEl = document.getElementById('umami-site-pageviews');
+            if (!visitorsEl || !pageviewsEl) return;
+
+            try {
+                const shareResponse = await fetch(`${UMAMI_API_BASE}/api/share/${UMAMI_SHARE_ID}`, {
+                    headers: { Accept: 'application/json' },
+                });
+                if (!shareResponse.ok) throw new Error(`Umami share request failed: ${shareResponse.status}`);
+
+                const share = await shareResponse.json();
+                if (!share.websiteId || !share.token) throw new Error('Umami share response is incomplete');
+
+                const query = new URLSearchParams({
+                    startAt: String(new Date(SITE_START_DATE).getTime()),
+                    endAt: String(Date.now()),
+                });
+                const statsResponse = await fetch(
+                    `${UMAMI_API_BASE}/api/websites/${share.websiteId}/stats?${query}`,
+                    {
+                        headers: {
+                            Accept: 'application/json',
+                            'x-umami-share-token': share.token,
+                            'x-umami-share-context': '1',
+                        },
+                    },
+                );
+                if (!statsResponse.ok) throw new Error(`Umami stats request failed: ${statsResponse.status}`);
+
+                const stats = await statsResponse.json();
+                visitorsEl.textContent = formatNumber.format(Number(stats.visitors) || 0);
+                pageviewsEl.textContent = formatNumber.format(Number(stats.pageviews) || 0);
+                root.dataset.statsState = 'loaded';
+            } catch (error) {
+                console.error('[SiteStats] Failed to load Umami statistics.', error);
+                visitorsEl.textContent = '暂不可用';
+                pageviewsEl.textContent = '暂不可用';
+                root.dataset.statsState = 'error';
+            }
+        }
+
+        function initSiteStats() {
+            const root = document.getElementById('site-stats');
+            if (!root || root.dataset.statsState === 'loading' || root.dataset.statsState === 'loaded') return;
+
+            root.dataset.statsState = 'loading';
+            updateRunningTime();
+            if (window.__siteStatsTimer) clearInterval(window.__siteStatsTimer);
+            window.__siteStatsTimer = setInterval(updateRunningTime, 1000);
+            loadUmamiStats(root);
+        }
+
+        initSiteStats();
+
+        if (window.swup && !window.__siteStatsUmamiHookRegistered) {
+            window.__siteStatsUmamiHookRegistered = true;
+            window.swup.hooks.on('page:view', initSiteStats);
+        } else if (!window.swup) {
+            document.addEventListener('swup:enable', () => {
+                if (!window.__siteStatsUmamiHookRegistered) {
+                    window.__siteStatsUmamiHookRegistered = true;
+                    window.swup.hooks.on('page:view', initSiteStats);
+                }
+            }, { once: true });
+        }
+    })();
 </script>
 
 <style>

@@ -7,6 +7,41 @@ import {
 import { expressiveCodeConfig } from "@/config";
 import type { LIGHT_DARK_MODE } from "@/types/config";
 
+export type ThemePalette = "yui" | "mio" | "ritsu" | "mugi" | "azusa";
+
+const DEFAULT_THEME_PALETTE: ThemePalette = "yui";
+const THEME_PALETTES: ThemePalette[] = ["yui", "mio", "ritsu", "mugi", "azusa"];
+const THEME_PALETTE_HUES: Record<ThemePalette, number> = {
+	yui: 348,
+	mio: 279,
+	ritsu: 39,
+	mugi: 29,
+	azusa: 205,
+};
+
+export function getThemePalette(): ThemePalette {
+	const stored = localStorage.getItem("theme-palette") as ThemePalette | null;
+	if (stored === ("htt" as ThemePalette)) {
+		return "yui";
+	}
+	return stored && THEME_PALETTES.includes(stored)
+		? stored
+		: DEFAULT_THEME_PALETTE;
+}
+
+export function applyThemePalette(palette: ThemePalette): void {
+	document.documentElement.dataset.palette = palette;
+	document.documentElement.style.setProperty(
+		"--hue",
+		String(THEME_PALETTE_HUES[palette]),
+	);
+}
+
+export function setThemePalette(palette: ThemePalette): void {
+	localStorage.setItem("theme-palette", palette);
+	applyThemePalette(palette);
+}
+
 export function getDefaultHue(): number {
 	const fallback = "250";
 	const configCarrier = document.getElementById("config-carrier");
@@ -14,10 +49,7 @@ export function getDefaultHue(): number {
 }
 
 export function getHue(): number {
-	const configCarrier = document.getElementById("config-carrier");
-	const isFixed = configCarrier?.dataset.themeColorFixed === "true";
-	const stored = localStorage.getItem("hue");
-	return (stored && !isFixed) ? Number.parseInt(stored, 10) : getDefaultHue();
+	return THEME_PALETTE_HUES[getThemePalette()];
 }
 
 export function setHue(hue: number): void {

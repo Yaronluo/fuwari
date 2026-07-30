@@ -23,11 +23,11 @@ let links: NavBarLink[] = navBarConfig.links.map(
 <div id="navbar" class="relative z-50">
     <div id="navbar-container" class:list={[
         className,
-        "transition-all duration-500 w-full max-w-[var(--page-width)] h-14 mx-auto flex items-center justify-between pointer-events-none px-0"
+        "w-full max-w-[var(--page-width)] h-14 mx-auto flex items-center justify-between pointer-events-none px-0"
         ]}>
         
         <!-- Left: Logo -->
-        <div class="navbar-pill pointer-events-auto h-14 flex items-center relative shadow-md rounded-full px-4">
+        <div class="navbar-pill pointer-events-auto h-14 flex items-center relative isolate rounded-full px-4">
             <div class="nav-bg-blur absolute inset-0 rounded-full bg-white/35 dark:bg-black/45 backdrop-blur-2xl border border-white/40 dark:border-white/10 z-[-1] transition-opacity duration-400"></div>
             <a href={url('/')} class="btn-plain scale-animation rounded-lg h-10 font-bold active:scale-95">
                 <div class="flex flex-row text-[var(--primary)] items-center text-md">
@@ -38,7 +38,7 @@ let links: NavBarLink[] = navBarConfig.links.map(
         </div>
         
         <!-- Middle: Links -->
-        <div class="navbar-pill pointer-events-auto h-14 hidden md:flex relative items-center shadow-md rounded-full px-2" id="nav-menu-container">
+        <div class="navbar-pill pointer-events-auto h-14 hidden md:flex relative isolate items-center rounded-full px-2" id="nav-menu-container">
             <div class="nav-bg-blur absolute inset-0 rounded-full bg-white/35 dark:bg-black/45 backdrop-blur-2xl border border-white/40 dark:border-white/10 z-[-1] transition-opacity duration-400"></div>
             <div id="nav-indicator" class="absolute bottom-1 h-[3px] rounded-full bg-gradient-to-r from-transparent via-[var(--primary)] to-transparent transition-all duration-300 opacity-0 pointer-events-none"></div>
             {links.map((l) => {
@@ -55,15 +55,13 @@ let links: NavBarLink[] = navBarConfig.links.map(
         </div>
         
         <!-- Right: Actions -->
-        <div class="navbar-pill pointer-events-auto h-14 flex items-center relative shadow-md rounded-full px-2">
+        <div class="navbar-pill pointer-events-auto h-14 flex items-center relative isolate rounded-full px-2">
             <div class="nav-bg-blur absolute inset-0 rounded-full bg-white/35 dark:bg-black/45 backdrop-blur-2xl border border-white/40 dark:border-white/10 z-[-1] transition-opacity duration-400"></div>
             <!--<SearchPanel client:load>-->
             <Search client:only="svelte"></Search>
-            {!siteConfig.themeColor.fixed && (
-                    <button aria-label="Display Settings" class="btn-plain scale-animation rounded-lg h-10 w-10 active:scale-90" id="display-settings-switch">
-                        <Icon name="material-symbols:palette-outline" class="text-[1.25rem]"></Icon>
-                    </button>
-            )}
+            <button aria-label="配色主题" title="配色主题" class="btn-plain scale-animation rounded-lg h-10 w-10 active:scale-90" id="display-settings-switch">
+                <Icon name="material-symbols:palette-outline" class="text-[1.25rem]"></Icon>
+            </button>
             <button aria-label="Menu" name="Nav Menu" class="btn-plain scale-animation rounded-lg w-10 h-10 active:scale-90 md:!hidden" id="nav-menu-switch">
                 <Icon name="material-symbols:menu-rounded" class="text-[1.25rem]"></Icon>
             </button>
@@ -75,32 +73,60 @@ let links: NavBarLink[] = navBarConfig.links.map(
 
 <style is:global>
     #navbar-container {
-        border: 1px solid rgba(255, 255, 255, 0);
+        background-color: transparent;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        border: 1px solid transparent;
+        border-radius: 9999px;
+        box-shadow: none;
+        transition:
+            background-color 260ms ease,
+            border-color 260ms ease,
+            box-shadow 260ms ease,
+            padding 260ms ease,
+            backdrop-filter 260ms ease;
     }
     #navbar-container.is-scrolled {
-        background-color: rgba(255, 255, 255, 0.35) !important;
-        backdrop-filter: blur(24px) !important;
-        -webkit-backdrop-filter: blur(24px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.4) !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.06) !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-        pointer-events: auto !important;
-        border-radius: 9999px !important;
+        background-color: color-mix(in srgb, var(--cream-base) 58%, transparent);
+        backdrop-filter: blur(32px) saturate(145%);
+        -webkit-backdrop-filter: blur(32px) saturate(145%);
+        border-color: color-mix(in srgb, white 44%, var(--glass-border));
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.28),
+            0 10px 32px rgba(118, 80, 68, 0.1);
+        padding-left: 1rem;
+        padding-right: 1rem;
+        pointer-events: auto;
     }
     :is(.dark) #navbar-container.is-scrolled {
-        background-color: rgba(0, 0, 0, 0.45) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25) !important;
-    }
-    #navbar-container.is-scrolled .navbar-pill {
-        box-shadow: none !important;
-    }
-    #navbar-container.is-scrolled .nav-bg-blur {
-        opacity: 0 !important;
+        background-color: color-mix(in srgb, var(--cream-base) 70%, transparent) !important;
+        border-color: color-mix(in srgb, white 12%, var(--glass-border)) !important;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 10px 34px rgba(0, 0, 0, 0.28) !important;
     }
     .navbar-pill {
-        transition: box-shadow 0.4s;
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--tea) 12%, transparent);
+        transition: box-shadow 260ms ease;
+    }
+    .nav-bg-blur {
+        background-color: color-mix(in srgb, var(--cream-base) 52%, transparent) !important;
+        border-color: color-mix(in srgb, white 48%, var(--glass-border)) !important;
+        backdrop-filter: blur(30px) saturate(150%) !important;
+        -webkit-backdrop-filter: blur(30px) saturate(150%) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        transition: opacity 260ms ease;
+    }
+    :is(.dark) .nav-bg-blur {
+        background-color: color-mix(in srgb, var(--cream-base) 66%, transparent) !important;
+        border-color: color-mix(in srgb, white 12%, var(--glass-border)) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    #navbar-container.is-scrolled .navbar-pill {
+        box-shadow: none;
+    }
+    #navbar-container.is-scrolled .nav-bg-blur {
+        opacity: 0;
     }
 </style>
 

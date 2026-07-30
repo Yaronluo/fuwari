@@ -1,0 +1,116 @@
+
+> fuwari@0.0.1 dev C:\Users\luoya\fuwari
+> astro dev --host
+
+[2m20:48:59[22m [34m[types][39m Generated [2m3ms[22m
+[2m20:49:00[22m [34m[content][39m Syncing content
+[2m20:49:00[22m [34m[content][39m Synced content
+[2m20:49:00[22m [34m[vite][39m Forced re-optimization of dependencies
+[2m20:49:00[22m [34m[vite][39m Port 4321 is in use, trying another one...
+[2m20:49:00[22m [34m[vite][39m Port 4322 is in use, trying another one...
+
+[42m[1m astro [22m[49m [32mv5.18.0[39m [2mready in[22m 7033 [2mms[22m
+
+[2m┃[22m Local    [36mhttp://localhost:4323/[39m
+[2m┃[22m Network  [36mhttp://192.168.31.233:4323/[39m
+
+[2m20:49:00[22m [32mwatching for file changes...[39m
+[2m20:49:44[22m [34m[200][39m / [2m2856ms[22m
+[2m20:49:45[22m [34m[vite][39m [32m✨ new dependencies optimized: [33m@swup/astro/serialise, @swup/astro/idle, @swup/astro/client/Swup, @swup/astro/client/SwupA11yPlugin, @swup/astro/client/SwupPreloadPlugin, @swup/astro/client/SwupScrollPlugin, @swup/astro/client/SwupHeadPlugin, @swup/astro/client/SwupScriptsPlugin[32m[39m
+[2m20:49:45[22m [34m[vite][39m [32m✨ optimized dependencies changed. reloading[39m
+20:49:45 [vite-plugin-svelte] src/components/widget/DisplaySettings.svelte:141:1 Unused CSS selector ".palette-instrument"
+https://svelte.dev/e/css_unused_selector
+[2m20:49:45[22m [34m[200][39m /_image/ [2m212ms[22m
+[2m20:49:46[22m [34m[200][39m / [2m59ms[22m
+[2m20:49:50[22m [34m[200][39m / [2m23ms[22m
+[2m20:50:18[22m [34m[200][39m /archive/ [2m23ms[22m
+[2m20:50:18[22m [34m[200][39m /archive/ [2m19ms[22m
+[2m20:52:06[22m [34m[watch][39m src/components/Navbar.astro
+[2m20:52:07[22m [34m[200][39m /archive/ [2m303ms[22m
+[2m20:52:08[22m [34m[200][39m /archive/ [2m20ms[22m
+[2m20:52:23[22m [34m[watch][39m src/layouts/Layout.astro
+[2m20:52:24[22m [34m[200][39m /archive/ [2m304ms[22m
+[2m20:52:24[22m [34m[200][39m /archive/ [2m19ms[22m
+[2m20:52:34[22m [34m[watch][39m src/layouts/Layout.astro
+[2m20:52:34[22m [34m[watch][39m /src/styles/transition.css
+[2m20:52:35[22m [34m[200][39m /archive/ [2m290ms[22m
+[2m20:52:35[22m [34m[200][39m /archive/ [2m18ms[22m
+[2m20:53:04[22m [34m[watch][39m /src/components/Navbar.astro?astro&type=style&index=0&lang.css
+[2m20:53:04[22m [34m[watch][39m /src/components/Navbar.astro?astro&type=style&index=0&lang.css
+[2m20:53:09[22m [34m[watch][39m src/layouts/Layout.astro
+[2m20:53:10[22m [34m[200][39m /archive/ [2m294ms[22m
+[2m20:53:10[22m [34m[200][39m /archive/ [2m19ms[22m
+[2m20:53:27[22m [34m[200][39m /archive/ [2m483ms[22m
+[2m20:53:28[22m [34m[200][39m /archive/ [2m18ms[22m
+[2m20:53:46[22m [34m[200][39m /archive/ [2m15ms[22m
+[2m20:53:47[22m [34m[200][39m /archive/ [2m17ms[22m
+[2m20:53:56[22m [34m[200][39m / [2m26ms[22m
+[2m20:53:56[22m [34m[200][39m / [2m22ms[22m
+[2m20:54:15[22m [34m[200][39m /series/ [2m15ms[22m
+[2m20:54:15[22m [34m[200][39m /series/ [2m15ms[22m
+[2m20:54:43[22m [34m[200][39m /series/ [2m20ms[22m
+[2m20:54:44[22m [34m[200][39m /series/ [2m21ms[22m
+[2m20:56:57[22m [34m[watch][39m src/components/Navbar.astro
+[2m20:56:58[22m [34m[200][39m /series/ [2m306ms[22m
+[2m20:56:59[22m [34m[200][39m /series/ [2m17ms[22m
+[2m20:57:31[22m [34m[watch][39m src/layouts/Layout.astro
+[2m20:57:32[22m [34m[200][39m /series/ [2m313ms[22m
+[2m20:57:33[22m [34m[200][39m /series/ [2m14ms[22m
+[2m20:57:40[22m [34m[watch][39m src/layouts/Layout.astro
+[2m20:57:41[22m [34m[200][39m /series/ [2m304ms[22m
+[2m20:57:42[22m [34m[200][39m /series/ [2m14ms[22m
+[2m20:57:59[22m [34m[200][39m /series/ [2m23ms[22m
+[2m20:57:59[22m [34m[200][39m /series/ [2m17ms[22m
+[2m20:58:21[22m [34m[200][39m / [2m22ms[22m
+[2m20:58:22[22m [34m[200][39m / [2m22ms[22m
+[2m20:58:44[22m [34m[200][39m /archive/ [2m16ms[22m
+[2m20:58:44[22m [34m[200][39m /archive/ [2m18ms[22m
+[2m20:59:08[22m [34m[200][39m /series/ [2m20ms[22m
+[2m20:59:09[22m [34m[200][39m /archive/ [2m540ms[22m
+[2m20:59:09[22m [34m[200][39m /series/ [2m23ms[22m
+[2m20:59:09[22m [34m[200][39m /archive/ [2m17ms[22m
+[2m21:03:20[22m [34m[watch][39m /src/components/Navbar.astro?astro&type=style&index=0&lang.css
+[2m21:03:20[22m [34m[watch][39m /src/components/Navbar.astro?astro&type=style&index=0&lang.css
+[2m21:03:41[22m [34m[200][39m /series/ [2m323ms[22m
+[2m21:03:42[22m [34m[200][39m /archive/ [2m787ms[22m
+[2m21:03:43[22m [34m[200][39m /series/ [2m15ms[22m
+[2m21:03:43[22m [34m[200][39m /archive/ [2m20ms[22m
+[2m21:04:02[22m [34m[200][39m / [2m26ms[22m
+[2m21:04:02[22m [34m[200][39m / [2m27ms[22m
+[2m21:04:03[22m [34m[200][39m /archive/ [2m18ms[22m
+[2m21:04:03[22m [34m[200][39m /archive/ [2m16ms[22m
+[2m21:04:34[22m [34m[200][39m /series/ [2m22ms[22m
+[2m21:04:35[22m [34m[200][39m /archive/ [2m515ms[22m
+[2m21:04:35[22m [34m[200][39m /archive/ [2m20ms[22m
+[2m21:04:36[22m [34m[200][39m /archive/ [2m23ms[22m
+[2m21:04:36[22m [34m[200][39m /series/ [2m16ms[22m
+[2m21:04:36[22m [34m[200][39m /archive/ [2m18ms[22m
+[2m21:09:09[22m [34m[200][39m / [2m28ms[22m
+[2m21:09:10[22m [34m[200][39m / [2m28ms[22m
+[2m21:09:32[22m [34m[watch][39m src/components/widget/WidgetLayout.astro
+[2m21:09:33[22m [34m[200][39m /archive/ [2m301ms[22m
+[2m21:09:33[22m [34m[200][39m /series/ [2m304ms[22m
+[2m21:09:33[22m [34m[200][39m / [2m338ms[22m
+[2m21:09:33[22m [34m[200][39m /archive/ [2m18ms[22m
+[2m21:09:34[22m [34m[200][39m / [2m29ms[22m
+[2m21:09:34[22m [34m[200][39m /archive/ [2m19ms[22m
+[2m21:09:34[22m [34m[200][39m /series/ [2m19ms[22m
+[2m21:09:34[22m [34m[200][39m /archive/ [2m20ms[22m
+[2m21:09:41[22m [34m[200][39m / [2m28ms[22m
+[2m21:09:41[22m [34m[200][39m / [2m25ms[22m
+[2m21:10:37[22m [34m[200][39m /series/ [2m17ms[22m
+[2m21:10:37[22m [34m[200][39m /archive/ [2m539ms[22m
+[2m21:10:37[22m [34m[200][39m / [2m45ms[22m
+[2m21:10:37[22m [34m[200][39m /archive/ [2m20ms[22m
+[2m21:10:38[22m [34m[200][39m /series/ [2m22ms[22m
+[2m21:10:38[22m [34m[200][39m /archive/ [2m22ms[22m
+[2m21:10:38[22m [34m[200][39m /archive/ [2m18ms[22m
+[2m21:10:38[22m [34m[200][39m / [2m34ms[22m
+[2m21:10:58[22m [34m[200][39m /series/ [2m18ms[22m
+[2m21:10:58[22m [34m[200][39m /archive/ [2m537ms[22m
+[2m21:10:58[22m [34m[200][39m / [2m47ms[22m
+[2m21:10:58[22m [34m[200][39m /archive/ [2m18ms[22m
+[2m21:10:59[22m [34m[200][39m /series/ [2m17ms[22m
+[2m21:10:59[22m [34m[200][39m /archive/ [2m17ms[22m
+[2m21:10:59[22m [34m[200][39m / [2m30ms[22m
+[2m21:10:59[22m [34m[200][39m /archive/ [2m16ms[22m

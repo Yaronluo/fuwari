@@ -23,15 +23,28 @@ define(vars)
         {key}: value[1]
 
 define({
-  --primary: oklch(0.70 0.14 var(--hue)) oklch(0.75 0.14 var(--hue))
-  --page-bg: white oklch(0.16 0.014 var(--hue))
-  --card-bg: white oklch(0.23 0.015 var(--hue))
+  --cream-base: #fff9ef #191516
+  --cream-soft: #fff3e3 #241c1e
+  --sakura: #d97991 #ee9bb0
+  --tea: #765044 #d8b4a7
+  --azusa-blue: #668eae #86aecb
+  --mio-purple: #88709c #ad96bf
+  --text-strong: #4d3832 #f3e9e4
+  --text-body: #70584f #d5c7c1
+  --text-muted: #9a7f74 #a99791
+  --glass-card: rgba(255, 252, 245, 0.66) rgba(31, 24, 26, 0.72)
+  --glass-panel: rgba(255, 249, 239, 0.78) rgba(27, 21, 23, 0.82)
+  --glass-border: rgba(139, 91, 78, 0.13) rgba(238, 155, 176, 0.12)
 
-  --btn-content: oklch(0.55 0.12 var(--hue)) oklch(0.75 0.1 var(--hue))
+  --primary: var(--sakura) var(--sakura)
+  --page-bg: var(--cream-base) var(--cream-base)
+  --card-bg: var(--cream-soft) var(--cream-soft)
 
-  --btn-regular-bg: oklch(0.95 0.025 var(--hue)) oklch(0.33 0.035 var(--hue))
-  --btn-regular-bg-hover: oklch(0.9 0.05 var(--hue)) oklch(0.38 0.04 var(--hue))
-  --btn-regular-bg-active: oklch(0.85 0.08 var(--hue)) oklch(0.43 0.045 var(--hue))
+  --btn-content: var(--tea) var(--sakura)
+
+  --btn-regular-bg: #f8e9e4 #392b30
+  --btn-regular-bg-hover: #f3d9d7 #49333a
+  --btn-regular-bg-active: #edc7ca #593b45
 
   --btn-plain-bg-hover: oklch(0.95 0.025 var(--hue)) oklch(0.30 0.035 var(--hue))
   --btn-plain-bg-active: oklch(0.98 0.01 var(--hue)) oklch(0.27 0.025 var(--hue))
@@ -43,7 +56,7 @@ define({
   --enter-btn-bg-hover: var(--btn-regular-bg-hover)
   --enter-btn-bg-active: var(--btn-regular-bg-active)
 
-  --deep-text: oklch(0.25 0.02 var(--hue))
+  --deep-text: var(--tea) var(--text-strong)
 
   --title-active: oklch(0.6 0.1 var(--hue))
 
@@ -54,7 +67,7 @@ define({
 
   --inline-code-bg: var(--btn-regular-bg)
   --inline-code-color: var(--btn-content)
-  --selection-bg: oklch(0.90 0.05 var(--hue)) oklch(0.40 0.08 var(--hue))
+  --selection-bg: #f3d2d8 #60404d
   --codeblock-selection: oklch(0.40 0.08 var(--hue))
   --codeblock-bg: oklch(0.17 0.015 var(--hue)) oklch(0.17 0.015 var(--hue))
   --codeblock-topbar-bg: oklch(0.3 0.02 var(--hue)) oklch(0.12 0.015 var(--hue))
@@ -65,7 +78,7 @@ define({
   --link-hover: oklch(0.95 0.025 var(--hue)) oklch(0.40 0.08 var(--hue))
   --link-active: oklch(0.90 0.05 var(--hue)) oklch(0.35 0.07 var(--hue))
 
-  --float-panel-bg: white oklch(0.19 0.015 var(--hue))
+  --float-panel-bg: var(--glass-panel) var(--glass-panel)
 
   --scrollbar-bg-light: black(0.4)
   --scrollbar-bg-hover-light: black(0.5)
@@ -96,3 +109,147 @@ define({
   --toc-width: calc((100vw - var(--page-width)) / 2 - 1rem)
   --toc-item-active: oklch(0.70 0.13 var(--hue)) oklch(0.35 0.07 var(--hue))
 })
+
+:root[data-palette="azusa"]
+  --cream-base #f5fafb
+  --cream-soft #edf5f7
+  --sakura #668eae
+  --tea #526977
+  --azusa-blue #5688a8
+  --mio-purple #88799b
+  --text-strong #354850
+  --text-body #596e76
+  --text-muted #81949a
+  --glass-card rgba(247, 252, 252, 0.69)
+  --glass-panel rgba(244, 250, 251, 0.82)
+  --glass-border rgba(82, 105, 119, 0.14)
+  --btn-regular-bg #e3f0f3
+  --btn-regular-bg-hover #d4e7ec
+  --btn-regular-bg-active #c3dae2
+  --selection-bg #cfe3ea
+
+:root.dark[data-palette="azusa"]
+  --cream-base #13191d
+  --cream-soft #192229
+  --sakura #86aecb
+  --tea #aac0ca
+  --azusa-blue #83b4d2
+  --mio-purple #aa98bc
+  --text-strong #edf5f7
+  --text-body #c8d5da
+  --text-muted #91a3aa
+  --glass-card rgba(20, 29, 34, 0.76)
+  --glass-panel rgba(17, 25, 30, 0.85)
+  --glass-border rgba(134, 174, 203, 0.14)
+  --btn-regular-bg #263640
+  --btn-regular-bg-hover #304753
+  --btn-regular-bg-active #395764
+  --selection-bg #365465
+
+:root[data-palette="mio"]
+  --cream-base #fbf8fc
+  --cream-soft #f4eef6
+  --sakura #88709c
+  --tea #6c5268
+  --azusa-blue #6f91aa
+  --mio-purple #806492
+  --text-strong #4b394d
+  --text-body #705d70
+  --text-muted #968496
+  --glass-card rgba(251, 248, 252, 0.7)
+  --glass-panel rgba(249, 245, 250, 0.83)
+  --glass-border rgba(108, 82, 104, 0.14)
+  --btn-regular-bg #eee2f0
+  --btn-regular-bg-hover #e4d3e8
+  --btn-regular-bg-active #d8c1de
+  --selection-bg #dfcae4
+
+:root.dark[data-palette="mio"]
+  --cream-base #19151c
+  --cream-soft #231c27
+  --sakura #ad96bf
+  --tea #d1bbcf
+  --azusa-blue #8caac0
+  --mio-purple #b198c2
+  --text-strong #f3edf4
+  --text-body #d6c8d7
+  --text-muted #a999aa
+  --glass-card rgba(31, 24, 35, 0.76)
+  --glass-panel rgba(27, 21, 31, 0.85)
+  --glass-border rgba(173, 150, 191, 0.14)
+  --btn-regular-bg #352a3c
+  --btn-regular-bg-hover #44334d
+  --btn-regular-bg-active #533d5e
+  --selection-bg #584362
+
+:root[data-palette="ritsu"]
+  --cream-base #fffaf0
+  --cream-soft #f8f0df
+  --sakura #d39a3d
+  --tea #655847
+  --azusa-blue #7895a6
+  --mio-purple #92788d
+  --text-strong #4d4438
+  --text-body #6d6253
+  --text-muted #968b7c
+  --glass-card rgba(255, 251, 242, 0.7)
+  --glass-panel rgba(255, 249, 237, 0.83)
+  --glass-border rgba(101, 88, 71, 0.14)
+  --btn-regular-bg #f5e8cc
+  --btn-regular-bg-hover #eed8ae
+  --btn-regular-bg-active #e5c88e
+  --selection-bg #f1d9a7
+
+:root.dark[data-palette="ritsu"]
+  --cream-base #1b1813
+  --cream-soft #272117
+  --sakura #e4b45f
+  --tea #d4c3a8
+  --azusa-blue #8da9b7
+  --mio-purple #ad93a8
+  --text-strong #f4eee3
+  --text-body #d9cfbf
+  --text-muted #aa9f8e
+  --glass-card rgba(34, 29, 21, 0.76)
+  --glass-panel rgba(29, 25, 19, 0.86)
+  --glass-border rgba(228, 180, 95, 0.14)
+  --btn-regular-bg #3b3121
+  --btn-regular-bg-hover #4c3e27
+  --btn-regular-bg-active #5c4a2e
+  --selection-bg #604d2d
+
+:root[data-palette="mugi"]
+  --cream-base #fff8ed
+  --cream-soft #f8eddd
+  --sakura #b98652
+  --tea #704f3b
+  --azusa-blue #7899a7
+  --mio-purple #aa8193
+  --text-strong #513b30
+  --text-body #725848
+  --text-muted #9a8271
+  --glass-card rgba(255, 249, 238, 0.71)
+  --glass-panel rgba(255, 247, 233, 0.84)
+  --glass-border rgba(112, 79, 59, 0.14)
+  --btn-regular-bg #f2e1ca
+  --btn-regular-bg-hover #e9cfad
+  --btn-regular-bg-active #ddba8c
+  --selection-bg #ead0af
+
+:root.dark[data-palette="mugi"]
+  --cream-base #1c1713
+  --cream-soft #292018
+  --sakura #d2a36e
+  --tea #ddc0a5
+  --azusa-blue #8daab6
+  --mio-purple #bd98a8
+  --text-strong #f5ece4
+  --text-body #ddcfc3
+  --text-muted #ad9b8e
+  --glass-card rgba(36, 28, 22, 0.77)
+  --glass-panel rgba(31, 24, 19, 0.86)
+  --glass-border rgba(210, 163, 110, 0.14)
+  --btn-regular-bg #403022
+  --btn-regular-bg-hover #523c29
+  --btn-regular-bg-active #624932
+  --selection-bg #65492f

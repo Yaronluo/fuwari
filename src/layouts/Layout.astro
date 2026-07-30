@@ -131,8 +131,13 @@ const bannerOffset =
 			}
 
 			// Load the hue from local storage
-			const hue = themeColorFixed ? configHue : (localStorage.getItem('hue') || configHue);
-			document.documentElement.style.setProperty('--hue', hue);
+			const storedPalette = localStorage.getItem('theme-palette');
+			const palette = storedPalette === 'htt'
+				? 'yui'
+				: (['yui', 'mio', 'ritsu', 'mugi', 'azusa'].includes(storedPalette) ? storedPalette : 'yui');
+			const paletteHues = { yui: 348, mio: 279, ritsu: 39, mugi: 29, azusa: 205 };
+			document.documentElement.dataset.palette = palette;
+			document.documentElement.style.setProperty('--hue', String(paletteHues[palette]));
 
 			// calculate the --banner-height-extend, which needs to be a multiple of 4 to avoid blurry text
 			let offset = Math.floor(window.innerHeight * (BANNER_HEIGHT_EXTEND / 100));
@@ -154,19 +159,22 @@ const bannerOffset =
 		  data-overlayscrollbars-initialize
 	>
 		<!-- Background layer to avoid bg-fixed performance issues on mobile -->
-		<div class="fixed inset-0 z-[-1] overflow-hidden bg-gradient-to-br from-pink-50 via-white to-rose-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 transition-colors duration-500">
+		<div class="k-on-palette-bg fixed inset-0 z-[-1] overflow-hidden transition-colors duration-500">
 			<!-- Blurred colorful blobs for Glassmorphism pop -->
-			<div class="absolute -top-[10%] -left-[10%] w-[55%] h-[55%] rounded-full bg-gradient-to-tr from-pink-300/30 to-purple-300/30 dark:from-purple-900/20 dark:to-pink-900/20 blur-[90px] pointer-events-none transition-colors duration-500"></div>
-			<div class="absolute -bottom-[10%] -right-[10%] w-[65%] h-[65%] rounded-full bg-gradient-to-br from-blue-200/30 to-rose-200/30 dark:from-rose-900/20 dark:to-blue-900/20 blur-[110px] pointer-events-none transition-colors duration-500"></div>
-			<div class="absolute top-[35%] right-[15%] w-[35%] h-[35%] rounded-full bg-gradient-to-br from-yellow-200/20 to-pink-200/20 dark:from-yellow-900/15 dark:to-pink-950/15 blur-[80px] pointer-events-none transition-colors duration-500"></div>
+			<div class="palette-blob palette-blob--sakura absolute -top-[10%] -left-[10%] w-[55%] h-[55%] rounded-full blur-[90px] pointer-events-none transition-colors duration-500"></div>
+			<div class="palette-blob palette-blob--azusa absolute -bottom-[10%] -right-[10%] w-[65%] h-[65%] rounded-full blur-[110px] pointer-events-none transition-colors duration-500"></div>
+			<div class="palette-blob palette-blob--mio absolute top-[35%] right-[15%] w-[35%] h-[35%] rounded-full blur-[80px] pointer-events-none transition-colors duration-500"></div>
 		</div>
 		<ConfigCarrier></ConfigCarrier>
 
 		<!-- 阅读进度条 -->
-		<div id="reading-progress-bar" class="fixed top-0 left-0 w-full h-[3px] z-[9999] pointer-events-none opacity-0 transition-opacity duration-300">
-			<div id="reading-progress" class="h-full w-0 rounded-r-full transition-none"
-				 style="background: linear-gradient(90deg, oklch(0.7 0.15 var(--hue)), oklch(0.75 0.18 calc(var(--hue) + 30)));">
+		<div id="reading-progress-bar" role="progressbar" aria-label="文章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" class="reading-track fixed top-0 left-0 w-full z-[9999] pointer-events-none opacity-0 transition-opacity duration-300">
+			<div class="reading-track-bed" aria-hidden="true"></div>
+			<div class="reading-track-beats" aria-hidden="true"></div>
+			<div id="reading-progress" class="reading-track-fill w-0 transition-none">
+				<span class="reading-track-pick" aria-hidden="true"></span>
 			</div>
+			<span class="reading-track-finish" aria-hidden="true">♪</span>
 		</div>
 
 		<!-- 悬浮的亮暗色切换按钮 -->
@@ -187,6 +195,89 @@ const bannerOffset =
 	'banner-height': `${BANNER_HEIGHT}vh`,
 }}>
 @tailwind components;
+.k-on-palette-bg {
+	background: linear-gradient(135deg, var(--cream-soft) 0%, var(--cream-base) 52%, color-mix(in srgb, var(--primary) 7%, var(--cream-base)) 100%);
+}
+.palette-blob--sakura {
+	background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 25%, transparent), color-mix(in srgb, var(--tea) 9%, transparent));
+}
+.palette-blob--azusa {
+	background: linear-gradient(135deg, color-mix(in srgb, var(--azusa-blue) 17%, transparent), color-mix(in srgb, var(--primary) 12%, transparent));
+}
+.palette-blob--mio {
+	background: linear-gradient(135deg, color-mix(in srgb, var(--mio-purple) 14%, transparent), color-mix(in srgb, var(--tea) 8%, transparent));
+}
+.reading-track {
+	height: 0.7rem;
+}
+.reading-track-bed,
+.reading-track-beats,
+.reading-track-fill {
+	position: absolute;
+	left: 0;
+	top: 0.2rem;
+	height: 0.2rem;
+}
+.reading-track-bed {
+	width: 100%;
+	background: color-mix(in srgb, var(--text-muted) 22%, transparent);
+	box-shadow: 0 1px 0 color-mix(in srgb, var(--cream-base) 45%, transparent);
+}
+.reading-track-beats {
+	width: 100%;
+	background: repeating-linear-gradient(
+		90deg,
+		transparent 0 2.35rem,
+		color-mix(in srgb, var(--text-muted) 34%, transparent) 2.35rem 2.42rem
+	);
+}
+.reading-track-fill {
+	border-radius: 0 999px 999px 0;
+	background: linear-gradient(
+		90deg,
+		color-mix(in srgb, var(--primary) 76%, var(--tea)),
+		var(--primary) 68%,
+		color-mix(in srgb, var(--primary) 72%, var(--azusa-blue))
+	);
+	box-shadow: 0 0 0.55rem color-mix(in srgb, var(--primary) 42%, transparent);
+}
+.reading-track-pick {
+	position: absolute;
+	top: -0.18rem;
+	right: -0.34rem;
+	width: 0.68rem;
+	height: 0.58rem;
+	border: 1px solid color-mix(in srgb, white 58%, var(--primary));
+	border-radius: 58% 42% 58% 42%;
+	background: var(--primary);
+	box-shadow: 0 0.15rem 0.45rem color-mix(in srgb, var(--primary) 48%, transparent);
+	transform: rotate(-28deg);
+}
+.reading-track-finish {
+	position: absolute;
+	top: 0.05rem;
+	right: 0.55rem;
+	color: var(--primary);
+	font-size: 0.8rem;
+	font-weight: 700;
+	line-height: 1;
+	opacity: 0;
+	transform: translateY(0.35rem) scale(0.7);
+	transition: opacity 180ms ease, transform 220ms ease;
+}
+.reading-track.is-complete .reading-track-pick {
+	opacity: 0;
+}
+.reading-track.is-complete .reading-track-finish {
+	opacity: 1;
+	transform: translateY(0) scale(1);
+}
+:root.dark .k-on-palette-bg {
+	background: linear-gradient(135deg, #171315 0%, #211a1c 50%, #18171d 100%);
+}
+:root.dark .palette-blob {
+	opacity: 0.58;
+}
 @layer components {
 	.enable-banner.is-home #banner-wrapper {
 		@apply h-[var(--banner-height-home)] translate-y-[var(--banner-height-extend)]
@@ -205,13 +296,13 @@ const bannerOffset =
 		@apply translate-y-[var(--banner-height-extend)];
 	}
 	.enable-banner #top-row {
-		@apply h-[calc(var(--banner-height-home)_-_4.5rem)] transition-all duration-300
+		@apply h-[calc(var(--banner-height-home)_-_4.5rem)]
 	}
 	.enable-banner.is-home #sidebar-sticky {
 		@apply top-[calc(1rem_-_var(--banner-height-extend))]
 	}
-	.navbar-hidden {
-		@apply opacity-0 -translate-y-16
+	#top-row {
+		transition: height 240ms ease;
 	}
 }
 </style>
@@ -228,9 +319,7 @@ import {getHue, getStoredTheme, setHue, setTheme} from "../utils/setting-utils";
 import {pathsEqual, url} from "../utils/url-utils";
 import {
 	BANNER_HEIGHT,
-	BANNER_HEIGHT_HOME,
-	BANNER_HEIGHT_EXTEND,
-	MAIN_PANEL_OVERLAPS_BANNER_HEIGHT
+	BANNER_HEIGHT_EXTEND
 } from "../constants/constants";
 import { siteConfig } from '../config';
 
@@ -412,22 +501,12 @@ const setup = () => {
 	window.swup.hooks.on('link:click', () => {
 		// Remove the delay for the first time page load
 		document.documentElement.style.setProperty('--content-delay', '0ms')
-
-		// prevent elements from overlapping the navbar
-		if (!bannerEnabled) {
-			return
-		}
-		let threshold = window.innerHeight * (BANNER_HEIGHT / 100) - 72 - 16
-		let navbar = document.getElementById('navbar-wrapper')
-		if (!navbar || !document.body.classList.contains('lg:is-home')) {
-			return
-		}
-		if (document.body.scrollTop >= threshold || document.documentElement.scrollTop >= threshold) {
-			navbar.classList.add('navbar-hidden')
-		}
 	})
 	window.swup.hooks.on('content:replace', initCustomScrollbar)
 	window.swup.hooks.on('visit:start', (visit: {to: {url: string}}) => {
+		// Freeze the current split/merged state while Swup restores scroll.
+		document.documentElement.classList.add('nav-route-changing')
+
 		// change banner height immediately when a link is clicked
 		const bodyElement = document.querySelector('body')
 		if (pathsEqual(visit.to.url, url('/'))) {
@@ -454,8 +533,13 @@ const setup = () => {
 		if (heightExtend) {
 			heightExtend.classList.add('hidden')
 		}
+
+		requestAnimationFrame(scrollFunction)
 	});
 	window.swup.hooks.on('visit:end', (_visit: {to: {url: string}}) => {
+		document.documentElement.classList.remove('nav-route-changing')
+		requestAnimationFrame(() => requestAnimationFrame(updateNavbarAppearance))
+
 		setTimeout(() => {
 			const heightExtend = document.getElementById('page-height-extend')
 			if (heightExtend) {
@@ -478,8 +562,18 @@ if (window?.swup?.hooks) {
 
 let backToTopBtn = document.getElementById('back-to-top-btn');
 let toc = document.getElementById('toc-wrapper');
-let navbar = document.getElementById('navbar-wrapper')
+function updateNavbarAppearance() {
+	if (document.documentElement.classList.contains('nav-route-changing')) return
+
+	const navbarContainer = document.getElementById('navbar-container')
+	if (!navbarContainer) return
+
+	const scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop
+	navbarContainer.classList.toggle('is-scrolled', scrollPos > 20)
+}
+
 function scrollFunction() {
+	updateNavbarAppearance()
 	let bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100)
 
 	if (backToTopBtn) {
@@ -499,32 +593,6 @@ function scrollFunction() {
 	}
 
 	// 导航栏分离/合并动画 - 顶部分开，向下滚动合并
-	const navbarContainer = document.getElementById('navbar-container');
-	if (navbarContainer) {
-		const scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
-		if (scrollPos > 20) {
-			navbarContainer.classList.add('is-scrolled');
-		} else {
-			navbarContainer.classList.remove('is-scrolled');
-		}
-	}
-
-	if (!bannerEnabled) return
-	if (navbar) {
-		const NAVBAR_HEIGHT = 56
-		const MAIN_PANEL_EXCESS_HEIGHT = MAIN_PANEL_OVERLAPS_BANNER_HEIGHT * 16			// The height the main panel overlaps the banner
-
-		let bannerHeight = BANNER_HEIGHT
-		if (document.body.classList.contains('lg:is-home') && window.innerWidth >= 1024) {
-			bannerHeight = BANNER_HEIGHT_HOME
-		}
-		let threshold = window.innerHeight * (bannerHeight / 100) - NAVBAR_HEIGHT - MAIN_PANEL_EXCESS_HEIGHT - 16
-		if (document.body.scrollTop >= threshold || document.documentElement.scrollTop >= threshold) {
-			navbar.classList.add('navbar-hidden')
-		} else {
-			navbar.classList.remove('navbar-hidden')
-		}
-	}
 }
 window.onscroll = function() {
 	scrollFunction();
@@ -562,6 +630,8 @@ function updateReadingProgress() {
 	}
 
 	progress.style.width = `${percent}%`;
+	progressBar.setAttribute('aria-valuenow', String(Math.round(percent)));
+	progressBar.classList.toggle('is-complete', percent >= 96.5);
 }
 
 // 初始化进度条

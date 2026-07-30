@@ -40,4 +40,240 @@ document.addEventListener("click", function (e: MouseEvent) {
         target.setAttribute("data-timeout-id", newTimeoutId.toString());
     }
 });
+
+const playerWindow = window as Window & { __kOnRecordPlayerBound?: boolean };
+if (!playerWindow.__kOnRecordPlayerBound) {
+    playerWindow.__kOnRecordPlayerBound = true;
+
+    document.addEventListener("play", (event) => {
+        const audio = event.target as HTMLAudioElement | null;
+        audio?.closest(".k-on-record-player")?.classList.add("is-playing");
+    }, true);
+
+    const stopRecord = (event: Event) => {
+        const audio = event.target as HTMLAudioElement | null;
+        audio?.closest(".k-on-record-player")?.classList.remove("is-playing");
+    };
+    document.addEventListener("pause", stopRecord, true);
+    document.addEventListener("ended", stopRecord, true);
+}
 </script>
+
+<style is:global>
+.k-on-record-player {
+    display: grid;
+    grid-template-columns: 9.5rem minmax(0, 1fr);
+    align-items: center;
+    gap: 1.15rem;
+    margin: 1.25rem 0 1.75rem;
+    padding: 1rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 1.25rem;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--cream-base) 82%, transparent), color-mix(in srgb, var(--primary) 7%, var(--cream-soft))),
+        var(--glass-card);
+    box-shadow: 0 0.9rem 2.2rem rgba(78, 53, 46, 0.09);
+    overflow: hidden;
+}
+
+.k-on-record-player__deck {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 9.5rem;
+    height: 8.6rem;
+    border: 1px solid color-mix(in srgb, var(--tea) 22%, transparent);
+    border-radius: 1rem;
+    background:
+        linear-gradient(145deg, color-mix(in srgb, var(--tea) 88%, #fff 12%), color-mix(in srgb, var(--tea) 82%, #241817 18%));
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, 0.22),
+        0 0.5rem 1rem rgba(57, 37, 32, 0.17);
+}
+
+.k-on-record-player__record {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 7rem;
+    height: 7rem;
+    margin-left: -0.75rem;
+    border-radius: 999px;
+    background:
+        repeating-radial-gradient(circle, transparent 0 3px, rgba(255, 255, 255, 0.055) 4px, transparent 5px),
+        radial-gradient(circle at 35% 30%, #444 0%, #171717 42%, #050505 76%);
+    box-shadow: 0 0.35rem 0.8rem rgba(0, 0, 0, 0.32);
+    animation: k-on-record-spin 4.8s linear infinite;
+    animation-play-state: paused;
+}
+
+.k-on-record-player.is-playing .k-on-record-player__record {
+    animation-play-state: running;
+}
+
+.k-on-record-player__record::after {
+    content: "";
+    position: absolute;
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 999px;
+    background: #f7eadb;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35);
+}
+
+.k-on-record-player__record img {
+    width: 3.25rem;
+    height: 3.25rem;
+    margin: 0;
+    border: 2px solid rgba(255, 255, 255, 0.72);
+    border-radius: 999px;
+    object-fit: cover;
+    box-shadow: none;
+}
+
+.k-on-record-player__tonearm {
+    position: absolute;
+    top: 0.72rem;
+    right: 0.8rem;
+    width: 0.72rem;
+    height: 4.9rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #d7c9bd, #8c7b72 50%, #eee3d8);
+    box-shadow: 0 0.18rem 0.32rem rgba(0, 0, 0, 0.25);
+    transform: rotate(17deg);
+    transform-origin: top center;
+}
+
+.k-on-record-player__tonearm::before {
+    content: "";
+    position: absolute;
+    top: -0.34rem;
+    left: 50%;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 0.25rem solid #bca99d;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--tea) 78%, #181313);
+    transform: translateX(-50%);
+}
+
+.k-on-record-player__tonearm span {
+    position: absolute;
+    right: -0.25rem;
+    bottom: -0.3rem;
+    width: 1.1rem;
+    height: 0.72rem;
+    border-radius: 0.2rem 0.45rem 0.45rem 0.2rem;
+    background: var(--primary);
+}
+
+.k-on-record-player__power {
+    position: absolute;
+    right: 0.7rem;
+    bottom: 0.65rem;
+    width: 0.48rem;
+    height: 0.48rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary) 55%, #6b5c55);
+    box-shadow: 0 0 0 transparent;
+    transition: background 180ms ease, box-shadow 180ms ease;
+}
+
+.k-on-record-player.is-playing .k-on-record-player__power {
+    background: var(--primary);
+    box-shadow: 0 0 0.6rem var(--primary);
+}
+
+.k-on-record-player__info {
+    min-width: 0;
+}
+
+.k-on-record-player__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 0.42rem;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+}
+
+.k-on-record-player__eyebrow span {
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 999px;
+    background: var(--primary);
+}
+
+.k-on-record-player__title {
+    margin-top: 0.42rem;
+    color: var(--text-strong);
+    font-size: 1.18rem;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.k-on-record-player__artist {
+    margin-top: 0.12rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.k-on-record-player audio {
+    display: block;
+    width: 100%;
+    height: 2.55rem;
+    margin-top: 0.72rem;
+    accent-color: var(--primary);
+}
+
+@keyframes k-on-record-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 560px) {
+    .k-on-record-player {
+        grid-template-columns: 6.9rem minmax(0, 1fr);
+        gap: 0.8rem;
+        padding: 0.78rem;
+    }
+
+    .k-on-record-player__deck {
+        width: 6.9rem;
+        height: 7rem;
+        border-radius: 0.85rem;
+    }
+
+    .k-on-record-player__record {
+        width: 5.4rem;
+        height: 5.4rem;
+        margin-left: -0.48rem;
+    }
+
+    .k-on-record-player__record img {
+        width: 2.45rem;
+        height: 2.45rem;
+    }
+
+    .k-on-record-player__tonearm {
+        right: 0.55rem;
+        height: 3.85rem;
+    }
+
+    .k-on-record-player__title {
+        font-size: 1rem;
+    }
+
+    .k-on-record-player__eyebrow {
+        font-size: 0.56rem;
+        letter-spacing: 0.07em;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .k-on-record-player__record {
+        animation: none;
+    }
+}
+</style>
