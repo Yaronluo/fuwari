@@ -24,19 +24,33 @@ try {
     }
 
     const fetchPromises = COLLECTION_TYPES.map(async (cType) => {
-        const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${cType.id}&limit=50`;
-        const res = await fetch(url, {
-            headers: {
-                'User-Agent': 'Fuwari-Bangumi/1.0',
-                'Authorization': `Bearer ${BANGUMI_TOKEN}`
+        const batchSize = 50;
+        let offset = 0;
+        const collections: any[] = [];
+
+        // Bangumi 接口单次最多返回一批数据，这里自动翻页直到取完该状态的全部收藏。
+        while (true) {
+            const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${cType.id}&limit=${batchSize}&offset=${offset}`;
+            const res = await fetch(url, {
+                headers: {
+                    'User-Agent': 'Fuwari-Bangumi/1.0',
+                    'Authorization': `Bearer ${BANGUMI_TOKEN}`
+                }
+            });
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`API 请求失败 (${res.status}): ${errorText}`);
             }
-        });
-        if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`API 请求失败 (${res.status}): ${errorText}`);
+
+            const resData = await res.json();
+            const batch = resData.data || [];
+            collections.push(...batch.map((item: any) => ({ ...item, type: cType.id })));
+
+            if (batch.length < batchSize) break;
+            offset += batchSize;
         }
-        const resData = await res.json();
-        return (resData.data || []).map((item: any) => ({ ...item, type: cType.id }));
+
+        return collections;
     });
 
     const results = await Promise.all(fetchPromises);
