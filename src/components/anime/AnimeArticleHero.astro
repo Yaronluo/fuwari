@@ -1,0 +1,1029 @@
+---
+import { Icon } from "astro-icon/components";
+import ImageWrapper from "../misc/ImageWrapper.astro";
+
+interface AnimeData {
+	theme: "weathering-with-you" | "k-on";
+	titleJa: string;
+	titleEn?: string;
+	year: string;
+	director: string;
+	music: string;
+	firstWatch?: string;
+	rewatch?: string;
+	rating?: string;
+	spoiler?: boolean;
+	cover: string;
+	quote?: string;
+}
+
+interface Props {
+	anime: AnimeData;
+	title: string;
+	description: string;
+	published: Date;
+	words: number;
+	minutes: number;
+	basePath: string;
+}
+
+const { anime, title, description, published, words, minutes, basePath } = Astro.props;
+const isKOn = anime.theme === "k-on";
+const publishedLabel = published.toLocaleDateString("zh-CN", {
+	year: "numeric",
+	month: "2-digit",
+	day: "2-digit",
+});
+
+const facts = [
+	{ icon: "material-symbols:movie-outline-rounded", label: "上映", value: anime.year },
+	{ icon: "material-symbols:person-outline-rounded", label: "导演", value: anime.director },
+	{ icon: "material-symbols:music-note-rounded", label: "音乐", value: anime.music },
+	{ icon: "material-symbols:visibility-outline-rounded", label: "初看", value: anime.firstWatch },
+	{ icon: "material-symbols:replay-rounded", label: "重温", value: anime.rewatch },
+	{ icon: "material-symbols:favorite-outline-rounded", label: "感受", value: anime.rating },
+].filter((item) => item.value);
+
+const archiveKicker = isKOn ? "AFTER SCHOOL RECORD 01" : "WEATHER ARCHIVE 01";
+const archiveStatus = isKOn ? "HTT ON AIR" : "WEATHER LINKED";
+const choiceLabel = isKOn ? "LAST SONG" : "MY CHOICE";
+---
+
+<section class="anime-hero onload-animation" aria-label={`${anime.titleJa}观后感封面`}>
+	<ImageWrapper
+		class="anime-hero__image"
+		src={anime.cover}
+		basePath={basePath}
+		alt={`${anime.titleJa}封面`}
+	/>
+	<div class="anime-hero__weather" aria-hidden="true"></div>
+	<div class="anime-hero__shade" aria-hidden="true"></div>
+
+	<div class="anime-hero__content">
+		<div class="anime-hero__badges">
+			<span class="anime-hero__badge anime-hero__badge--primary">ANIME ESSAY · 番剧观后感</span>
+			{anime.spoiler && <span class="anime-hero__badge">含结局剧透</span>}
+		</div>
+
+		<div class="anime-hero__eyebrow">
+			<span>{anime.titleJa}</span>
+			{anime.titleEn && <span aria-hidden="true">/</span>}
+			{anime.titleEn && <span>{anime.titleEn}</span>}
+		</div>
+
+		<h1 class="anime-hero__title" data-pagefind-body data-pagefind-weight="10" data-pagefind-meta="title">
+			{title}
+		</h1>
+		<p class="anime-hero__description">{description}</p>
+
+		<div class="anime-hero__reading-meta" aria-label="文章信息">
+			<span><Icon name="material-symbols:calendar-month-outline-rounded" />{publishedLabel}</span>
+			<span><Icon name="material-symbols:notes-rounded" />{words} 字</span>
+			<span><Icon name="material-symbols:schedule-outline-rounded" />{minutes} 分钟</span>
+		</div>
+	</div>
+</section>
+
+<section class="anime-dossier onload-animation" aria-label={`${anime.titleJa}作品档案`}>
+	<div class="anime-dossier__heading">
+		<div>
+			<span class="anime-dossier__kicker">{archiveKicker}</span>
+			<h2>作品档案</h2>
+		</div>
+		<span class="anime-dossier__status"><i aria-hidden="true"></i> {archiveStatus}</span>
+	</div>
+
+	<div class="anime-dossier__facts">
+		{facts.map((fact) => (
+			<div class="anime-fact">
+				<span class="anime-fact__icon" aria-hidden="true"><Icon name={fact.icon} /></span>
+				<span>
+					<small>{fact.label}</small>
+					<strong>{fact.value}</strong>
+				</span>
+			</div>
+		))}
+	</div>
+
+	{anime.quote && (
+		<blockquote class="anime-dossier__quote">
+			<span>{choiceLabel}</span>
+			<strong>“{anime.quote}”</strong>
+		</blockquote>
+	)}
+</section>
+
+<script>
+type AnimeWindow = Window & { __animeArticleExperienceBound?: boolean };
+
+const animeWindow = window as AnimeWindow;
+
+const weatherSectionPresets = [
+	{ match: "前言", icon: "☂", mood: "rain" },
+	{ match: "爱能做到", icon: "✦", mood: "drizzle" },
+	{ match: "比起晴天", icon: "☀", mood: "sun" },
+	{ match: "她为所有人", icon: "☁", mood: "cloud" },
+	{ match: "两次枪声", icon: "ϟ", mood: "storm" },
+	{ match: "没有阳菜", icon: "☔", mood: "clear" },
+	{ match: "爱没有拯救", icon: "✧", mood: "sky" },
+	{ match: "阳菜不欠", icon: "☀", mood: "dawn" },
+	{ match: "最後", icon: "☼", mood: "dawn" },
+];
+
+const kOnSectionPresets = [
+	{ match: "前言", icon: "♩", mood: "intro" },
+	{ match: "平泽唯", icon: "♪", mood: "yui" },
+	{ match: "看似什么", icon: "☕", mood: "tea" },
+	{ match: "请不要毕业", icon: "🌸", mood: "graduation" },
+	{ match: "ふわふわ時間", icon: "♫", mood: "fuwafuwa" },
+	{ match: "放学后 Tea Time", icon: "♬", mood: "band" },
+	{ match: "活动室", icon: "♭", mood: "memory" },
+	{ match: "最後", icon: "♥", mood: "memory" },
+];
+
+const prepareAnimeArticle = () => {
+	const card = document.querySelector<HTMLElement>(".anime-theme");
+	if (!card) return;
+	const sectionPresets = card.classList.contains("anime-theme--k-on")
+		? kOnSectionPresets
+		: weatherSectionPresets;
+
+	const headings = card.querySelectorAll<HTMLElement>(".markdown-content h1");
+	for (const heading of headings) {
+		const preset = sectionPresets.find((item) => heading.textContent?.includes(item.match));
+		heading.dataset.animeIcon = preset?.icon ?? "✦";
+		heading.dataset.animeMood = preset?.mood ?? "drizzle";
+	}
+};
+
+let animeFrame = 0;
+const updateAnimeMood = () => {
+	if (animeFrame) return;
+	animeFrame = window.requestAnimationFrame(() => {
+		animeFrame = 0;
+		const card = document.querySelector<HTMLElement>(".anime-theme");
+		if (!card) return;
+
+		const headings = [...card.querySelectorAll<HTMLElement>(".markdown-content h1")];
+		let active = headings[0];
+		const threshold = window.innerHeight * 0.4;
+		for (const heading of headings) {
+			if (heading.getBoundingClientRect().top <= threshold) active = heading;
+		}
+		card.dataset.animeMood = active?.dataset.animeMood ?? (card.classList.contains("anime-theme--k-on") ? "intro" : "rain");
+	});
+};
+
+if (!animeWindow.__animeArticleExperienceBound) {
+	animeWindow.__animeArticleExperienceBound = true;
+	window.addEventListener("scroll", updateAnimeMood, { passive: true });
+	document.addEventListener("astro:page-load", () => {
+		prepareAnimeArticle();
+		updateAnimeMood();
+	});
+}
+
+prepareAnimeArticle();
+updateAnimeMood();
+</script>
+
+<style is:global>
+.anime-theme {
+	--anime-sky: #6eb9ec;
+	--anime-deep: #173b60;
+	--anime-light: #c8efff;
+	--anime-warm: #ffd995;
+	--anime-rain-opacity: 0.2;
+	--anime-cloud-opacity: 0.65;
+	--anime-quote-icon: "☂";
+	isolation: isolate;
+	background:
+		linear-gradient(180deg, color-mix(in srgb, var(--anime-light) 13%, var(--glass-card)), var(--glass-card) 18rem),
+		var(--glass-card);
+	transition: background 800ms ease, box-shadow 800ms ease;
+}
+
+.anime-theme[data-anime-mood="sun"] {
+	--anime-sky: #70cfff;
+	--anime-deep: #245f87;
+	--anime-light: #e6f9ff;
+	--anime-warm: #ffe2a0;
+	--anime-rain-opacity: 0.05;
+	--anime-cloud-opacity: 0.25;
+}
+
+.anime-theme[data-anime-mood="cloud"] {
+	--anime-sky: #8faabd;
+	--anime-deep: #314c61;
+	--anime-light: #d7e2e8;
+	--anime-rain-opacity: 0.16;
+	--anime-cloud-opacity: 0.72;
+}
+
+.anime-theme[data-anime-mood="storm"] {
+	--anime-sky: #506f91;
+	--anime-deep: #182b47;
+	--anime-light: #b1cce0;
+	--anime-rain-opacity: 0.3;
+	--anime-cloud-opacity: 0.86;
+}
+
+.anime-theme[data-anime-mood="clear"],
+.anime-theme[data-anime-mood="sky"] {
+	--anime-sky: #78cef7;
+	--anime-deep: #285f87;
+	--anime-light: #e5f8ff;
+	--anime-warm: #ffda8b;
+	--anime-rain-opacity: 0.08;
+	--anime-cloud-opacity: 0.32;
+}
+
+.anime-theme[data-anime-mood="dawn"] {
+	--anime-sky: #9fcbed;
+	--anime-deep: #4e5f82;
+	--anime-light: #fff0dc;
+	--anime-warm: #ffbd9a;
+	--anime-rain-opacity: 0.08;
+	--anime-cloud-opacity: 0.35;
+}
+
+.anime-theme--k-on {
+	--anime-sky: #e98ca7;
+	--anime-deep: #70475c;
+	--anime-light: #fff0f4;
+	--anime-warm: #f5d38b;
+	--anime-rain-opacity: 0.12;
+	--anime-cloud-opacity: 0.46;
+	--anime-quote-icon: "♪";
+}
+
+.anime-theme--k-on[data-anime-mood="yui"] {
+	--anime-sky: #ef9b78;
+	--anime-deep: #76513f;
+	--anime-light: #fff2df;
+	--anime-warm: #ffd777;
+}
+
+.anime-theme--k-on[data-anime-mood="tea"] {
+	--anime-sky: #d89b74;
+	--anime-deep: #674b43;
+	--anime-light: #fff1dc;
+	--anime-warm: #efc77b;
+}
+
+.anime-theme--k-on[data-anime-mood="graduation"] {
+	--anime-sky: #e784aa;
+	--anime-deep: #6e435c;
+	--anime-light: #ffe9f2;
+	--anime-warm: #f5c4d9;
+}
+
+.anime-theme--k-on[data-anime-mood="fuwafuwa"] {
+	--anime-sky: #eea2be;
+	--anime-deep: #74516b;
+	--anime-light: #fff0f7;
+	--anime-warm: #f6d59f;
+}
+
+.anime-theme--k-on[data-anime-mood="band"] {
+	--anime-sky: #d86f87;
+	--anime-deep: #60394d;
+	--anime-light: #ffe7ed;
+	--anime-warm: #f3bf7d;
+}
+
+.anime-theme--k-on[data-anime-mood="memory"] {
+	--anime-sky: #b899ce;
+	--anime-deep: #5a4d76;
+	--anime-light: #f4efff;
+	--anime-warm: #f0cba3;
+}
+
+.anime-weather-layer {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	overflow: hidden;
+}
+
+.anime-weather-layer::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background:
+		radial-gradient(circle at 78% 4%, color-mix(in srgb, var(--anime-warm) 42%, transparent), transparent 17rem),
+		linear-gradient(160deg, color-mix(in srgb, var(--anime-sky) 17%, transparent), transparent 30rem);
+	opacity: 0.85;
+	transition: background 800ms ease;
+}
+
+.anime-weather-clouds {
+	position: absolute;
+	top: -8rem;
+	right: -10rem;
+	width: 34rem;
+	height: 22rem;
+	border-radius: 50%;
+	background:
+		radial-gradient(ellipse at 35% 50%, color-mix(in srgb, var(--anime-light) 50%, transparent), transparent 54%),
+		radial-gradient(ellipse at 70% 40%, color-mix(in srgb, var(--anime-sky) 30%, transparent), transparent 58%);
+	filter: blur(26px);
+	opacity: var(--anime-cloud-opacity);
+	transition: opacity 800ms ease, background 800ms ease;
+}
+
+.anime-weather-rain {
+	position: absolute;
+	inset: 0;
+	background-image: repeating-linear-gradient(
+		112deg,
+		transparent 0 28px,
+		rgba(153, 224, 255, 0.38) 29px,
+		transparent 31px 58px
+	);
+	background-size: 58px 74px;
+	opacity: var(--anime-rain-opacity);
+	animation: anime-rain-fall 18s linear infinite;
+	transition: opacity 800ms ease;
+}
+
+.anime-theme--k-on .anime-weather-layer::before {
+	background:
+		radial-gradient(circle at 16% 7%, rgba(255, 219, 139, 0.35), transparent 15rem),
+		radial-gradient(circle at 82% 12%, color-mix(in srgb, var(--anime-sky) 24%, transparent), transparent 20rem),
+		linear-gradient(160deg, color-mix(in srgb, var(--anime-light) 28%, transparent), transparent 32rem);
+}
+
+.anime-theme--k-on .anime-weather-clouds {
+	top: -9rem;
+	right: -5rem;
+	background:
+		radial-gradient(ellipse at 30% 48%, color-mix(in srgb, var(--anime-light) 72%, transparent), transparent 52%),
+		radial-gradient(ellipse at 72% 42%, color-mix(in srgb, var(--anime-sky) 24%, transparent), transparent 58%);
+	filter: blur(32px);
+}
+
+.anime-theme--k-on .anime-weather-rain {
+	background-image:
+		radial-gradient(ellipse at center, color-mix(in srgb, var(--anime-sky) 46%, transparent) 0 32%, transparent 36%),
+		radial-gradient(ellipse at center, color-mix(in srgb, var(--anime-warm) 34%, transparent) 0 30%, transparent 35%);
+	background-position: 0 0, 2.8rem 3.4rem;
+	background-size: 5.5rem 7.5rem, 7rem 9rem;
+	opacity: 0.18;
+	transform: rotate(-12deg) scale(1.15);
+	animation: k-on-petals-fall 24s linear infinite;
+}
+
+.anime-hero {
+	position: relative;
+	min-height: 31rem;
+	margin: 0.35rem 0 1rem;
+	border: 1px solid rgba(210, 239, 255, 0.48);
+	border-radius: 1.65rem;
+	overflow: hidden;
+	background: #173b60;
+	box-shadow: 0 1.5rem 3.5rem rgba(25, 76, 111, 0.23);
+}
+
+.anime-hero__image {
+	position: absolute !important;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.anime-hero__image img {
+	transform: scale(1.015);
+	transition: transform 1.2s ease;
+}
+
+.anime-hero:hover .anime-hero__image img {
+	transform: scale(1.045);
+}
+
+.anime-hero__weather {
+	position: absolute;
+	inset: 0;
+	background:
+		repeating-linear-gradient(112deg, transparent 0 31px, rgba(206, 242, 255, 0.18) 32px, transparent 34px 64px),
+		radial-gradient(circle at 76% 18%, rgba(255, 232, 165, 0.34), transparent 16rem);
+	mix-blend-mode: screen;
+	opacity: 0.68;
+}
+
+.anime-hero__shade {
+	position: absolute;
+	inset: 0;
+	background:
+		linear-gradient(180deg, rgba(8, 24, 41, 0.06) 10%, rgba(8, 24, 41, 0.2) 42%, rgba(8, 20, 36, 0.94) 100%),
+		linear-gradient(90deg, rgba(10, 26, 45, 0.5), transparent 64%);
+}
+
+.anime-hero__content {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 2;
+	padding: clamp(1.25rem, 4vw, 2.6rem);
+	color: white;
+}
+
+.anime-hero__badges,
+.anime-hero__reading-meta,
+.anime-hero__eyebrow {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.55rem;
+}
+
+.anime-hero__badge {
+	padding: 0.35rem 0.7rem;
+	border: 1px solid rgba(255, 255, 255, 0.3);
+	border-radius: 999px;
+	background: rgba(15, 37, 60, 0.43);
+	backdrop-filter: blur(12px);
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+}
+
+.anime-hero__badge--primary {
+	border-color: rgba(151, 226, 255, 0.62);
+	background: rgba(55, 151, 204, 0.4);
+}
+
+.anime-hero__eyebrow {
+	margin-top: 1rem;
+	color: rgba(225, 246, 255, 0.86);
+	font-size: 0.76rem;
+	font-weight: 700;
+	letter-spacing: 0.16em;
+}
+
+.anime-hero__title {
+	max-width: 48rem;
+	margin: 0.45rem 0 0;
+	color: white;
+	font-size: clamp(1.75rem, 4vw, 3rem);
+	font-weight: 900;
+	line-height: 1.16;
+	letter-spacing: -0.035em;
+	text-wrap: balance;
+	text-shadow: 0 0.2rem 1.1rem rgba(0, 0, 0, 0.45);
+}
+
+.anime-hero__description {
+	max-width: 45rem;
+	margin: 0.8rem 0 0;
+	color: rgba(235, 247, 255, 0.84);
+	font-size: 0.94rem;
+	line-height: 1.7;
+}
+
+.anime-hero__reading-meta {
+	margin-top: 1rem;
+	color: rgba(238, 249, 255, 0.76);
+	font-size: 0.75rem;
+}
+
+.anime-hero__reading-meta span {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+}
+
+.anime-hero__reading-meta svg {
+	width: 1rem;
+	height: 1rem;
+}
+
+.anime-theme--k-on .anime-hero {
+	border-color: rgba(255, 235, 218, 0.58);
+	background: #70475c;
+	box-shadow: 0 1.5rem 3.5rem rgba(104, 60, 76, 0.24);
+}
+
+.anime-theme--k-on .anime-hero__weather {
+	background:
+		radial-gradient(circle at 18% 20%, rgba(255, 221, 150, 0.28), transparent 13rem),
+		radial-gradient(circle at 82% 16%, rgba(255, 188, 209, 0.2), transparent 15rem),
+		repeating-linear-gradient(135deg, transparent 0 3.2rem, rgba(255, 255, 255, 0.08) 3.25rem, transparent 3.32rem 6.4rem);
+	mix-blend-mode: screen;
+	opacity: 0.76;
+}
+
+.anime-theme--k-on .anime-hero__shade {
+	background:
+		linear-gradient(180deg, rgba(46, 24, 34, 0.02) 8%, rgba(57, 28, 41, 0.16) 42%, rgba(43, 23, 33, 0.93) 100%),
+		linear-gradient(90deg, rgba(64, 34, 44, 0.36), transparent 66%);
+}
+
+.anime-theme--k-on .anime-hero__badge {
+	background: rgba(79, 45, 58, 0.46);
+}
+
+.anime-theme--k-on .anime-hero__badge--primary {
+	border-color: rgba(255, 214, 229, 0.68);
+	background: rgba(215, 108, 144, 0.48);
+}
+
+.anime-theme--k-on .anime-hero__eyebrow,
+.anime-theme--k-on .anime-hero__description,
+.anime-theme--k-on .anime-hero__reading-meta {
+	color: rgba(255, 241, 232, 0.86);
+}
+
+.anime-dossier {
+	position: relative;
+	margin: 1rem 0 2rem;
+	padding: 1.2rem;
+	border: 1px solid color-mix(in srgb, var(--anime-sky) 28%, var(--glass-border));
+	border-radius: 1.35rem;
+	background:
+		linear-gradient(145deg, color-mix(in srgb, var(--anime-light) 26%, transparent), transparent 54%),
+		color-mix(in srgb, var(--glass-card) 90%, transparent);
+	box-shadow: 0 1rem 2.4rem rgba(34, 93, 127, 0.1);
+	backdrop-filter: blur(18px);
+}
+
+.anime-dossier__heading {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.anime-dossier__heading h2 {
+	margin: 0.12rem 0 0;
+	color: var(--text-strong);
+	font-size: 1.25rem;
+	line-height: 1.25;
+}
+
+.anime-dossier__kicker {
+	color: color-mix(in srgb, var(--anime-deep) 72%, var(--text-muted));
+	font-size: 0.64rem;
+	font-weight: 800;
+	letter-spacing: 0.16em;
+}
+
+.anime-dossier__status {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	color: var(--text-muted);
+	font-size: 0.62rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+}
+
+.anime-dossier__status i {
+	width: 0.42rem;
+	height: 0.42rem;
+	border-radius: 999px;
+	background: var(--anime-sky);
+	box-shadow: 0 0 0.7rem var(--anime-sky);
+}
+
+.anime-dossier__facts {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.7rem;
+}
+
+.anime-fact {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	min-width: 0;
+	padding: 0.72rem;
+	border: 1px solid color-mix(in srgb, var(--anime-sky) 18%, var(--glass-border));
+	border-radius: 0.95rem;
+	background: color-mix(in srgb, var(--cream-base) 52%, transparent);
+}
+
+.anime-fact__icon {
+	display: grid;
+	place-items: center;
+	flex: 0 0 auto;
+	width: 2rem;
+	height: 2rem;
+	border-radius: 0.7rem;
+	color: color-mix(in srgb, var(--anime-deep) 72%, var(--primary));
+	background: color-mix(in srgb, var(--anime-sky) 14%, transparent);
+}
+
+.anime-fact__icon svg {
+	width: 1.15rem;
+	height: 1.15rem;
+}
+
+.anime-fact span:last-child {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+}
+
+.anime-fact small {
+	color: var(--text-muted);
+	font-size: 0.65rem;
+}
+
+.anime-fact strong {
+	overflow: hidden;
+	color: var(--text-strong);
+	font-size: 0.82rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.anime-dossier__quote {
+	position: relative;
+	margin: 0.85rem 0 0;
+	padding: 1rem 1.1rem 1rem 3.4rem;
+	border: 0;
+	border-radius: 1rem;
+	background:
+		linear-gradient(100deg, color-mix(in srgb, var(--anime-deep) 88%, #20374d), color-mix(in srgb, var(--anime-sky) 64%, #315f82));
+	color: white;
+}
+
+.anime-dossier__quote::before {
+	content: var(--anime-quote-icon);
+	position: absolute;
+	left: 1.15rem;
+	top: 50%;
+	color: #bfeeff;
+	font-size: 1.35rem;
+	transform: translateY(-50%);
+}
+
+.anime-dossier__quote span,
+.anime-dossier__quote strong {
+	display: block;
+}
+
+.anime-dossier__quote span {
+	color: rgba(216, 242, 255, 0.68);
+	font-size: 0.58rem;
+	font-weight: 800;
+	letter-spacing: 0.16em;
+}
+
+.anime-dossier__quote strong {
+	margin-top: 0.15rem;
+	font-size: 0.95rem;
+	line-height: 1.5;
+}
+
+.anime-theme .markdown-content h1 {
+	position: relative;
+	min-height: 3.7rem;
+	margin-top: 3.7rem;
+	padding: 0.9rem 1rem 0.9rem 3.7rem;
+	border: 1px solid color-mix(in srgb, var(--anime-sky) 26%, var(--glass-border));
+	border-radius: 1.2rem;
+	background:
+		linear-gradient(100deg, color-mix(in srgb, var(--anime-light) 32%, transparent), transparent 72%),
+		color-mix(in srgb, var(--glass-card) 84%, transparent);
+	box-shadow: 0 0.8rem 2rem rgba(41, 105, 145, 0.08);
+	color: color-mix(in srgb, var(--anime-deep) 82%, var(--text-strong));
+	font-size: clamp(1.35rem, 3vw, 1.85rem);
+	line-height: 1.35;
+	scroll-margin-top: 7rem;
+	transition: border-color 650ms ease, background 650ms ease, color 650ms ease;
+}
+
+.anime-theme .markdown-content h1::before {
+	content: attr(data-anime-icon);
+	position: absolute;
+	left: 0.9rem;
+	top: 50%;
+	display: grid;
+	place-items: center;
+	width: 2.15rem;
+	height: 2.15rem;
+	border-radius: 0.75rem;
+	background: color-mix(in srgb, var(--anime-sky) 22%, transparent);
+	color: color-mix(in srgb, var(--anime-deep) 72%, var(--primary));
+	font-size: 1.1rem;
+	transform: translateY(-50%);
+}
+
+.anime-theme .markdown-content h2 {
+	margin-top: 2.35rem;
+	padding-left: 0.9rem;
+	border-left: 0.22rem solid color-mix(in srgb, var(--anime-sky) 72%, var(--primary));
+	color: color-mix(in srgb, var(--anime-deep) 78%, var(--text-strong));
+	scroll-margin-top: 7rem;
+}
+
+.anime-theme .markdown-content img {
+	border: 1px solid color-mix(in srgb, var(--anime-sky) 30%, transparent);
+	border-radius: 1.2rem;
+	box-shadow: 0 1.15rem 2.5rem rgba(29, 80, 114, 0.15);
+}
+
+.anime-theme .markdown-content > ul {
+	padding: 1rem 1rem 1rem 2.25rem;
+	border: 1px solid color-mix(in srgb, var(--anime-sky) 18%, var(--glass-border));
+	border-radius: 1rem;
+	background: color-mix(in srgb, var(--anime-light) 13%, transparent);
+}
+
+.anime-theme .markdown-content li::marker {
+	color: color-mix(in srgb, var(--anime-sky) 76%, var(--primary));
+}
+
+.anime-theme .markdown-content > p:has(> strong:only-child) {
+	position: relative;
+	padding: 1rem 1.1rem;
+	border-left: 0.24rem solid color-mix(in srgb, var(--anime-sky) 78%, var(--primary));
+	border-radius: 0 1rem 1rem 0;
+	background: linear-gradient(90deg, color-mix(in srgb, var(--anime-sky) 14%, transparent), transparent);
+	color: color-mix(in srgb, var(--anime-deep) 72%, var(--text-strong));
+}
+
+.anime-theme--k-on .anime-dossier {
+	box-shadow: 0 1rem 2.4rem rgba(117, 69, 88, 0.1);
+}
+
+.anime-theme--k-on .anime-dossier__quote {
+	background:
+		linear-gradient(100deg, color-mix(in srgb, var(--anime-deep) 91%, #4f3340), color-mix(in srgb, var(--anime-sky) 62%, #9d5d72));
+}
+
+.anime-theme--k-on .anime-dossier__quote::before {
+	color: #ffe4a9;
+}
+
+.anime-theme--k-on .markdown-content h1 {
+	background:
+		radial-gradient(circle at 92% 24%, color-mix(in srgb, var(--anime-warm) 25%, transparent) 0 0.22rem, transparent 0.25rem),
+		linear-gradient(100deg, color-mix(in srgb, var(--anime-light) 48%, transparent), transparent 72%),
+		color-mix(in srgb, var(--glass-card) 86%, transparent);
+	background-size: 2.1rem 2.1rem, auto, auto;
+	box-shadow: 0 0.8rem 2rem rgba(121, 68, 90, 0.08);
+}
+
+.anime-theme--k-on .markdown-content h1::before {
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--anime-sky) 18%, var(--anime-light));
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--anime-sky) 22%, transparent);
+}
+
+.anime-theme--k-on .markdown-content img {
+	border-color: color-mix(in srgb, var(--anime-sky) 28%, transparent);
+	box-shadow: 0 1.15rem 2.5rem rgba(111, 63, 82, 0.15);
+}
+
+.anime-theme--k-on .k-on-record-player {
+	border-color: color-mix(in srgb, var(--anime-sky) 24%, var(--glass-border));
+	background:
+		linear-gradient(135deg, color-mix(in srgb, var(--anime-light) 54%, var(--glass-card)), color-mix(in srgb, var(--anime-warm) 13%, var(--glass-card))),
+		var(--glass-card);
+	box-shadow: 0 1rem 2.4rem rgba(109, 62, 80, 0.1);
+}
+
+.anime-theme--k-on .k-on-record-player__deck {
+	border-color: color-mix(in srgb, var(--anime-sky) 24%, transparent);
+	background:
+		linear-gradient(145deg, color-mix(in srgb, var(--anime-deep) 82%, #d49a76), color-mix(in srgb, var(--anime-deep) 92%, #35222a));
+}
+
+.anime-theme--k-on .k-on-record-player__tonearm span,
+.anime-theme--k-on .k-on-record-player__power,
+.anime-theme--k-on .k-on-record-player__eyebrow span {
+	background: var(--anime-sky);
+}
+
+.anime-theme--k-on .k-on-record-player__title {
+	color: color-mix(in srgb, var(--anime-deep) 80%, var(--text-strong));
+}
+
+.anime-theme--k-on .k-on-record-player audio {
+	accent-color: var(--anime-sky);
+}
+
+body:has(.anime-theme--k-on) .k-on-palette-bg {
+	background:
+		radial-gradient(circle at 78% 10%, rgba(255, 218, 143, 0.25), transparent 22rem),
+		radial-gradient(circle at 12% 30%, rgba(241, 154, 184, 0.2), transparent 25rem),
+		linear-gradient(145deg, #fff2e8 0%, #fff7f2 44%, #f7ebef 100%);
+}
+
+body:has(.anime-theme--k-on) .palette-blob--sakura {
+	background: rgba(238, 126, 164, 0.24);
+}
+
+body:has(.anime-theme--k-on) .palette-blob--azusa {
+	background: rgba(137, 91, 121, 0.14);
+}
+
+body:has(.anime-theme--k-on) .palette-blob--mio {
+	background: rgba(246, 193, 105, 0.18);
+}
+
+body:has(.anime-theme--k-on) .reading-track-bed {
+	background: rgba(187, 111, 139, 0.2);
+}
+
+body:has(.anime-theme--k-on) .reading-track-beats {
+	background: repeating-linear-gradient(90deg, transparent 0 2.2rem, rgba(224, 129, 162, 0.38) 2.2rem 2.27rem);
+}
+
+body:has(.anime-theme--k-on) .reading-track-fill {
+	background: linear-gradient(90deg, #d87a9b, #f0a9be 66%, #f3cb79);
+	box-shadow: 0 0 0.7rem rgba(221, 122, 157, 0.55);
+}
+
+body:has(.anime-theme--k-on) .reading-track-pick {
+	border-radius: 55% 45% 60% 40%;
+	background: #e98ca7;
+	box-shadow: 0 0.15rem 0.5rem rgba(186, 88, 124, 0.55);
+}
+
+body:has(.anime-theme--k-on) .reading-track-finish {
+	font-size: 0;
+}
+
+body:has(.anime-theme--k-on) .reading-track-finish::after {
+	content: "♪";
+	color: #d66f94;
+	font-size: 0.9rem;
+}
+
+:root.dark body:has(.anime-theme--k-on) .k-on-palette-bg {
+	background:
+		radial-gradient(circle at 76% 10%, rgba(244, 177, 109, 0.1), transparent 24rem),
+		linear-gradient(145deg, #251923 0%, #32212c 46%, #28212e 100%);
+}
+
+.anime-theme--weathering-with-you .k-on-record-player {
+	border-color: color-mix(in srgb, var(--anime-sky) 28%, var(--glass-border));
+	background:
+		linear-gradient(135deg, color-mix(in srgb, var(--anime-light) 42%, var(--glass-card)), color-mix(in srgb, var(--anime-sky) 12%, var(--glass-card))),
+		var(--glass-card);
+	box-shadow: 0 1rem 2.4rem color-mix(in srgb, var(--anime-deep) 12%, transparent);
+}
+
+.anime-theme--weathering-with-you .k-on-record-player__deck {
+	border-color: color-mix(in srgb, var(--anime-sky) 34%, transparent);
+	background:
+		linear-gradient(145deg, color-mix(in srgb, var(--anime-deep) 84%, #8edbff), color-mix(in srgb, var(--anime-deep) 92%, #061624));
+	box-shadow:
+		inset 0 1px rgba(255, 255, 255, 0.25),
+		0 0.65rem 1.25rem color-mix(in srgb, var(--anime-deep) 26%, transparent);
+}
+
+.anime-theme--weathering-with-you .k-on-record-player__tonearm {
+	background: linear-gradient(90deg, #eaf7ff, #92aec0 50%, #ffffff);
+}
+
+.anime-theme--weathering-with-you .k-on-record-player__tonearm::before {
+	border-color: #b9d2e2;
+	background: color-mix(in srgb, var(--anime-deep) 84%, #0a1d2c);
+}
+
+.anime-theme--weathering-with-you .k-on-record-player__tonearm span,
+.anime-theme--weathering-with-you .k-on-record-player__power,
+.anime-theme--weathering-with-you .k-on-record-player__eyebrow span {
+	background: var(--anime-sky);
+}
+
+.anime-theme--weathering-with-you .k-on-record-player__title {
+	color: color-mix(in srgb, var(--anime-deep) 82%, var(--text-strong));
+}
+
+.anime-theme--weathering-with-you .k-on-record-player audio {
+	accent-color: var(--anime-sky);
+}
+
+body:has(.anime-theme--weathering-with-you) .k-on-palette-bg {
+	background:
+		radial-gradient(circle at 78% 12%, rgba(255, 216, 142, 0.23), transparent 24rem),
+		linear-gradient(145deg, #d9f2ff 0%, #edf7fb 42%, #d9e9f5 100%);
+}
+
+body:has(.anime-theme--weathering-with-you) .palette-blob--sakura {
+	background: rgba(107, 200, 244, 0.24);
+}
+
+body:has(.anime-theme--weathering-with-you) .palette-blob--azusa {
+	background: rgba(53, 119, 173, 0.16);
+}
+
+body:has(.anime-theme--weathering-with-you) .palette-blob--mio {
+	background: rgba(255, 199, 135, 0.15);
+}
+
+body:has(.anime-theme--weathering-with-you) .reading-track-bed {
+	background: rgba(85, 145, 183, 0.2);
+}
+
+body:has(.anime-theme--weathering-with-you) .reading-track-beats {
+	background: repeating-linear-gradient(90deg, transparent 0 2.2rem, rgba(100, 190, 232, 0.42) 2.2rem 2.27rem);
+}
+
+body:has(.anime-theme--weathering-with-you) .reading-track-fill {
+	background: linear-gradient(90deg, #619fc9, #71d0f6 68%, #ffd488);
+	box-shadow: 0 0 0.7rem rgba(85, 191, 236, 0.62);
+}
+
+body:has(.anime-theme--weathering-with-you) .reading-track-pick {
+	border-radius: 55% 45% 60% 40%;
+	background: #73d5fa;
+	box-shadow: 0 0.15rem 0.5rem rgba(72, 176, 222, 0.65);
+}
+
+body:has(.anime-theme--weathering-with-you) .reading-track-finish {
+	font-size: 0;
+}
+
+body:has(.anime-theme--weathering-with-you) .reading-track-finish::after {
+	content: "☀";
+	color: #f5b95c;
+	font-size: 0.85rem;
+}
+
+:root.dark body:has(.anime-theme--weathering-with-you) .k-on-palette-bg {
+	background:
+		radial-gradient(circle at 76% 10%, rgba(255, 180, 100, 0.1), transparent 24rem),
+		linear-gradient(145deg, #0e1c2b 0%, #14283a 46%, #17212e 100%);
+}
+
+@keyframes anime-rain-fall {
+	to { background-position: 0 74rem; }
+}
+
+@keyframes k-on-petals-fall {
+	to { background-position: 0 60rem, 2.8rem 72rem; }
+}
+
+@media (max-width: 720px) {
+	.anime-hero {
+		min-height: 34rem;
+		border-radius: 1.25rem;
+	}
+
+	.anime-hero__image img {
+		object-position: 58% center !important;
+	}
+
+	.anime-hero__content {
+		padding: 1.15rem;
+	}
+
+	.anime-hero__title {
+		font-size: 1.72rem;
+	}
+
+	.anime-hero__description {
+		font-size: 0.82rem;
+	}
+
+	.anime-dossier__facts {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.anime-dossier__status {
+		display: none;
+	}
+
+	.anime-theme .markdown-content h1 {
+		margin-top: 3rem;
+		padding: 0.78rem 0.78rem 0.78rem 3.25rem;
+		font-size: 1.25rem;
+	}
+
+	.anime-theme .markdown-content h1::before {
+		left: 0.7rem;
+		width: 1.9rem;
+		height: 1.9rem;
+	}
+}
+
+@media (max-width: 430px) {
+	.anime-dossier__facts {
+		grid-template-columns: 1fr;
+	}
+
+	.anime-hero__reading-meta {
+		gap: 0.4rem 0.8rem;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.anime-weather-rain {
+		animation: none;
+	}
+
+	.anime-hero__image img {
+		transition: none;
+	}
+}
+</style>

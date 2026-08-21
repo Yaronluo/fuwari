@@ -105,7 +105,7 @@ windows打开powershell(不是命令提示符)，其余系统用自带的shell�
 
 然后打开[Github添加公钥](https://github.com/settings/keys)
 ![](attachments/保姆级教程教你搭建个人Blog-10.png)
-![](attachments/Pasted%20image%2020251106191737.png)
+![](attachments/保姆级教程教你搭建个人Blog-10-补充.png)
 
 回到你的仓库页面，打开已经拉取到了你仓库里的fuwari仓库，按照以下操作
 ![](attachments/保姆级教程教你搭建个人Blog-11.png)
@@ -339,7 +339,6 @@ lang: ''
 相信你已经成功搭建好了自己的Blog，感谢你的浏览！我会继续分享更多技术教程的，如果看完这个文章你仍然不懂，或者我的文章有误，你可以通过社交媒体联系我
 
 ***今天就这样吧，希望下次你还在这里！***
-
 
 
 

@@ -15,6 +15,7 @@ import { profileConfig, siteConfig } from "../../config";
 import { formatDateToYYYYMMDD } from "../../utils/date-utils";
 import ArticleDescription from "../../components/ArticleDescription.astro";
 import Series from "@components/widget/Series.astro";
+import AnimeArticleHero from "@components/anime/AnimeArticleHero.astro";
 
 export async function getStaticPaths() {
 	const blogEntries = await getSortedPosts();
@@ -28,6 +29,9 @@ const { entry } = Astro.props;
 const { Content, headings } = await entry.render();
 
 const { remarkPluginFrontmatter } = await entry.render();
+const anime = entry.data.anime;
+const postBasePath = path.join("content/posts/", getDir(entry.id));
+const animeThemeClass = anime ? `anime-theme anime-theme--${anime.theme}` : "";
 
 const jsonLd = {
 	"@context": "https://schema.org",
@@ -49,10 +53,28 @@ const jsonLd = {
 ---
 <MainGridLayout banner={entry.data.image} title={entry.data.title} description={entry.data.description} lang={entry.data.lang} setOGTypeArticle={true} series={entry.data.series} headings={headings}>
     <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>
-    <div class="flex w-full card-base overflow-hidden relative mb-4">
+    <div class:list={["flex w-full card-base overflow-hidden relative mb-4", animeThemeClass]} data-anime-mood={anime ? (anime.theme === "k-on" ? "intro" : "rain") : undefined}>
+        {anime && (
+            <div class="anime-weather-layer" aria-hidden="true">
+                <div class="anime-weather-clouds"></div>
+                <div class="anime-weather-rain"></div>
+            </div>
+        )}
         <div id="post-container" class:list={["z-10 px-6 md:px-9 pt-6 pb-4 relative w-full max-w-4xl mx-auto",
             {}
         ]}>
+            {anime ? (
+                <AnimeArticleHero
+                    anime={anime}
+                    title={entry.data.title}
+                    description={entry.data.description}
+                    published={entry.data.published}
+                    words={remarkPluginFrontmatter.words}
+                    minutes={remarkPluginFrontmatter.minutes}
+                    basePath={postBasePath}
+                />
+            ) : (
+            <>
             <!-- word count and reading time -->
             <div class="flex flex-row text-black/30 dark:text-white/30 gap-5 mb-3 transition onload-animation">
                 <div class="flex flex-row items-center">
@@ -103,8 +125,10 @@ const jsonLd = {
             <!-- always show cover as long as it has one -->
 
             {entry.data.image &&
-                <ImageWrapper id="post-cover" src={entry.data.image} basePath={path.join("content/posts/", getDir(entry.id))} class="mb-8 rounded-xl banner-container onload-animation"/>
+                <ImageWrapper id="post-cover" src={entry.data.image} basePath={postBasePath} class="mb-8 rounded-xl banner-container onload-animation"/>
             }
+            </>
+            )}
 
             {entry.data.series && (
                 <div class="mb-8 onload-animation">

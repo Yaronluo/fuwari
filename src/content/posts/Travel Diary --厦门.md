@@ -23,38 +23,38 @@ series: 旅游
 ![](attachments/Travel%20Diary%20--厦门.png)
 
 就这样拉人出发！！！
-![](attachments/14c5085ddb7b3bde1977480924728c18.jpg)
+![](attachments/Travel%20Diary%20--厦门-1.jpg)
 
 # 旅途
 ## 2025 6.14
 上午我们来到了长沙黄花国际机场，三个帅哥合照(其实有四个人还有个没到)
-![](attachments/fea0e00b65e460db893f03e2d4579f8a.jpg)
+![](attachments/Travel%20Diary%20--厦门-2.jpg)
 
 第一次坐plane(像一个没见过世面的人一样对着飞机到处拍)
-![](attachments/f44dad1ee244a18192777197235908b2.jpg)
+![](attachments/Travel%20Diary%20--厦门-3.jpg)
 
 不到中午12点我们就到达厦门
-![](attachments/c4b7bf7e220af473e96b378df326ff6e.jpg)
+![](attachments/Travel%20Diary%20--厦门-4.jpg)
 
 来到厦门一定要尝尝特色美食**沙茶面**，湖南伢子表示不辣受不了
-![|600](attachments/4c5f3197979de6969966b419a0efee91.jpg)
+![|600](attachments/Travel%20Diary%20--厦门-5.jpg)
 
 景色真的好美哦！
-![](attachments/809cc5d746f4f4dc1d48bbb76bdd110c.jpg)
+![](attachments/Travel%20Diary%20--厦门-6.jpg)
 
 ## 2025 6.15
 睡去第一天的疲惫，第二天从靠海的房间(民宿)中醒来，真是惬意啊！
 既然来厦门是看海的那就一起来看海吧！
-![](attachments/38adf352bbbc775a76d71b751ab116b8.jpg)
+![](attachments/Travel%20Diary%20--厦门-7.jpg)
 
 原来大海是这样的，原来沙滩是这样的！美哦~~
 
 ## 2025 6.16
 这是我老哥去厦门时拍的照片，10年了应该，而它就在鼓浪屿上。
-![](attachments/6ef7e6ec1cbf93ba54c45c9e993be8ec.jpg)
+![](attachments/Travel%20Diary%20--厦门-8.jpg)
 
 所以来厦门怎么能不去鼓浪屿呢？顺便看看我哥拍的这个店还在不在。
-![](attachments/f2123e88d601b6457386b03e16999704.jpg)
+![](attachments/Travel%20Diary%20--厦门-9.jpg)
 
 鼓浪屿上也是特别好看，只是没有代步工具，所有地方都得一步步走过去。
 
