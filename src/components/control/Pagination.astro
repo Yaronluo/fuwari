@@ -51,34 +51,95 @@ const getPageUrl = (p: number) => {
 };
 ---
 
-<div class:list={[className, "flex flex-row gap-3 justify-center"]} style={style}>
-    <a href={page.url.prev || ""} aria-label={page.url.prev ? "Previous Page" : null}
-       class:list={["btn-card overflow-hidden rounded-lg text-[var(--primary)] w-11 h-11",
-           {"disabled": page.url.prev == undefined}
-       ]}
-    >
-        <Icon name="material-symbols:chevron-left-rounded" class="text-[1.75rem]"></Icon>
-    </a>
-    <div class="bg-white/35 dark:bg-black/45 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm flex flex-row rounded-lg items-center text-neutral-700 dark:text-neutral-300 font-bold">
+<nav class:list={[className, "flex justify-center"]} style={style} aria-label="Pagination">
+    <div class="pagination-shell inline-flex items-center gap-1 rounded-full p-1.5 font-bold text-neutral-700 dark:text-neutral-300">
+        <a href={page.url.prev || ""} aria-label="Previous Page" aria-disabled={page.url.prev == undefined ? "true" : undefined}
+           tabindex={page.url.prev == undefined ? -1 : undefined}
+           class:list={["pagination-item pagination-arrow", {"is-disabled": page.url.prev == undefined}]}
+        >
+            <Icon name="material-symbols:chevron-left-rounded" class="text-[1.6rem]"></Icon>
+        </a>
         {pages.map((p) => {
             if (p == HIDDEN)
-                return <Icon name="material-symbols:more-horiz" class="mx-1"/>;
+                return <span class="pagination-ellipsis"><Icon name="material-symbols:more-horiz" /></span>;
             if (p == page.currentPage)
-                return <div class="h-11 w-11 rounded-lg bg-[var(--primary)] flex items-center justify-center
-                    font-bold text-white dark:text-black/70"
-                >
+                return <span class="pagination-item is-current" aria-current="page">
                     {p}
-                </div>
+                </span>
             return <a href={url(getPageUrl(p))} aria-label={`Page ${p}`}
-                class="btn-card w-11 h-11 rounded-lg overflow-hidden active:scale-[0.85]"
+                class="pagination-item"
             >{p}</a>
         })}
+        <a href={page.url.next || ""} aria-label="Next Page" aria-disabled={page.url.next == undefined ? "true" : undefined}
+           tabindex={page.url.next == undefined ? -1 : undefined}
+           class:list={["pagination-item pagination-arrow", {"is-disabled": page.url.next == undefined}]}
+        >
+            <Icon name="material-symbols:chevron-right-rounded" class="text-[1.6rem]"></Icon>
+        </a>
     </div>
-    <a href={page.url.next || ""} aria-label={page.url.next ? "Next Page" : null}
-       class:list={["btn-card overflow-hidden rounded-lg text-[var(--primary)] w-11 h-11",
-           {"disabled": page.url.next == undefined}
-       ]}
-    >
-        <Icon name="material-symbols:chevron-right-rounded" class="text-[1.75rem]"></Icon>
-    </a>
-</div>
+</nav>
+
+<style>
+    .pagination-shell {
+        background: color-mix(in srgb, var(--cream-base) 72%, transparent);
+        border: 1px solid color-mix(in srgb, white 55%, var(--glass-border));
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.34),
+            0 8px 24px color-mix(in srgb, var(--tea) 12%, transparent);
+        backdrop-filter: blur(18px) saturate(135%);
+        -webkit-backdrop-filter: blur(18px) saturate(135%);
+    }
+
+    .pagination-item {
+        display: flex;
+        width: 2.5rem;
+        height: 2.5rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        color: var(--text-body);
+        transition: color 180ms ease, background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .pagination-item:not(.is-current):not(.is-disabled):hover {
+        color: var(--primary);
+        background: color-mix(in srgb, var(--primary) 10%, transparent);
+        transform: translateY(-1px);
+    }
+
+    .pagination-item:not(.is-current):not(.is-disabled):active {
+        transform: scale(0.9);
+    }
+
+    .pagination-arrow {
+        color: var(--primary);
+    }
+
+    .pagination-item.is-current {
+        color: white;
+        background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 86%, white), var(--primary));
+        box-shadow: 0 5px 14px color-mix(in srgb, var(--primary) 34%, transparent);
+    }
+
+    .pagination-item.is-disabled {
+        color: var(--text-muted);
+        opacity: 0.28;
+        pointer-events: none;
+    }
+
+    .pagination-ellipsis {
+        display: flex;
+        width: 2rem;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+    }
+
+    :global(.dark) .pagination-shell {
+        background: color-mix(in srgb, var(--cream-base) 76%, transparent);
+        border-color: color-mix(in srgb, white 12%, var(--glass-border));
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.07),
+            0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+</style>

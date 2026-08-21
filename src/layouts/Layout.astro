@@ -74,10 +74,36 @@ const bannerOffset =
 ---
 
 <!DOCTYPE html>
-<html lang={siteLang} class="transition text-[14px] md:text-[16px]"
+<html lang={siteLang} class="transition text-[14px] md:text-[16px] navbar-loading"
 	  data-overlayscrollbars-initialize
 >
 	<head>
+		<style is:inline>
+			html.navbar-loading #top-row {
+				opacity: 0 !important;
+				transform: translateY(-0.5rem) !important;
+				pointer-events: none !important;
+			}
+		</style>
+		<script is:inline>
+			(() => {
+				const revealNavbar = () => {
+					setTimeout(() => {
+						requestAnimationFrame(() => {
+							requestAnimationFrame(() => {
+								document.documentElement.classList.remove('navbar-loading');
+							});
+						});
+					}, 40);
+				};
+
+				if (document.readyState === 'loading') {
+					document.addEventListener('DOMContentLoaded', revealNavbar, { once: true });
+				} else {
+					revealNavbar();
+				}
+			})();
+		</script>
 
 		<title>{pageTitle}</title>
 
@@ -302,7 +328,10 @@ const bannerOffset =
 		@apply top-[calc(1rem_-_var(--banner-height-extend))]
 	}
 	#top-row {
-		transition: height 240ms ease;
+		transition:
+			height 240ms ease,
+			opacity 360ms cubic-bezier(0.16, 1, 0.3, 1),
+			transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
 	}
 }
 </style>

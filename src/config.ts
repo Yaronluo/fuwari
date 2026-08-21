@@ -78,6 +78,16 @@ export const profileConfig: ProfileConfig = {
 			url: "https://github.com/Yaronluo",
 		},
 		{
+			name: "X",
+			icon: "fa6-brands:x-twitter",
+			url: "https://x.com/Yaronluo",
+		},
+		{
+			name: "Instagram",
+			icon: "fa6-brands:instagram",
+			url: "https://www.instagram.com/Yaronluo/",
+		},
+		{
 			name: 'QQ',
 			icon: 'fa6-brands:qq',
 			url: 'https://qm.qq.com/q/2jKJhKcCjm',

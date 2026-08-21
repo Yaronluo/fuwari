@@ -17,7 +17,7 @@ import { Icon } from "astro-icon/components";
                 {profileConfig.bio}
             </h2>
             <p class="text-sm md:text-base text-black/40 dark:text-white/40 font-bold tracking-widest uppercase mt-2">
-                纯爱 · 开朗 · 幸福
+                认真生活 · 快乐追番 · 慢慢成长
             </p>
             
             <!-- Social Icons -->
@@ -28,7 +28,8 @@ import { Icon } from "astro-icon/components";
                     if (nameLower.includes("github")) brandClass = "github-link";
                     else if (nameLower.includes("qq")) brandClass = "qq-link";
                     else if (nameLower.includes("bilibili")) brandClass = "bilibili-link";
-                    else if (nameLower.includes("twitter") || nameLower.includes("x")) brandClass = "twitter-link";
+                    else if (nameLower === "x" || nameLower.includes("twitter")) brandClass = "x-link";
+                    else if (nameLower.includes("instagram")) brandClass = "instagram-link";
                     
                     return (
                         <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={link.name}
@@ -103,9 +104,17 @@ import { Icon } from "astro-icon/components";
         background-color: rgba(251, 114, 153, 0.15);
         color: #fb7299;
     }
-    .social-hero-link.twitter-link {
-        background-color: rgba(29, 161, 242, 0.15);
-        color: #1da1f2;
+    .social-hero-link.x-link {
+        background-color: rgba(0, 0, 0, 0.10);
+        color: #111111;
+    }
+    :global(.dark) .social-hero-link.x-link {
+        background-color: rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+    }
+    .social-hero-link.instagram-link {
+        background-color: rgba(225, 48, 108, 0.12);
+        color: #e1306c;
     }
     .social-hero-link.default-link {
         background-color: rgba(150, 150, 150, 0.15);
@@ -137,9 +146,21 @@ import { Icon } from "astro-icon/components";
         box-shadow: 0 0 24px 4px rgba(251, 114, 153, 0.4);
     }
     
-    .social-hero-link.twitter-link:hover {
-        background-color: #1da1f2;
-        box-shadow: 0 0 24px 4px rgba(29, 161, 242, 0.4);
+    .social-hero-link.x-link:hover {
+        background-color: #111111;
+        color: #ffffff;
+        box-shadow: 0 0 24px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    :global(.dark) .social-hero-link.x-link:hover {
+        background-color: #ffffff;
+        color: #111111;
+        box-shadow: 0 0 24px 4px rgba(255, 255, 255, 0.3);
+    }
+
+    .social-hero-link.instagram-link:hover {
+        background-color: #e1306c;
+        box-shadow: 0 0 24px 4px rgba(225, 48, 108, 0.4);
     }
     
     .social-hero-link.default-link:hover {
