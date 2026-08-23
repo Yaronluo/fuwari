@@ -55,6 +55,42 @@ export type Tag = {
 	count: number;
 };
 
+export type SiteContentStats = {
+	postCount: number;
+	wordCount: number;
+	categoryCount: number;
+	tagCount: number;
+};
+
+/** Build-time content totals used by the sidebar site statistics widget. */
+export async function getSiteContentStats(): Promise<SiteContentStats> {
+	const allBlogPosts = await getCollection<"posts">("posts", ({ data }) => {
+		return import.meta.env.PROD ? data.draft !== true : true;
+	});
+
+	const categories = new Set<string>();
+	const tags = new Set<string>();
+	let wordCount = 0;
+
+	for (const post of allBlogPosts) {
+		const category = post.data.category?.trim();
+		if (category) categories.add(category);
+		for (const tag of post.data.tags || []) {
+			if (tag.trim()) tags.add(tag.trim());
+		}
+
+		// Count visible content characters rather than Markdown punctuation/whitespace.
+		wordCount += (post.body || "").replace(/[\s\p{P}\p{S}]/gu, "").length;
+	}
+
+	return {
+		postCount: allBlogPosts.length,
+		wordCount,
+		categoryCount: categories.size,
+		tagCount: tags.size,
+	};
+}
+
 export async function getTagList(): Promise<Tag[]> {
 	const allBlogPosts = await getCollection<"posts">("posts", ({ data }) => {
 		return import.meta.env.PROD ? data.draft !== true : true;

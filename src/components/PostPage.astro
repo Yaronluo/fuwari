@@ -8,7 +8,7 @@ const { page } = Astro.props;
 let delay = 0;
 const interval = 50;
 ---
-<div class="transition flex flex-col rounded-[var(--radius-large)] bg-white/35 dark:bg-black/45 backdrop-blur-2xl border border-white/40 dark:border-white/10 shadow-md py-1 md:shadow-none md:border-none md:backdrop-blur-none md:py-0 md:bg-transparent md:gap-4 mb-4">
+<div class="post-list transition flex flex-col gap-3.5 md:gap-4 mb-4">
     {page.data.map((entry: CollectionEntry<"posts">) => (
         <PostCard
                 entry={entry}

@@ -6,12 +6,32 @@ const BANGUMI_USER = import.meta.env.PUBLIC_BANGUMI_USER || "yaron";
 const BANGUMI_TOKEN = import.meta.env.PUBLIC_BANGUMI_TOKEN || "";
 
 const COLLECTION_TYPES = [
-    { id: 3, label: '正在心动', color: 'bg-emerald-400 dark:bg-emerald-500 text-white' },
-    { id: 2, label: '完结撒花', color: 'bg-pink-400 dark:bg-pink-500 text-white' },
-    { id: 1, label: '预定入坑', color: 'bg-sky-400 dark:bg-sky-500 text-white' },
-    { id: 4, label: '时空凝结', color: 'bg-purple-400 dark:bg-purple-500 text-white' },
-    { id: 5, label: '物理斩断', color: 'bg-neutral-400 text-white' }
+    { id: 3, label: '正在心动', emoji: '♡' },
+    { id: 2, label: '完结撒花', emoji: '✦' },
+    { id: 1, label: '预定入坑', emoji: '＋' },
+    { id: 4, label: '时空凝结', emoji: '◷' },
+    { id: 5, label: '物理斩断', emoji: '×' }
 ];
+
+const GENRE_TAGS = new Set([
+    '恋爱', '日常', '治愈', '奇幻', '战斗', '异世界', '校园', '喜剧', '科幻',
+    '青春', '音乐', '冒险', '悬疑', '百合', '萌', '热血', '运动', '推理',
+    '魔法', '机战', '后宫', '历史', '职场', '公路', '偶像', '美食'
+]);
+
+function selectDisplayTags(tags: Array<{ name?: string }> | undefined) {
+    const names = Array.from(new Set((tags || []).map((tag) => tag?.name?.trim()).filter(Boolean))) as string[];
+    const genres = names.filter((name) => GENRE_TAGS.has(name));
+    if (genres.length >= 5) return genres.slice(0, 5);
+
+    const fallback = names.filter((name) =>
+        !genres.includes(name)
+        && !/^\d{4}(年\d{1,2}月)?$/.test(name)
+        && !/^(TV|WEB|OVA|OAD|动画|日本动画)$/.test(name)
+        && !/(改|Pictures|Animation|Studio|制作)$/.test(name)
+    );
+    return [...genres, ...fallback].slice(0, 5);
+}
 
 let allCollections: any[] = [];
 let statusCounts: Record<string, number> = { '3': 0, '2': 0, '1': 0, '4': 0, '5': 0 };
@@ -23,28 +43,27 @@ try {
         throw new Error("未配置 BANGUMI_TOKEN 环境变量");
     }
 
-    const fetchPromises = COLLECTION_TYPES.map(async (cType) => {
+    const fetchPromises = COLLECTION_TYPES.map(async (collectionType) => {
         const batchSize = 50;
         let offset = 0;
         const collections: any[] = [];
 
-        // Bangumi 接口单次最多返回一批数据，这里自动翻页直到取完该状态的全部收藏。
         while (true) {
-            const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${cType.id}&limit=${batchSize}&offset=${offset}`;
-            const res = await fetch(url, {
+            const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${collectionType.id}&limit=${batchSize}&offset=${offset}`;
+            const response = await fetch(url, {
                 headers: {
                     'User-Agent': 'Fuwari-Bangumi/1.0',
                     'Authorization': `Bearer ${BANGUMI_TOKEN}`
                 }
             });
-            if (!res.ok) {
-                const errorText = await res.text();
-                throw new Error(`API 请求失败 (${res.status}): ${errorText}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`API 请求失败 (${response.status}): ${errorText}`);
             }
 
-            const resData = await res.json();
-            const batch = resData.data || [];
-            collections.push(...batch.map((item: any) => ({ ...item, type: cType.id })));
+            const responseData = await response.json();
+            const batch = responseData.data || [];
+            collections.push(...batch.map((item: any) => ({ ...item, type: collectionType.id })));
 
             if (batch.length < batchSize) break;
             offset += batchSize;
@@ -54,7 +73,7 @@ try {
     });
 
     const results = await Promise.all(fetchPromises);
-    allCollections = results.flat().filter((item) => item && item.subject);
+    allCollections = results.flat().filter((item) => item?.subject);
 
     allCollections.forEach((item: any) => {
         statusCounts[String(item.type)] = (statusCounts[String(item.type)] || 0) + 1;
@@ -65,128 +84,943 @@ try {
 } finally {
     isLoading = false;
 }
+
+const userRatings = allCollections
+    .map((item) => Number(item.rate || 0))
+    .filter((rating) => rating > 0 && rating <= 10);
+const ratingCount = userRatings.length;
+const averageRating = ratingCount > 0
+    ? userRatings.reduce((sum, rating) => sum + rating, 0) / ratingCount
+    : 0;
+const ratingStandardDeviation = ratingCount > 0
+    ? Math.sqrt(userRatings.reduce((sum, rating) => sum + ((rating - averageRating) ** 2), 0) / ratingCount)
+    : 0;
+const completedCount = statusCounts['2'] || 0;
+const completionRate = allCollections.length > 0 ? (completedCount / allCollections.length) * 100 : 0;
+const ratingDistribution = Array.from({ length: 10 }, (_, index) => {
+    const score = 10 - index;
+    return { score, count: userRatings.filter((rating) => rating === score).length };
+});
+const maxRatingCount = Math.max(...ratingDistribution.map((item) => item.count), 1);
 ---
 
 <MainGridLayout title="番剧观测" description="我的追番记录墙">
-    <div class="w-full max-w-4xl mx-auto p-6 md:p-8 flex flex-col gap-6">
-
-        <div class="text-center my-2 flex flex-col gap-2">
-            <h1 class="text-2xl sm:text-3xl font-black bg-[linear-gradient(90deg,var(--azusa-blue),var(--primary),var(--tea))] bg-clip-text text-transparent tracking-wider drop-shadow-sm">
-                跨越星海奔向你的绝对引力
-            </h1>
-            <p class="text-neutral-500 dark:text-neutral-400 text-xs font-semibold tracking-widest bg-white/30 dark:bg-black/40 backdrop-blur-md px-4 py-1 rounded-full inline-block self-center border border-white/30 dark:border-white/10">
-                「 哪怕宇宙重置一万次，我也会在第一万零一次睁开眼时，重新对你一见钟情。 」
-            </p>
+    <main class="bangumi-page">
+        <div class="bangumi-sticker-field" aria-hidden="true">
+            <span class="sticker-star">✦</span>
+            <span class="sticker-sakura">🌸</span>
+            <span class="sticker-paw">🐾</span>
+            <span class="sticker-game">🎮</span>
+            <span class="sticker-note">♪</span>
+            <span class="sticker-tv">📺</span>
         </div>
+        <header class="bangumi-hero">
+            <div class="bangumi-hero-copy">
+                <p class="bangumi-eyebrow">今日也在快乐追番</p>
+                <h1>我的追番小窝</h1>
+                <p class="bangumi-subtitle">看过的、正在追的、准备看的，统统收进来！下一部会遇见怎样的故事呢？(｡•̀ᴗ-)✧</p>
+                <div class="bangumi-energy" aria-label="追番状态">
+                    <span>追番能量 100%</span>
+                    <span>今日也在补番中</span>
+                </div>
+            </div>
+        </header>
 
         {isLoading ? (
-            <div class="flex justify-center items-center py-12">
-                <div class="animate-spin rounded-full h-8 w-8 border-2 border-[var(--primary)] border-t-transparent"></div>
+            <div class="bangumi-state">
+                <div class="bangumi-spinner" aria-label="正在加载"></div>
             </div>
         ) : errorMessage ? (
-            <div class="text-center py-12 px-4">
-                <div class="text-red-400 text-sm font-semibold mb-2">数据加载失败</div>
-                <div class="text-neutral-500 text-xs">{errorMessage}</div>
+            <div class="bangumi-state bangumi-state-error">
+                <span class="bangumi-state-icon">!</span>
+                <strong>数据加载失败</strong>
+                <span>{errorMessage}</span>
             </div>
         ) : allCollections.length === 0 ? (
-            <div class="text-center py-12 text-neutral-400 text-xs tracking-widest">此处空空如也，快去捕捉新的奇迹吧 ✨</div>
+            <div class="bangumi-state">
+                <span class="bangumi-state-icon">✦</span>
+                <strong>此处空空如也</strong>
+                <span>快去捕捉新的奇迹吧。</span>
+            </div>
         ) : (
             <>
-                <div class="relative flex flex-nowrap overflow-x-auto justify-start md:justify-between items-center gap-1 sm:gap-2 md:gap-1 p-1 md:p-1.5 bg-white/35 dark:bg-black/45 backdrop-blur-2xl rounded-2xl md:rounded-full border border-white/40 dark:border-white/10 shadow-sm mb-6 mx-auto w-full [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" id="bangumi-tabs-container">
-                    <div id="bangumi-indicator" class="absolute bottom-0 md:bottom-1 h-[3px] rounded-full bg-gradient-to-r from-transparent via-[var(--primary)] to-transparent transition-all duration-300 opacity-0 pointer-events-none z-0"></div>
-                    <button data-status="all" class="tab-btn bangumi-tab bangumi-tab-active z-10 md:flex-1">
-                        全部明细 ✨ <span class="text-xs md:text-[9px] opacity-70">({allCollections.length})</span>
-                    </button>
-                    <button data-status="3" class="tab-btn bangumi-tab bangumi-tab-inactive z-10 md:flex-1">
-                        正在心动 💓 <span class="text-xs md:text-[9px] opacity-70">({statusCounts['3']})</span>
-                    </button>
-                    <button data-status="2" class="tab-btn bangumi-tab bangumi-tab-inactive z-10 md:flex-1">
-                        完结撒花 🎉 <span class="text-xs md:text-[9px] opacity-70">({statusCounts['2']})</span>
-                    </button>
-                    <button data-status="1" class="tab-btn bangumi-tab bangumi-tab-inactive z-10 md:flex-1">
-                        预定入坑 📺 <span class="text-xs md:text-[9px] opacity-70">({statusCounts['1']})</span>
-                    </button>
-                    <button data-status="4" class="tab-btn bangumi-tab bangumi-tab-inactive z-10 md:flex-1">
-                        时空凝结 🕰️ <span class="text-xs md:text-[9px] opacity-70">({statusCounts['4']})</span>
-                    </button>
-                    <button data-status="5" class="tab-btn bangumi-tab bangumi-tab-inactive z-10 md:flex-1">
-                        物理斩断 💔 <span class="text-xs md:text-[9px] opacity-70">({statusCounts['5']})</span>
-                    </button>
-                    <!-- Mobile scroll right padding spacer -->
-                    <div class="md:hidden w-[1px] flex-shrink-0"></div>
-                </div>
+                <section class="bangumi-insights" aria-label="我的 Bangumi 追番数据">
+                    <div class="bangumi-insights-heading">
+                        <div><span aria-hidden="true">✦</span><strong>追番数据</strong></div>
+                        <small>来自我的 Bangumi 收藏</small>
+                    </div>
+                    <div class="bangumi-insights-content">
+                        <div class="bangumi-metrics">
+                            <div class="bangumi-metric metric-collection"><strong>{allCollections.length}</strong><span>收藏</span></div>
+                            <div class="bangumi-metric metric-completed"><strong>{completedCount}</strong><span>完成</span></div>
+                            <div class="bangumi-metric metric-rate"><strong>{completionRate.toFixed(1)}%</strong><span>完成率</span></div>
+                            <div class="bangumi-metric metric-average"><strong>{averageRating.toFixed(2)}</strong><span>平均分</span></div>
+                            <div class="bangumi-metric metric-deviation"><strong>{ratingStandardDeviation.toFixed(2)}</strong><span>标准差</span></div>
+                            <div class="bangumi-metric metric-count"><strong>{ratingCount}</strong><span>评分数</span></div>
+                        </div>
+                        <div class="bangumi-rating-chart" aria-label="评分分布">
+                            <strong>评分分布</strong>
+                            <div class="bangumi-rating-bars">
+                                {ratingDistribution.map((item) => (
+                                    <div class="bangumi-rating-column" title={`${item.score} 分：${item.count} 部`}>
+                                        <span class="bangumi-rating-count">{item.count || ''}</span>
+                                        <span class="bangumi-rating-bar" style={`--rating-height: ${Math.max(item.count > 0 ? 8 : 2, (item.count / maxRatingCount) * 100)}%`}></span>
+                                        <span class="bangumi-rating-label">{item.score}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-                <div class="grid grid-cols-3 gap-4" id="bangumi-grid">
+                <nav class="bangumi-tabs" id="bangumi-tabs-container" aria-label="番剧收藏状态">
+                    <button data-status="all" class="tab-btn bangumi-tab bangumi-tab-active" type="button" aria-pressed="true">
+                        全部 <span>{allCollections.length}</span>
+                    </button>
+                    {COLLECTION_TYPES.map((collectionType) => (
+                        <button data-status={collectionType.id} class="tab-btn bangumi-tab bangumi-tab-inactive" type="button" aria-pressed="false">
+                            {collectionType.label} <span>{statusCounts[String(collectionType.id)]}</span>
+                        </button>
+                    ))}
+                </nav>
+
+                <section class="bangumi-grid" id="bangumi-grid" aria-label="番剧收藏列表">
                     {allCollections.map((item: any) => {
-                        const statusInfo = COLLECTION_TYPES.find(c => c.id === item.type);
+                        const statusInfo = COLLECTION_TYPES.find((collectionType) => collectionType.id === item.type);
                         const name = item.subject.name_cn || item.subject.name || 'Anime';
-                        const score = item.subject.score ? item.subject.score.toFixed(1) : '暂无';
-                        const rawImg = item.subject.images?.large || '';
-                        const hasImage = !!rawImg;
-                        const img = hasImage ? `https://images.weserv.nl/?url=${rawImg}` : '';
-                        const statusLabel = statusInfo?.label || '未知';
-                        const statusColor = statusInfo?.color || 'bg-neutral-500';
+                        const scoreValue = Number(item.subject.score || 0);
+                        const score = scoreValue > 0 ? scoreValue.toFixed(1) : '暂无';
+                        const rawImage = item.subject.images?.large || item.subject.images?.common || '';
+                        const hasImage = Boolean(rawImage);
+                        const image = hasImage ? `https://images.weserv.nl/?url=${rawImage}` : '';
+                        const totalEpisodes = Number(item.subject.eps || item.subject.total_episodes || 0);
+                        const watchedEpisodes = Number(item.ep_status || 0);
+                        const displayTags = selectDisplayTags(item.subject.tags);
+                        const episodeText = totalEpisodes > 0
+                            ? item.type === 2
+                                ? `共 ${totalEpisodes} 集`
+                                : watchedEpisodes > 0
+                                    ? `${watchedEpisodes} / ${totalEpisodes} 集`
+                                    : `共 ${totalEpisodes} 集`
+                            : watchedEpisodes > 0
+                                ? `已看 ${watchedEpisodes} 集`
+                                : statusInfo?.label || '收藏中';
 
                         return (
-                            <a href={`https://bgm.tv/subject/${item.subject.id}`} target="_blank" rel="noopener noreferrer"
-                               class="bangumi-item block group relative aspect-[2/3] rounded-2xl overflow-hidden bg-white/35 dark:bg-black/45 backdrop-blur-md shadow-sm border border-white/30 dark:border-white/10 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-md hover:border-[var(--primary)]/40 cursor-pointer"
-                               data-type={item.type}>
-                                <span class={`absolute top-2 left-2 z-10 px-2 py-0.5 text-[9px] font-black rounded-md tracking-wider shadow-sm ${statusColor}`}>
-                                    {statusLabel}
-                                </span>
-                                {hasImage ? (
-                                    <>
-                                        <img src={img} alt={name} class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
-                                        <div class="w-full h-full hidden items-center justify-center bg-neutral-200/50 dark:bg-neutral-800/50">
-                                            <span class="text-neutral-400 text-xs">图片加载失败</span>
+                            <article class="bangumi-item" data-type={item.type}>
+                                <a href={`https://bgm.tv/subject/${item.subject.id}`} target="_blank" rel="noopener noreferrer" aria-label={`在 Bangumi 查看 ${name}`}>
+                                    <div class="bangumi-poster">
+                                        {hasImage ? (
+                                            <>
+                                                <img src={image} alt={name} loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'" />
+                                                <div class="bangumi-image-fallback">图片加载失败</div>
+                                            </>
+                                        ) : (
+                                            <div class="bangumi-image-fallback bangumi-image-fallback-visible">暂无图片</div>
+                                        )}
+                                        <span class={`bangumi-status bangumi-status-${item.type}`}>
+                                            <span aria-hidden="true">{statusInfo?.emoji}</span>{statusInfo?.label || '收藏中'}
+                                        </span>
+                                    </div>
+                                    <div class="bangumi-card-info">
+                                        <h2>{name}</h2>
+                                        {displayTags.length > 0 && (
+                                            <div class="bangumi-tags" aria-label="番剧标签">
+                                                {displayTags.map((tag) => <span>{tag}</span>)}
+                                            </div>
+                                        )}
+                                        <div class="bangumi-card-meta">
+                                            <span>{episodeText}</span>
+                                            <span class="bangumi-score" aria-label={`评分 ${score}`}>
+                                                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                                {score}
+                                            </span>
                                         </div>
-                                    </>
-                                ) : (
-                                    <div class="w-full h-full flex items-center justify-center bg-neutral-200/50 dark:bg-neutral-800/50">
-                                        <span class="text-neutral-400 text-xs">暂无图片</span>
                                     </div>
-                                )}
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 text-left">
-                                    <h3 class="text-white text-xs font-bold line-clamp-2 mb-1 leading-snug tracking-wide">{name}</h3>
-                                    <div class="flex items-center gap-1 bg-white/10 dark:bg-black/20 px-1.5 py-0.5 rounded w-fit backdrop-blur-sm border border-white/5">
-                                        <svg class="w-3 h-3 text-amber-300 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                        <span class="text-amber-300 text-[10px] font-black tracking-wider">{score}</span>
-                                    </div>
-                                </div>
-                            </a>
-                        )
+                                </a>
+                            </article>
+                        );
                     })}
-                </div>
+                </section>
 
-                <div id="bangumi-pagination" class="flex justify-center items-center gap-4 mt-4">
-                    <button id="btn-prev" class="px-4 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-neutral-200/40 dark:bg-neutral-800/40 text-neutral-600 dark:text-neutral-400 border border-neutral-200/20 dark:border-neutral-700/20 hover:bg-[var(--primary)] hover:text-white disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400 shadow-sm">
-                        上一页 👈
-                    </button>
-                    <span id="page-indicator" class="text-xs font-black text-neutral-500 dark:text-neutral-400 tracking-widest bg-neutral-200/20 dark:bg-black/10 px-3 py-1 rounded-lg border border-neutral-200/10">
-                        1 / 1
+                <nav id="bangumi-pagination" class="bangumi-pagination" aria-label="番剧列表分页">
+                    <span class="bangumi-page-deco" aria-hidden="true">♡</span>
+                    <button id="btn-prev" type="button" aria-label="上一页"><span aria-hidden="true">←</span></button>
+                    <span class="bangumi-page-ticket">
+                        <small>NEXT EPISODE</small>
+                        <strong id="page-indicator">01 / 01</strong>
                     </span>
-                    <button id="btn-next" class="px-4 py-1.5 text-xs rounded-xl font-bold tracking-wider transition-all duration-300 cursor-pointer bg-neutral-200/40 dark:bg-neutral-800/40 text-neutral-600 dark:text-neutral-400 border border-neutral-200/20 dark:border-neutral-700/20 hover:bg-[var(--primary)] hover:text-white disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400 shadow-sm">
-                        下一页 👉
-                    </button>
-                </div>
+                    <button id="btn-next" type="button" aria-label="下一页"><span aria-hidden="true">→</span></button>
+                    <span class="bangumi-page-deco" aria-hidden="true">✦</span>
+                </nav>
 
                 <BangumiPanel client:load />
             </>
         )}
-
-    </div>
+    </main>
 </MainGridLayout>
 
 <style is:global>
-    .bangumi-tab {
-        @apply relative px-3 py-1.5 md:px-3 md:py-1.5 text-xs md:text-xs rounded-full font-bold tracking-wider md:tracking-tighter transition-all duration-300 cursor-pointer flex-shrink-0 overflow-hidden whitespace-nowrap;
+    .bangumi-page {
+        position: relative;
+        isolation: isolate;
+        width: 100%;
+        max-width: 68rem;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 3rem;
+        color: var(--deep-text, var(--text-75));
     }
-    .bangumi-tab-inactive {
-        @apply text-neutral-600 dark:text-neutral-400 hover:text-[var(--primary)];
+
+    .bangumi-page::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        inset: -2rem -10rem;
+        pointer-events: none;
+        opacity: 0.22;
+        background-image:
+            radial-gradient(circle, color-mix(in srgb, var(--primary) 28%, transparent) 1px, transparent 1.5px),
+            repeating-linear-gradient(118deg, transparent 0 3.6rem, color-mix(in srgb, var(--primary) 12%, transparent) 3.65rem, transparent 3.75rem);
+        background-size: 1.15rem 1.15rem, auto;
+        mask-image: radial-gradient(ellipse at center, black 0, transparent 72%);
     }
-    .bangumi-tab-active {
-        @apply shadow-inner scale-105;
+
+    .bangumi-sticker-field {
+        position: absolute;
+        z-index: -1;
+        inset: 0;
+        pointer-events: none;
         color: var(--primary);
-        background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+    }
+
+    .bangumi-sticker-field span {
+        position: absolute;
+        display: grid;
+        place-items: center;
+        opacity: 0.2;
+        filter: saturate(0.75);
+        transform: rotate(var(--sticker-rotate, 0deg));
+    }
+
+    .sticker-star { top: 7rem; left: -5rem; font-size: 2rem; --sticker-rotate: -12deg; }
+    .sticker-sakura { top: 24rem; right: -6rem; font-size: 2.35rem; --sticker-rotate: 14deg; }
+    .sticker-paw { top: 43rem; left: -6rem; font-size: 2.1rem; --sticker-rotate: -18deg; }
+    .sticker-game { top: 62rem; right: -6.5rem; font-size: 2.4rem; --sticker-rotate: 11deg; }
+    .sticker-note { top: 80rem; left: -4.5rem; font-size: 2.4rem; --sticker-rotate: 8deg; }
+    .sticker-tv { top: 98rem; right: -5rem; font-size: 2.2rem; --sticker-rotate: -10deg; }
+
+    .bangumi-hero {
+        margin: 0 0 2rem;
+    }
+
+    .bangumi-eyebrow {
+        margin: 0 0 0.55rem;
+        color: var(--primary);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+    }
+
+    .bangumi-hero h1 {
+        margin: 0;
+        color: var(--deep-text, var(--text-90));
+        font-size: clamp(2rem, 5vw, 3.25rem);
+        font-weight: 900;
+        letter-spacing: -0.045em;
+        line-height: 1.05;
+    }
+
+    .bangumi-subtitle {
+        max-width: 38rem;
+        margin: 0.85rem 0 0;
+        color: var(--text-50);
+        font-size: 0.9rem;
+        line-height: 1.75;
+    }
+
+    .bangumi-energy {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.85rem;
+    }
+
+    .bangumi-energy span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.65rem;
+        padding: 0.35rem 0.65rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 14%, transparent);
+        border-radius: 999px;
+        color: var(--primary);
+        font-size: 0.66rem;
+        font-weight: 900;
+        background: color-mix(in srgb, var(--primary) 7%, var(--card-bg));
+    }
+
+    .bangumi-energy span:first-child::before {
+        content: "⚡";
+        margin-right: 0.25rem;
+    }
+
+    .bangumi-energy span:last-child::before {
+        content: "●";
+        margin-right: 0.3rem;
+        font-size: 0.48rem;
+        animation: bangumi-status-pulse 1.8s ease-in-out infinite;
+    }
+
+    .bangumi-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .bangumi-insights {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 14%, transparent);
+        border-radius: 1.35rem;
+        background: color-mix(in srgb, var(--card-bg) 82%, transparent);
+        box-shadow: 0 14px 38px rgba(93, 69, 74, 0.08);
+        backdrop-filter: blur(16px);
+    }
+
+    .bangumi-insights-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .bangumi-insights-heading div {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--primary);
+    }
+
+    .bangumi-insights-heading strong {
+        color: var(--deep-text, var(--text-90));
+        font-size: 0.85rem;
+    }
+
+    .bangumi-insights-heading small {
+        color: var(--text-50);
+        font-size: 0.64rem;
+    }
+
+    .bangumi-insights-content {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 1fr);
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .bangumi-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.55rem;
+    }
+
+    .bangumi-metric {
+        min-width: 0;
+        padding: 0.65rem 0.75rem;
+        border-radius: 0.9rem;
+        color: white;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 7px 18px rgba(79, 56, 67, 0.08);
+    }
+
+    .bangumi-metric strong,
+    .bangumi-metric span {
+        display: block;
+    }
+
+    .bangumi-metric strong {
+        overflow: hidden;
+        font-size: 1.35rem;
+        font-weight: 900;
+        line-height: 1.05;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .bangumi-metric span {
+        margin-top: 0.25rem;
+        font-size: 0.67rem;
+        font-weight: 800;
+        opacity: 0.92;
+    }
+
+    .metric-collection { background: linear-gradient(135deg, #f28fa6, #ee9cae); }
+    .metric-completed { background: linear-gradient(135deg, #77bd4d, #8acb58); }
+    .metric-rate { background: linear-gradient(135deg, #69a9df, #80b9ea); }
+    .metric-average { background: linear-gradient(135deg, #ee984e, #f1aa67); }
+    .metric-deviation { background: linear-gradient(135deg, #8d65e2, #a177ee); }
+    .metric-count { background: linear-gradient(135deg, #4f9ee3, #6db3ef); }
+
+    .bangumi-rating-chart {
+        min-width: 0;
+        padding: 0.7rem 0.8rem 0.5rem;
+        border-radius: 1rem;
+        background: color-mix(in srgb, var(--primary) 5%, var(--card-bg));
+    }
+
+    .bangumi-rating-chart > strong {
+        display: block;
+        margin-bottom: 0.35rem;
+        color: var(--text-50);
+        font-size: 0.67rem;
+        font-weight: 900;
+    }
+
+    .bangumi-rating-bars {
+        display: grid;
+        grid-template-columns: repeat(10, minmax(0, 1fr));
+        gap: 0.25rem;
+    }
+
+    .bangumi-rating-column {
+        display: grid;
+        grid-template-rows: 0.9rem 5rem 0.9rem;
+        align-items: end;
+        min-width: 0;
+        text-align: center;
+    }
+
+    .bangumi-rating-count,
+    .bangumi-rating-label {
+        color: var(--text-50);
+        font-size: 0.55rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .bangumi-rating-bar {
+        width: min(1.1rem, 76%);
+        height: var(--rating-height);
+        min-height: 2px;
+        margin: 0 auto;
+        border-radius: 0.3rem 0.3rem 0.12rem 0.12rem;
+        background: linear-gradient(to top, color-mix(in srgb, var(--primary) 76%, #a06de0), color-mix(in srgb, var(--primary) 58%, #ffb5cb));
+        box-shadow: 0 4px 10px color-mix(in srgb, var(--primary) 16%, transparent);
+    }
+
+    .bangumi-tab {
+        appearance: none;
+        padding: 0.55rem 0.9rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--card-bg) 88%, transparent);
+        color: var(--text-50);
+        font-size: 0.75rem;
+        font-weight: 800;
+        line-height: 1;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(90, 65, 70, 0.05);
+        transition: transform 180ms ease, color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .bangumi-tab span {
+        margin-left: 0.25rem;
+        opacity: 0.72;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .bangumi-tab:hover {
+        color: var(--primary);
+        transform: translateY(-1px);
+    }
+
+    .bangumi-tab-active {
+        border-color: transparent;
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 28%, transparent);
+    }
+
+    .bangumi-tab-active:hover {
+        color: white;
+    }
+
+    .bangumi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.45rem 1.25rem;
+        scroll-margin-top: 6rem;
+    }
+
+    .bangumi-item[hidden] {
+        display: none !important;
+    }
+
+    .bangumi-item,
+    .bangumi-item a {
+        min-width: 0;
+    }
+
+    .bangumi-item a {
+        display: block;
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .bangumi-poster {
+        position: relative;
+        overflow: hidden;
+        aspect-ratio: 3 / 4;
+        border: 1px solid color-mix(in srgb, var(--primary) 13%, transparent);
+        border-radius: 1.15rem;
+        background: color-mix(in srgb, var(--card-bg) 88%, var(--primary) 12%);
+        box-shadow: 0 14px 34px rgba(93, 69, 74, 0.11);
+        transform: translateZ(0);
+        transition: transform 260ms ease, box-shadow 260ms ease, border-color 260ms ease;
+    }
+
+    .bangumi-item a:hover .bangumi-poster {
+        border-color: color-mix(in srgb, var(--primary) 42%, transparent);
+        box-shadow: 0 22px 46px rgba(93, 69, 74, 0.18);
+        transform: translateY(-0.3rem);
+    }
+
+    .bangumi-poster img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 500ms ease;
+    }
+
+    .bangumi-item a:hover .bangumi-poster img {
+        transform: scale(1.035);
+    }
+
+    .bangumi-image-fallback {
+        display: none;
+        place-items: center;
+        width: 100%;
+        height: 100%;
+        color: var(--text-35);
+        font-size: 0.75rem;
+        background: linear-gradient(145deg, color-mix(in srgb, var(--primary) 8%, var(--card-bg)), var(--card-bg));
+    }
+
+    .bangumi-image-fallback-visible {
+        display: grid;
+    }
+
+    .bangumi-poster::after {
+        content: "";
+        position: absolute;
+        inset: auto 0 0;
+        height: 22%;
+        pointer-events: none;
+        background: linear-gradient(to top, rgba(30, 20, 24, 0.2), transparent);
+    }
+
+    .bangumi-status {
+        position: absolute;
+        z-index: 2;
+        top: 0.65rem;
+        left: 0.65rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.35rem 0.55rem;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 999px;
+        color: #bd5273;
+        font-size: 0.66rem;
+        font-weight: 900;
+        line-height: 1;
+        background: rgba(255, 251, 250, 0.9);
+        box-shadow: 0 5px 16px rgba(50, 30, 36, 0.12);
+        backdrop-filter: blur(10px);
+    }
+
+    .bangumi-status-3 { color: #c44f75; }
+    .bangumi-status-2 { color: #9d668d; }
+    .bangumi-status-1 { color: #5e7ca8; }
+    .bangumi-status-4 { color: #7b6aa5; }
+    .bangumi-status-5 { color: #77727a; }
+
+    .bangumi-card-info {
+        padding: 0.75rem 0.18rem 0;
+    }
+
+    .bangumi-card-info h2 {
+        overflow: hidden;
+        margin: 0 0 0.35rem;
+        color: var(--deep-text, var(--text-90));
+        font-size: 0.9rem;
+        font-weight: 900;
+        line-height: 1.45;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition: color 180ms ease;
+    }
+
+    .bangumi-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin: 0 0 0.45rem;
+    }
+
+    .bangumi-tags span {
+        overflow: hidden;
+        padding: 0.22rem 0.45rem;
+        border-radius: 999px;
+        color: color-mix(in srgb, var(--primary) 82%, var(--deep-text, var(--text-75)));
+        font-size: 0.62rem;
+        font-weight: 800;
+        line-height: 1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        background: color-mix(in srgb, var(--primary) 9%, transparent);
+    }
+
+    .bangumi-item a:hover .bangumi-card-info h2 {
+        color: var(--primary);
+    }
+
+    .bangumi-card-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        color: var(--text-50);
+        font-size: 0.72rem;
+    }
+
+    .bangumi-score {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .bangumi-score svg {
+        width: 0.75rem;
+        height: 0.75rem;
+        fill: #e3a84c;
+    }
+
+    .bangumi-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.65rem;
+        margin-top: 2.5rem;
+        color: var(--text-50);
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .bangumi-page-deco {
+        color: var(--primary);
+        font-size: 0.85rem;
+        opacity: 0.7;
+    }
+
+    .bangumi-page-ticket {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-width: 6.8rem;
+        min-height: 3.15rem;
+        padding: 0.45rem 1rem 0.4rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
+        border-radius: 1rem;
+        background:
+            radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--primary) 12%, transparent), transparent 34%),
+            color-mix(in srgb, var(--card-bg) 92%, transparent);
+        box-shadow: 0 10px 26px rgba(93, 69, 74, 0.09);
+        backdrop-filter: blur(12px);
+    }
+
+    .bangumi-page-ticket::before,
+    .bangumi-page-ticket::after {
+        content: "";
+        position: absolute;
+        top: -0.38rem;
+        width: 0.72rem;
+        height: 0.72rem;
+        border-top: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+        background: color-mix(in srgb, var(--card-bg) 92%, var(--primary) 8%);
+        transform: rotate(45deg);
+    }
+
+    .bangumi-page-ticket::before {
+        left: 1rem;
+        border-left: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+        border-radius: 0.12rem 0 0 0;
+    }
+
+    .bangumi-page-ticket::after {
+        right: 1rem;
+        border-right: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+        border-radius: 0 0.12rem 0 0;
+    }
+
+    .bangumi-page-ticket small {
+        position: relative;
+        z-index: 1;
+        color: var(--primary);
+        font-size: 0.5rem;
+        font-weight: 900;
+        letter-spacing: 0.13em;
+        line-height: 1;
+    }
+
+    .bangumi-page-ticket strong {
+        position: relative;
+        z-index: 1;
+        margin-top: 0.3rem;
+        color: var(--deep-text, var(--text-75));
+        font-size: 0.76rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+    }
+
+    .bangumi-pagination[hidden] {
+        display: none;
+    }
+
+    .bangumi-pagination button {
+        display: grid;
+        place-items: center;
+        width: 2.65rem;
+        height: 2.65rem;
+        padding: 0;
+        border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent);
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--card-bg) 92%, transparent);
+        color: var(--primary);
+        font-size: 1.05rem;
+        font-weight: 900;
+        cursor: pointer;
+        box-shadow: 0 8px 20px rgba(93, 69, 74, 0.08);
+        transition: transform 180ms ease, color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .bangumi-pagination button:hover:not(:disabled) {
+        color: white;
+        background: var(--primary);
+        box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 26%, transparent);
+        transform: translateY(-2px) rotate(-4deg);
+    }
+
+    .bangumi-pagination button:last-of-type:hover:not(:disabled) {
+        transform: translateY(-2px) rotate(4deg);
+    }
+
+    .bangumi-pagination button:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .bangumi-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        min-height: 18rem;
+        padding: 2rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 12%, transparent);
+        border-radius: 1.5rem;
+        color: var(--text-50);
+        background: color-mix(in srgb, var(--card-bg) 72%, transparent);
+        box-shadow: 0 16px 45px rgba(93, 69, 74, 0.07);
+    }
+
+    .bangumi-state strong {
+        color: var(--deep-text, var(--text-75));
+        font-size: 0.95rem;
+    }
+
+    .bangumi-state span:last-child {
+        font-size: 0.72rem;
+    }
+
+    .bangumi-state-icon {
+        display: grid;
+        place-items: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+        color: var(--primary);
+        background: color-mix(in srgb, var(--primary) 10%, transparent);
+        font-weight: 900;
+    }
+
+    .bangumi-spinner {
+        width: 2rem;
+        height: 2rem;
+        border: 2px solid color-mix(in srgb, var(--primary) 18%, transparent);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: bangumi-spin 800ms linear infinite;
+    }
+
+    @keyframes bangumi-spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes bangumi-status-pulse {
+        0%, 100% { opacity: 0.35; transform: scale(0.85); }
+        50% { opacity: 1; transform: scale(1.15); }
+    }
+
+    @media (max-width: 1500px) {
+        .bangumi-sticker-field span {
+            opacity: 0.12;
+        }
+    }
+
+    @media (max-width: 900px) {
+        .bangumi-insights-content {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .bangumi-page {
+            padding: 1.35rem 0.8rem 2.5rem;
+        }
+
+        .bangumi-hero {
+            margin-bottom: 1.5rem;
+        }
+
+        .bangumi-insights {
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .bangumi-insights-heading small {
+            display: none;
+        }
+
+        .bangumi-metrics {
+            gap: 0.42rem;
+        }
+
+        .bangumi-metric {
+            padding: 0.55rem 0.58rem;
+            border-radius: 0.75rem;
+        }
+
+        .bangumi-metric strong {
+            font-size: 1.05rem;
+        }
+
+        .bangumi-metric span {
+            font-size: 0.59rem;
+        }
+
+        .bangumi-rating-chart {
+            padding-inline: 0.55rem;
+        }
+
+        .bangumi-rating-column {
+            grid-template-rows: 0.8rem 3.8rem 0.8rem;
+        }
+
+        .bangumi-subtitle {
+            font-size: 0.8rem;
+        }
+
+        .bangumi-energy {
+            margin-top: 0.7rem;
+        }
+
+        .bangumi-energy span {
+            min-height: 1.5rem;
+            padding: 0.3rem 0.52rem;
+            font-size: 0.59rem;
+        }
+
+        .bangumi-sticker-field .sticker-paw,
+        .bangumi-sticker-field .sticker-game,
+        .bangumi-sticker-field .sticker-tv {
+            display: none;
+        }
+
+        .bangumi-tabs {
+            flex-wrap: nowrap;
+            gap: 0.45rem;
+            overflow-x: auto;
+            overscroll-behavior-inline: contain;
+            padding-bottom: 0.3rem;
+            margin-bottom: 1.15rem;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            scroll-snap-type: x proximity;
+        }
+
+        .bangumi-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .bangumi-tab {
+            flex: 0 0 auto;
+            padding: 0.5rem 0.72rem;
+            font-size: 0.68rem;
+            scroll-snap-align: start;
+        }
+
+        .bangumi-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1.2rem 0.75rem;
+        }
+
+        .bangumi-poster {
+            border-radius: 0.95rem;
+        }
+
+        .bangumi-status {
+            top: 0.5rem;
+            left: 0.5rem;
+            padding: 0.3rem 0.45rem;
+            font-size: 0.6rem;
+        }
+
+        .bangumi-card-info {
+            padding-top: 0.6rem;
+        }
+
+        .bangumi-card-info h2 {
+            font-size: 0.8rem;
+        }
+
+        .bangumi-tags {
+            gap: 0.28rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .bangumi-tags span {
+            padding: 0.2rem 0.38rem;
+            font-size: 0.58rem;
+        }
+
+        .bangumi-card-meta {
+            font-size: 0.65rem;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .bangumi-spinner { animation: none; }
+        .bangumi-poster,
+        .bangumi-poster img,
+        .bangumi-tab,
+        .bangumi-pagination button { transition: none; }
+
+        .bangumi-energy span:last-child::before { animation: none; }
     }
 </style>

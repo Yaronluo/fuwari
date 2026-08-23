@@ -1,6 +1,7 @@
 ---
 import WidgetLayout from "./WidgetLayout.astro";
 import { Icon } from "astro-icon/components";
+import { getSiteContentStats } from "../../utils/content-utils";
 
 interface Props {
 	class?: string;
@@ -13,6 +14,8 @@ const style = Astro.props.style;
 const SITE_START_DATE = "2025-12-01";
 const UMAMI_API_BASE = "https://cloud.umami.is/analytics/us";
 const UMAMI_SHARE_ID = "1Dc4PAeDKgLAox0M";
+const contentStats = await getSiteContentStats();
+const formatNumber = new Intl.NumberFormat("zh-CN");
 ---
 
 <WidgetLayout name="站点统计" id="site-stats" class={className} style={style} icon="material-symbols:analytics-outline-rounded">
@@ -23,6 +26,19 @@ const UMAMI_SHARE_ID = "1Dc4PAeDKgLAox0M";
             <div class="flex flex-col">
                 <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">已运行</span>
                 <span id="site-running-time" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
+                    加载中...
+                </span>
+            </div>
+        </div>
+
+        <div class="border-t border-dashed border-black/10 dark:border-white/10"></div>
+
+        <!-- 今日访客数 -->
+        <div class="flex items-start gap-2.5">
+            <Icon name="material-symbols:today-outline-rounded" class="site-stats-icon text-[var(--primary)]" />
+            <div class="flex flex-col">
+                <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">今日访问</span>
+                <span id="umami-site-today-visitors" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
                     加载中...
                 </span>
             </div>
@@ -51,6 +67,27 @@ const UMAMI_SHARE_ID = "1Dc4PAeDKgLAox0M";
                 <span id="umami-site-pageviews" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
                     加载中...
                 </span>
+            </div>
+        </div>
+
+        <div class="border-t border-dashed border-black/10 dark:border-white/10"></div>
+
+        <div class="grid grid-cols-2 gap-x-3 gap-y-3 pt-0.5">
+            <div class="site-content-stat">
+                <span>文章字数</span>
+                <strong>{formatNumber.format(contentStats.wordCount)}</strong>
+            </div>
+            <div class="site-content-stat">
+                <span>文章数量</span>
+                <strong>{formatNumber.format(contentStats.postCount)}</strong>
+            </div>
+            <div class="site-content-stat">
+                <span>分类</span>
+                <strong>{formatNumber.format(contentStats.categoryCount)}</strong>
+            </div>
+            <div class="site-content-stat">
+                <span>标签</span>
+                <strong>{formatNumber.format(contentStats.tagCount)}</strong>
             </div>
         </div>
     </div>
@@ -84,7 +121,8 @@ const UMAMI_SHARE_ID = "1Dc4PAeDKgLAox0M";
         async function loadUmamiStats(root) {
             const visitorsEl = document.getElementById('umami-site-visitors');
             const pageviewsEl = document.getElementById('umami-site-pageviews');
-            if (!visitorsEl || !pageviewsEl) return;
+            const todayVisitorsEl = document.getElementById('umami-site-today-visitors');
+            if (!visitorsEl || !pageviewsEl || !todayVisitorsEl) return;
 
             try {
                 const shareResponse = await fetch(`${UMAMI_API_BASE}/api/share/${UMAMI_SHARE_ID}`, {
@@ -99,26 +137,35 @@ const UMAMI_SHARE_ID = "1Dc4PAeDKgLAox0M";
                     startAt: String(new Date(SITE_START_DATE).getTime()),
                     endAt: String(Date.now()),
                 });
-                const statsResponse = await fetch(
-                    `${UMAMI_API_BASE}/api/websites/${share.websiteId}/stats?${query}`,
-                    {
+                const dateParts = new Intl.DateTimeFormat('en-US', {
+                    timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit',
+                }).formatToParts(new Date());
+                const part = (type) => dateParts.find((item) => item.type === type)?.value;
+                const todayStart = new Date(`${part('year')}-${part('month')}-${part('day')}T00:00:00+08:00`).getTime();
+                const todayQuery = new URLSearchParams({ startAt: String(todayStart), endAt: String(Date.now()) });
+                const requestOptions = {
                         headers: {
                             Accept: 'application/json',
                             'x-umami-share-token': share.token,
                             'x-umami-share-context': '1',
                         },
-                    },
-                );
-                if (!statsResponse.ok) throw new Error(`Umami stats request failed: ${statsResponse.status}`);
+                    };
+                const [statsResponse, todayResponse] = await Promise.all([
+                    fetch(`${UMAMI_API_BASE}/api/websites/${share.websiteId}/stats?${query}`, requestOptions),
+                    fetch(`${UMAMI_API_BASE}/api/websites/${share.websiteId}/stats?${todayQuery}`, requestOptions),
+                ]);
+                if (!statsResponse.ok || !todayResponse.ok) throw new Error('Umami stats request failed');
 
-                const stats = await statsResponse.json();
+                const [stats, todayStats] = await Promise.all([statsResponse.json(), todayResponse.json()]);
                 visitorsEl.textContent = formatNumber.format(Number(stats.visitors) || 0);
                 pageviewsEl.textContent = formatNumber.format(Number(stats.pageviews) || 0);
+                todayVisitorsEl.textContent = formatNumber.format(Number(todayStats.visitors) || 0);
                 root.dataset.statsState = 'loaded';
             } catch (error) {
                 console.error('[SiteStats] Failed to load Umami statistics.', error);
                 visitorsEl.textContent = '暂不可用';
                 pageviewsEl.textContent = '暂不可用';
+                todayVisitorsEl.textContent = '暂不可用';
                 root.dataset.statsState = 'error';
             }
         }
@@ -160,4 +207,20 @@ const UMAMI_SHARE_ID = "1Dc4PAeDKgLAox0M";
     .tabular-nums {
         font-variant-numeric: tabular-nums;
     }
+    .site-content-stat {
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+    }
+    .site-content-stat span {
+        color: rgb(115 115 115 / 0.9);
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .site-content-stat strong {
+        color: rgb(64 64 64);
+        font-size: 0.9rem;
+        font-variant-numeric: tabular-nums;
+    }
+    :global(.dark) .site-content-stat strong { color: rgb(229 229 229); }
 </style>

@@ -1,0 +1,502 @@
+---
+import { Icon } from "astro-icon/components";
+import type { FeatureCollection, Geometry, Position } from "geojson";
+import provincesJson from "cn-atlas/provinces.json";
+import { travelPlaces, travelWishlist } from "../data/travel-places";
+
+const MAP_WIDTH = 920;
+const MAP_HEIGHT = 610;
+const provinces = provincesJson as FeatureCollection<Geometry>;
+const visitedProvinces = new Set(travelPlaces.map((place) => place.province));
+
+const GEO_BOUNDS = {
+	minLongitude: 72.5,
+	maxLongitude: 136,
+	minLatitude: 17,
+	maxLatitude: 54.5,
+};
+const MAP_PADDING = 34;
+const mercatorY = (latitude: number) =>
+	Math.log(Math.tan(Math.PI / 4 + (latitude * Math.PI) / 360));
+const minMercatorY = mercatorY(GEO_BOUNDS.minLatitude);
+const maxMercatorY = mercatorY(GEO_BOUNDS.maxLatitude);
+const longitudeSpan =
+	((GEO_BOUNDS.maxLongitude - GEO_BOUNDS.minLongitude) * Math.PI) / 180;
+const mercatorSpan = maxMercatorY - minMercatorY;
+const mapScale = Math.min(
+	(MAP_WIDTH - MAP_PADDING * 2) / longitudeSpan,
+	(MAP_HEIGHT - MAP_PADDING * 2) / mercatorSpan,
+);
+const mapContentWidth = longitudeSpan * mapScale;
+const mapContentHeight = mercatorSpan * mapScale;
+const mapOffsetX = (MAP_WIDTH - mapContentWidth) / 2;
+const mapOffsetY = (MAP_HEIGHT - mapContentHeight) / 2;
+
+function project(position: Position): [number, number] {
+	const [longitude, latitude] = position;
+	return [
+		mapOffsetX +
+			(((longitude - GEO_BOUNDS.minLongitude) * Math.PI) / 180) * mapScale,
+		mapOffsetY + (maxMercatorY - mercatorY(latitude)) * mapScale,
+	];
+}
+
+function ringToPath(ring: Position[]): string {
+	return ring
+		.map((position, index) => {
+			const [x, y] = project(position);
+			return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
+		})
+		.join("") + "Z";
+}
+
+function geometryToPath(geometry: Geometry): string {
+	if (geometry.type === "Polygon") {
+		return geometry.coordinates.map(ringToPath).join("");
+	}
+	if (geometry.type === "MultiPolygon") {
+		return geometry.coordinates
+			.flatMap((polygon) => polygon.map(ringToPath))
+			.join("");
+	}
+	return "";
+}
+
+const provincePaths = provinces.features.map((feature) => {
+	const properties = feature.properties as { 地名?: string; name?: string } | null;
+	const name = properties?.地名 || properties?.name || "未命名地区";
+	return {
+		name,
+		d: geometryToPath(feature.geometry),
+		visited: visitedProvinces.has(name),
+	};
+});
+
+const markers = travelPlaces.flatMap((place) => {
+	const point = project(place.coordinates);
+	return [{ ...place, x: point[0], y: point[1] }];
+});
+---
+
+<section class="travel-page" aria-labelledby="travel-title">
+	<div class="travel-sticker travel-sticker-plane" aria-hidden="true">✈</div>
+	<div class="travel-sticker travel-sticker-heart" aria-hidden="true">♡</div>
+	<div class="travel-sticker travel-sticker-star" aria-hidden="true">✦</div>
+
+	<header class="travel-header">
+		<div>
+			<div class="travel-eyebrow">
+				<Icon name="material-symbols:map-outline-rounded" />
+				<span>TRAVEL FOOTPRINTS</span>
+				<span aria-hidden="true">₍ᐢ. ̫.ᐢ₎</span>
+			</div>
+			<h1 id="travel-title">把走过的路，慢慢标在地图上</h1>
+			<p>去过的城市、看过的风景，还有想一直记住的小瞬间。</p>
+		</div>
+		<div class="travel-count-pill">
+			<Icon name="material-symbols:location-on-outline-rounded" />
+			<span>已点亮 <strong>{travelPlaces.length}</strong> 个地方</span>
+		</div>
+	</header>
+
+	<div class="travel-layout">
+		<section class="travel-map-card" aria-labelledby="china-map-title">
+			<div class="travel-map-toolbar">
+				<div>
+					<span class="travel-section-kicker">CHINA MAP</span>
+					<h2 id="china-map-title">中国旅行地图</h2>
+				</div>
+					<div class="travel-legend" aria-label="地图图例">
+						<span><i class="travel-legend-dot visited"></i>去过</span>
+						<span><i class="travel-legend-dot home"></i>家乡</span>
+						<span><i class="travel-legend-dot"></i>待点亮</span>
+				</div>
+			</div>
+
+			<div class="travel-map-stage">
+				<div class="travel-map-cloud cloud-one" aria-hidden="true"></div>
+				<div class="travel-map-cloud cloud-two" aria-hidden="true"></div>
+				<svg
+					class="china-map"
+					viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+					role="img"
+					aria-label="中国省级行政区旅行足迹地图"
+				>
+					<g class="province-layer">
+						{provincePaths.map((province) => (
+							<path
+								d={province.d}
+								class:list={["province-shape", { visited: province.visited }]}
+								data-province={province.name}
+								fill-rule="evenodd"
+								tabindex="0"
+							>
+								<title>{province.name}{province.visited ? " · 已点亮" : " · 等待点亮"}</title>
+							</path>
+						))}
+					</g>
+					<g class="marker-layer">
+						{markers.map((marker, index) => (
+							<g
+								class:list={["travel-marker", `marker-${marker.kind || "city"}`]}
+								transform={`translate(${marker.x} ${marker.y})`}
+								data-place={marker.name}
+								data-province={marker.province}
+								data-kind={marker.kind || "city"}
+								tabindex="0"
+							>
+								<title>{marker.name}{marker.kind === "home" ? " · 家乡" : ` · ${marker.province}`}</title>
+								<circle class="marker-origin" r="2.6"></circle>
+								<line
+									class="marker-leader"
+									x1="0"
+									y1="0"
+									x2={marker.labelOffset?.[0] ?? 0}
+									y2={marker.labelOffset?.[1] ?? 0}
+								></line>
+								<circle class="marker-ripple" cx={marker.labelOffset?.[0] ?? 0} cy={marker.labelOffset?.[1] ?? 0} r="13"></circle>
+								<circle class="marker-dot" cx={marker.labelOffset?.[0] ?? 0} cy={marker.labelOffset?.[1] ?? 0} r="7.5"></circle>
+								{marker.kind === "home" ? (
+									<text class="marker-home-symbol" x={marker.labelOffset?.[0] ?? 0} y={(marker.labelOffset?.[1] ?? 0) + 3.5} text-anchor="middle">⌂</text>
+								) : (
+									<text class="marker-index" x={marker.labelOffset?.[0] ?? 0} y={(marker.labelOffset?.[1] ?? 0) + 3.5} text-anchor="middle">{index + 1}</text>
+								)}
+							</g>
+						))}
+					</g>
+				</svg>
+				<div class="south-sea-note">含港澳台地区</div>
+			</div>
+
+			<div class="travel-map-caption">
+				<span id="travel-province-name">把鼠标放到地图上看看</span>
+				<span aria-hidden="true">૮ ˶ᵔ ᵕ ᵔ˶ ა</span>
+			</div>
+		</section>
+
+		<aside class="travel-journal">
+			<div class="travel-journal-tape" aria-hidden="true"></div>
+			<span class="travel-section-kicker">MY TRAVEL NOTES</span>
+			<h2>旅行小手账</h2>
+
+			<div class="travel-summary">
+				<div><strong>{visitedProvinces.size}</strong><span>个省份</span></div>
+				<div><strong>{travelPlaces.length}</strong><span>个地点</span></div>
+			</div>
+
+			{travelPlaces.length > 0 ? (
+				<div class="travel-place-scroll-shell">
+					<div class="travel-place-list" tabindex="0" aria-label="去过的地点列表">
+						{travelPlaces.map((place, index) => (
+							<article class:list={["travel-place-item", { "is-home": place.kind === "home" }]}>
+								<span class="travel-place-index">{String(index + 1).padStart(2, "0")}</span>
+								<div>
+									<h3>{place.name}{place.kind === "home" && <span class="travel-home-badge">家乡</span>}</h3>
+									<p>{place.note || `${place.province}的一段旅行记忆`}</p>
+								</div>
+							</article>
+						))}
+					</div>
+					<div class="travel-place-scrollbar" aria-hidden="true"><span></span></div>
+				</div>
+			) : (
+				<div class="travel-empty">
+					<div class="travel-empty-icon">
+						<Icon name="material-symbols:add-location-alt-outline-rounded" />
+					</div>
+					<strong>地图还在等第一枚脚印</strong>
+					<p>等你告诉我去过哪些地方，我会把它们一一标记在地图上。</p>
+					<span aria-hidden="true">(っ˘ω˘ς )</span>
+				</div>
+			)}
+
+			<div class="travel-wishlist">
+				<div class="travel-wishlist-heading">
+					<div class="travel-wishlist-icon">
+						<Icon name="material-symbols:luggage-outline-rounded" />
+					</div>
+					<div>
+						<span>TRAVEL WISHLIST</span>
+						<strong>想去的地方，先悄悄收藏 ♡</strong>
+					</div>
+				</div>
+
+				<div class="travel-wishlist-groups">
+					<div class="travel-wishlist-group">
+						<div class="travel-wishlist-label"><span aria-hidden="true">⌂</span> 国内</div>
+						<div class="travel-wishlist-tags">
+							{travelWishlist.domestic.map((place) => <span>{place}</span>)}
+						</div>
+					</div>
+					<div class="travel-wishlist-group overseas">
+						<div class="travel-wishlist-label"><span aria-hidden="true">✈</span> 国外</div>
+						<div class="travel-wishlist-tags">
+							{travelWishlist.overseas.map((place) => <span>{place}</span>)}
+						</div>
+					</div>
+				</div>
+				<div class="travel-wishlist-note" aria-hidden="true">下一页，会写下哪段旅程呢？ ₍ᐢ. ̫.ᐢ₎</div>
+			</div>
+		</aside>
+	</div>
+
+	<footer class="travel-footer-note">
+		<span>地图数据：cn-atlas · 省级边界示意</span>
+		<span>愿每一次出发，都能带回一点闪闪发光的记忆。</span>
+	</footer>
+</section>
+
+<script>
+	function initTravelMap() {
+		const label = document.getElementById("travel-province-name");
+		const provinces = document.querySelectorAll<SVGPathElement>(".province-shape");
+		if (!label || provinces.length === 0) return;
+
+		provinces.forEach((province) => {
+			const showProvince = () => {
+				const name = province.dataset.province || "这里";
+				label.textContent = province.classList.contains("visited")
+					? `${name} · 已经留下旅行记忆 ♡`
+					: `${name} · 还没有点亮`;
+			};
+			province.addEventListener("mouseenter", showProvince);
+			province.addEventListener("focus", showProvince);
+		});
+
+		document.querySelectorAll<SVGGElement>(".travel-marker").forEach((marker) => {
+			const showPlace = () => {
+				const place = marker.dataset.place || "这里";
+				const province = marker.dataset.province || "旅行地图";
+				label.textContent = marker.dataset.kind === "home"
+					? `${place} · 家乡 ♡`
+					: `${place} · ${province}`;
+			};
+			marker.addEventListener("mouseenter", showPlace);
+			marker.addEventListener("focus", showPlace);
+		});
+	}
+
+	function initTravelScrollbar() {
+		const list = document.querySelector<HTMLElement>(".travel-place-list");
+		const track = document.querySelector<HTMLElement>(".travel-place-scrollbar");
+		const thumb = track?.querySelector<HTMLElement>("span");
+		if (!list || !track || !thumb || list.dataset.scrollbarReady === "true") return;
+
+		list.dataset.scrollbarReady = "true";
+		const updateScrollbar = () => {
+			const maxScroll = Math.max(0, list.scrollHeight - list.clientHeight);
+			const trackHeight = track.clientHeight;
+			const thumbHeight = Math.max(2.2 * 16, trackHeight * (list.clientHeight / list.scrollHeight));
+			const maxThumbOffset = Math.max(0, trackHeight - thumbHeight);
+			const thumbOffset = maxScroll > 0 ? (list.scrollTop / maxScroll) * maxThumbOffset : 0;
+
+			track.classList.toggle("is-hidden", maxScroll === 0);
+			thumb.style.height = `${Math.min(trackHeight, thumbHeight)}px`;
+			thumb.style.transform = `translateY(${thumbOffset}px)`;
+		};
+
+		list.addEventListener("scroll", updateScrollbar, { passive: true });
+		new ResizeObserver(updateScrollbar).observe(list);
+		updateScrollbar();
+	}
+
+	initTravelMap();
+	initTravelScrollbar();
+	if (window.swup) window.swup.hooks.on("page:view", () => {
+		initTravelMap();
+		initTravelScrollbar();
+	});
+</script>
+
+<style>
+	.travel-page {
+		position: relative;
+		isolation: isolate;
+		width: min(100%, 74rem);
+		margin: 0 auto;
+		padding: clamp(1.25rem, 3vw, 2.4rem);
+		border: 1px solid color-mix(in srgb, var(--primary) 15%, var(--glass-border));
+		border-radius: 2.25rem;
+		background:
+			radial-gradient(circle at 94% 4%, color-mix(in srgb, var(--primary) 14%, transparent) 0 5rem, transparent 11rem),
+			radial-gradient(circle at 4% 96%, color-mix(in srgb, var(--azusa-blue) 8%, transparent) 0 4rem, transparent 10rem),
+			linear-gradient(145deg, color-mix(in srgb, var(--cream-base) 94%, white), color-mix(in srgb, var(--cream-base) 82%, var(--primary) 4%));
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.62), 0 1.5rem 4rem color-mix(in srgb, var(--tea) 11%, transparent);
+		overflow: hidden;
+	}
+	.travel-page::before {
+		content: "";
+		position: absolute;
+		inset: 0.65rem;
+		z-index: -1;
+		border: 1px dashed color-mix(in srgb, var(--primary) 15%, transparent);
+		border-radius: 1.75rem;
+		pointer-events: none;
+	}
+	.travel-sticker { position: absolute; z-index: -1; color: color-mix(in srgb, var(--primary) 24%, transparent); font-weight: 900; pointer-events: none; }
+	.travel-sticker-plane { right: 5%; top: 8rem; font-size: 2.2rem; transform: rotate(-12deg); }
+	.travel-sticker-heart { left: 1.4rem; top: 48%; font-size: 1.8rem; transform: rotate(12deg); }
+	.travel-sticker-star { right: 1.6rem; bottom: 4.5rem; font-size: 1.25rem; }
+	.travel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.5rem; padding: 0.4rem 0.5rem 0; }
+	.travel-eyebrow { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.45rem; color: var(--primary); font-size: 0.7rem; font-weight: 850; letter-spacing: 0.12em; }
+	.travel-eyebrow :global(svg) { width: 1rem; height: 1rem; }
+	.travel-header h1 { margin: 0; color: color-mix(in srgb, var(--tea) 86%, black); font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.035em; line-height: 1.12; }
+	.travel-header p { margin: 0.65rem 0 0; color: color-mix(in srgb, var(--tea) 58%, transparent); font-size: 0.9rem; }
+	.travel-count-pill { display: inline-flex; align-items: center; gap: 0.45rem; flex: none; margin-top: 0.5rem; padding: 0.58rem 0.85rem; border: 1px solid color-mix(in srgb, var(--primary) 16%, transparent); border-radius: 999px; background: rgb(255 255 255 / 0.5); color: color-mix(in srgb, var(--tea) 64%, transparent); font-size: 0.72rem; font-weight: 700; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.72); }
+	.travel-count-pill :global(svg) { width: 1rem; height: 1rem; color: var(--primary); }
+	.travel-count-pill strong { color: var(--primary); font-size: 0.95rem; }
+	.travel-layout { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(17rem, 0.72fr); gap: 1rem; }
+	.travel-map-card,
+	.travel-journal { border: 1px solid rgb(255 255 255 / 0.68); background: rgb(255 255 255 / 0.44); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.72), 0 0.8rem 2rem rgb(112 77 67 / 0.07); }
+	.travel-map-card { min-width: 0; padding: 1.25rem 1.25rem 0.85rem; border-radius: 1.6rem; }
+	.travel-map-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+	.travel-section-kicker { color: var(--primary); font-size: 0.6rem; font-weight: 850; letter-spacing: 0.12em; }
+	.travel-map-toolbar h2,
+	.travel-journal h2 { margin: 0.16rem 0 0; color: color-mix(in srgb, var(--tea) 82%, black); font-size: 1.15rem; font-weight: 850; }
+	.travel-legend { display: flex; gap: 0.8rem; color: color-mix(in srgb, var(--tea) 48%, transparent); font-size: 0.64rem; }
+	.travel-legend span { display: inline-flex; align-items: center; gap: 0.32rem; }
+	.travel-legend-dot { width: 0.65rem; height: 0.65rem; border: 1px solid color-mix(in srgb, var(--tea) 15%, transparent); border-radius: 0.25rem; background: color-mix(in srgb, var(--cream-base) 72%, white); }
+	.travel-legend-dot.visited { border-color: color-mix(in srgb, var(--primary) 40%, transparent); background: color-mix(in srgb, var(--primary) 62%, white); }
+	.travel-legend-dot.home { border-color: color-mix(in srgb, #d59a54 58%, transparent); background: #f3c786; transform: rotate(45deg); }
+	.travel-map-stage { position: relative; min-height: 29rem; margin-top: 0.45rem; overflow: hidden; }
+	.china-map { position: relative; z-index: 1; display: block; width: 100%; height: auto; max-height: 32rem; overflow: visible; filter: drop-shadow(0 0.75rem 1rem color-mix(in srgb, var(--tea) 9%, transparent)); }
+	.province-shape { fill: color-mix(in srgb, var(--cream-base) 78%, white); stroke: color-mix(in srgb, var(--tea) 24%, var(--primary)); stroke-width: 1.15; vector-effect: non-scaling-stroke; cursor: crosshair; transition: fill 160ms ease, stroke 160ms ease, filter 160ms ease; }
+	.province-shape:hover,
+	.province-shape:focus { fill: color-mix(in srgb, var(--primary) 20%, white); stroke: var(--primary); outline: none; filter: drop-shadow(0 0.35rem 0.4rem color-mix(in srgb, var(--primary) 18%, transparent)); }
+	.province-shape.visited { fill: color-mix(in srgb, var(--primary) 62%, white); stroke: color-mix(in srgb, var(--primary) 78%, var(--tea)); }
+	.travel-marker { cursor: pointer; outline: none; }
+	.marker-origin { fill: color-mix(in srgb, var(--tea) 55%, var(--primary)); stroke: white; stroke-width: 1.5; }
+	.marker-leader { stroke: color-mix(in srgb, var(--primary) 58%, var(--tea)); stroke-width: 1.2; stroke-dasharray: 2 2; }
+	.marker-ripple { fill: color-mix(in srgb, var(--primary) 16%, transparent); stroke: color-mix(in srgb, var(--primary) 38%, transparent); stroke-width: 1; }
+	.marker-dot { fill: var(--primary); stroke: white; stroke-width: 2.5; }
+	.travel-marker:hover .marker-ripple,
+	.travel-marker:focus .marker-ripple { fill: color-mix(in srgb, var(--primary) 28%, transparent); stroke: var(--primary); }
+	.travel-marker:hover .marker-dot,
+	.travel-marker:focus .marker-dot { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--primary) 52%, transparent)); }
+	.marker-scenic .marker-dot { fill: color-mix(in srgb, var(--primary) 72%, #8a6fb0); }
+	.marker-home .marker-ripple { fill: rgb(243 199 134 / 0.28); stroke: rgb(206 145 73 / 0.62); }
+	.marker-home .marker-dot { fill: #d99c55; r: 8px; }
+	.marker-home-symbol,
+	.marker-index { fill: white; font-size: 8px; font-weight: 900; stroke: none; pointer-events: none; }
+	.travel-map-cloud { position: absolute; z-index: 0; width: 5rem; height: 1.5rem; border-radius: 999px; background: rgb(255 255 255 / 0.38); filter: blur(0.2px); }
+	.travel-map-cloud::before,
+	.travel-map-cloud::after { content: ""; position: absolute; bottom: 0; border-radius: 50%; background: inherit; }
+	.travel-map-cloud::before { left: 1rem; width: 2rem; height: 2rem; }
+	.travel-map-cloud::after { right: 0.8rem; width: 2.6rem; height: 2.6rem; }
+	.cloud-one { left: 4%; top: 24%; transform: scale(0.75); }
+	.cloud-two { right: 2%; bottom: 12%; transform: scale(0.55); }
+	.south-sea-note { position: absolute; right: 0.2rem; bottom: 0.65rem; color: color-mix(in srgb, var(--tea) 38%, transparent); font-size: 0.55rem; letter-spacing: 0.06em; }
+	.travel-map-caption { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 2rem; margin-top: 0.15rem; padding: 0.55rem 0.75rem; border-top: 1px dashed color-mix(in srgb, var(--primary) 18%, transparent); color: color-mix(in srgb, var(--tea) 48%, transparent); font-size: 0.68rem; }
+	.travel-map-caption span:last-child { color: color-mix(in srgb, var(--primary) 55%, transparent); }
+	.travel-journal { position: relative; align-self: stretch; padding: 1.55rem 1.3rem 1.2rem; border-radius: 0.55rem 1.55rem 1.55rem 1.55rem; transform: rotate(0.25deg); }
+	.travel-journal-tape { position: absolute; top: -0.55rem; left: 50%; width: 4.8rem; height: 1.2rem; transform: translateX(-50%) rotate(-2deg); background: color-mix(in srgb, var(--primary) 18%, white 52%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6); opacity: 0.82; }
+	.travel-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin: 1rem 0; }
+	.travel-summary div { display: flex; align-items: baseline; gap: 0.3rem; padding-bottom: 0.45rem; border-bottom: 1px dashed color-mix(in srgb, var(--primary) 17%, transparent); }
+	.travel-summary strong { color: var(--primary); font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+	.travel-summary span { color: color-mix(in srgb, var(--tea) 48%, transparent); font-size: 0.66rem; }
+	.travel-empty { display: flex; min-height: 15rem; flex-direction: column; align-items: center; justify-content: center; padding: 1rem 0.6rem; color: color-mix(in srgb, var(--tea) 46%, transparent); text-align: center; }
+	.travel-empty-icon { display: grid; place-items: center; width: 3.5rem; height: 3.5rem; margin-bottom: 0.75rem; border-radius: 1.2rem; background: color-mix(in srgb, var(--primary) 10%, white 45%); color: var(--primary); transform: rotate(-4deg); }
+	.travel-empty-icon :global(svg) { width: 1.8rem; height: 1.8rem; }
+	.travel-empty strong { color: color-mix(in srgb, var(--tea) 76%, black); font-size: 0.9rem; }
+	.travel-empty p { max-width: 13rem; margin: 0.5rem 0 0.75rem; font-size: 0.68rem; line-height: 1.65; }
+	.travel-empty > span { color: color-mix(in srgb, var(--primary) 56%, transparent); font-size: 0.72rem; }
+	.travel-place-scroll-shell { position: relative; }
+	.travel-place-list { display: flex; max-height: 16rem; flex-direction: column; gap: 0.55rem; overflow-y: auto; padding: 0.15rem 0.8rem 0.15rem 0; overscroll-behavior: contain; scrollbar-width: none; -ms-overflow-style: none; }
+	.travel-place-list::-webkit-scrollbar { display: none; width: 0; height: 0; }
+	.travel-place-list:focus-visible { outline: 2px solid color-mix(in srgb, var(--primary) 32%, transparent); outline-offset: 0.15rem; border-radius: 0.9rem; }
+	.travel-place-scrollbar { position: absolute; top: 0.35rem; right: 0.15rem; bottom: 0.35rem; width: 0.24rem; border-radius: 999px; background: color-mix(in srgb, var(--primary) 8%, transparent); pointer-events: none; transition: opacity 160ms ease; }
+	.travel-place-scrollbar span { display: block; width: 100%; border-radius: 999px; background: color-mix(in srgb, var(--primary) 58%, white); box-shadow: 0 0.15rem 0.35rem color-mix(in srgb, var(--primary) 18%, transparent); will-change: transform; }
+	.travel-place-scrollbar.is-hidden { opacity: 0; }
+	.travel-place-item { display: flex; gap: 0.65rem; padding: 0.6rem; border-radius: 0.8rem; background: color-mix(in srgb, var(--primary) 5%, transparent); }
+	.travel-place-item.is-home { background: color-mix(in srgb, #f3c786 17%, transparent); }
+	.travel-place-index { color: var(--primary); font-size: 0.65rem; font-weight: 850; }
+	.travel-place-item h3 { margin: 0; color: color-mix(in srgb, var(--tea) 78%, black); font-size: 0.8rem; }
+	.travel-home-badge { display: inline-flex; margin-left: 0.38rem; padding: 0.08rem 0.35rem; border-radius: 999px; color: #a7692f; background: rgb(243 199 134 / 0.42); font-size: 0.5rem; font-weight: 850; vertical-align: 0.08rem; }
+	.travel-place-item p { margin: 0.2rem 0 0; color: color-mix(in srgb, var(--tea) 44%, transparent); font-size: 0.62rem; }
+	.travel-wishlist { position: relative; margin-top: 0.8rem; padding: 0.85rem; overflow: hidden; border: 1px dashed color-mix(in srgb, var(--primary) 24%, transparent); border-radius: 1rem; color: var(--primary); background: linear-gradient(145deg, color-mix(in srgb, var(--primary) 7%, white 35%), color-mix(in srgb, var(--cream-base) 72%, transparent)); }
+	.travel-wishlist::after { content: "✦"; position: absolute; right: 0.55rem; top: 0.35rem; color: color-mix(in srgb, var(--primary) 24%, transparent); font-size: 1.25rem; transform: rotate(12deg); }
+	.travel-wishlist-heading { display: flex; align-items: center; gap: 0.62rem; }
+	.travel-wishlist-icon { display: grid; flex: 0 0 auto; place-items: center; width: 2rem; height: 2rem; border-radius: 0.72rem; background: color-mix(in srgb, var(--primary) 12%, white 45%); transform: rotate(-4deg); }
+	.travel-wishlist-icon :global(svg) { width: 1.12rem; height: 1.12rem; }
+	.travel-wishlist-heading > div:last-child { display: flex; min-width: 0; flex-direction: column; }
+	.travel-wishlist-heading span { color: color-mix(in srgb, var(--primary) 74%, var(--tea)); font-size: 0.5rem; font-weight: 850; letter-spacing: 0.08em; }
+	.travel-wishlist-heading strong { color: color-mix(in srgb, var(--tea) 76%, black); font-size: 0.69rem; line-height: 1.45; }
+	.travel-wishlist-groups { display: grid; gap: 0.55rem; margin-top: 0.75rem; }
+	.travel-wishlist-group { display: grid; grid-template-columns: 3.15rem minmax(0, 1fr); align-items: start; gap: 0.45rem; }
+	.travel-wishlist-label { display: flex; align-items: center; gap: 0.24rem; padding-top: 0.24rem; color: color-mix(in srgb, var(--tea) 52%, transparent); font-size: 0.58rem; font-weight: 750; }
+	.travel-wishlist-label span { color: var(--primary); font-size: 0.62rem; }
+	.travel-wishlist-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+	.travel-wishlist-tags span { display: inline-flex; align-items: center; min-height: 1.45rem; padding: 0.2rem 0.52rem; border: 1px solid color-mix(in srgb, var(--primary) 16%, transparent); border-radius: 999px; color: color-mix(in srgb, var(--tea) 67%, black); background: rgb(255 255 255 / 0.5); font-size: 0.58rem; font-weight: 700; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.65); }
+	.travel-wishlist-group.overseas .travel-wishlist-tags span { border-color: color-mix(in srgb, var(--azusa-blue) 18%, transparent); background: color-mix(in srgb, var(--azusa-blue) 7%, white 48%); }
+	.travel-wishlist-note { margin-top: 0.65rem; padding-top: 0.55rem; border-top: 1px dashed color-mix(in srgb, var(--primary) 15%, transparent); color: color-mix(in srgb, var(--tea) 38%, transparent); font-size: 0.52rem; text-align: right; }
+	.travel-footer-note { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 1rem 0 -0.25rem; padding: 0 0.4rem; color: color-mix(in srgb, var(--tea) 42%, transparent); font-size: 0.58rem; }
+	:global(.dark) .travel-page { background: radial-gradient(circle at 94% 4%, color-mix(in srgb, var(--primary) 12%, transparent) 0 5rem, transparent 11rem), linear-gradient(145deg, color-mix(in srgb, var(--cream-base) 92%, black), color-mix(in srgb, var(--cream-base) 78%, var(--primary) 4%)); }
+	:global(.dark) .travel-map-card,
+	:global(.dark) .travel-journal,
+	:global(.dark) .travel-count-pill {
+		border-color: rgb(255 255 255 / 0.08);
+		background: color-mix(in srgb, var(--cream-base) 84%, transparent);
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 0.8rem 2rem rgb(0 0 0 / 0.2);
+	}
+	:global(.dark) .travel-header h1,
+	:global(.dark) .travel-map-toolbar h2,
+	:global(.dark) .travel-journal h2,
+	:global(.dark) .travel-empty strong,
+	:global(.dark) .travel-wishlist strong { color: rgb(245 237 232 / 0.9); }
+	:global(.dark) .travel-place-item h3 { color: rgb(245 237 232 / 0.84); }
+	:global(.dark) .travel-place-item p,
+	:global(.dark) .travel-summary span,
+	:global(.dark) .travel-map-caption { color: rgb(245 237 232 / 0.48); }
+	:global(.dark) .travel-place-item { background: color-mix(in srgb, var(--primary) 7%, transparent); }
+	:global(.dark) .travel-place-item.is-home { background: color-mix(in srgb, #d99c55 13%, transparent); }
+	:global(.dark) .travel-home-badge { color: #f0bd80; background: rgb(217 156 85 / 0.16); }
+	:global(.dark) .travel-place-scrollbar span {
+		background: color-mix(in srgb, var(--primary) 68%, var(--cream-base));
+		box-shadow: 0 0.15rem 0.35rem rgb(0 0 0 / 0.22);
+	}
+	:global(.dark) .travel-wishlist {
+		border-color: color-mix(in srgb, var(--primary) 30%, rgb(255 255 255 / 0.08));
+		background: linear-gradient(145deg, color-mix(in srgb, var(--primary) 10%, var(--cream-base)), color-mix(in srgb, var(--cream-base) 82%, transparent));
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.045);
+	}
+	:global(.dark) .travel-wishlist-icon,
+	:global(.dark) .travel-empty-icon {
+		background: color-mix(in srgb, var(--primary) 14%, var(--cream-base));
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+	}
+	:global(.dark) .travel-wishlist-tags span {
+		border-color: color-mix(in srgb, var(--primary) 22%, rgb(255 255 255 / 0.06));
+		color: rgb(245 237 232 / 0.76);
+		background: color-mix(in srgb, var(--cream-base) 76%, transparent);
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+	}
+	:global(.dark) .travel-wishlist-group.overseas .travel-wishlist-tags span {
+		border-color: color-mix(in srgb, var(--azusa-blue) 28%, rgb(255 255 255 / 0.06));
+		background: color-mix(in srgb, var(--azusa-blue) 12%, var(--cream-base));
+	}
+	:global(.dark) .province-shape { fill: color-mix(in srgb, var(--cream-base) 82%, white 4%); stroke: color-mix(in srgb, var(--primary) 35%, white 8%); }
+	:global(.dark) .province-shape:hover,
+	:global(.dark) .province-shape:focus { fill: color-mix(in srgb, var(--primary) 26%, var(--cream-base)); }
+	@media (max-width: 900px) {
+		.travel-layout { grid-template-columns: 1fr; }
+		.travel-journal { transform: none; }
+		.travel-map-stage { min-height: 24rem; }
+	}
+	@media (max-width: 560px) {
+		.travel-page { padding: 1.1rem; border-radius: 1.55rem; }
+		.travel-page::before { inset: 0.42rem; border-radius: 1.2rem; }
+		.travel-header { flex-direction: column; margin-bottom: 1.1rem; padding: 0.2rem; }
+		.travel-header h1 { font-size: 1.7rem; }
+		.travel-count-pill { margin-top: 0; }
+		.travel-map-card { padding: 1rem 0.7rem 0.65rem; }
+		.travel-map-toolbar { padding-inline: 0.25rem; }
+		.travel-legend { gap: 0.45rem; }
+		.travel-map-stage { min-height: 18rem; }
+		.china-map { min-height: 18rem; }
+		.travel-journal { padding-inline: 1rem; }
+		.travel-footer-note { flex-direction: column; text-align: center; }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.province-shape { transition: none; }
+	}
+</style>

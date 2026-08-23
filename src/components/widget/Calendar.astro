@@ -1,0 +1,162 @@
+---
+import WidgetLayout from "./WidgetLayout.astro";
+import { Icon } from "astro-icon/components";
+import { getSortedPostsList } from "../../utils/content-utils";
+import { getPostUrlBySlug } from "../../utils/url-utils";
+
+interface Props {
+    class?: string;
+    style?: string;
+}
+
+const className = Astro.props.class;
+const style = Astro.props.style;
+const calendarPosts = (await getSortedPostsList()).map((post) => ({
+    date: post.data.published.toISOString().slice(0, 10),
+    title: post.data.title,
+    url: getPostUrlBySlug(post.slug),
+}));
+---
+
+<WidgetLayout name="日历" id="site-calendar" class:list={[className, "calendar-card"]} style={style} icon="material-symbols:calendar-month-outline-rounded">
+    <div class="calendar-widget" data-calendar>
+        <div class="calendar-heading">
+            <button type="button" data-calendar-prev aria-label="上个月">‹</button>
+            <div class="calendar-heading-center">
+                <strong data-calendar-title></strong>
+                <button type="button" class="calendar-current-month" data-calendar-current hidden>返回本月</button>
+            </div>
+            <button type="button" data-calendar-next aria-label="下个月">›</button>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+            <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+        </div>
+        <div class="calendar-days" data-calendar-days></div>
+        <div class="calendar-holiday" data-calendar-holiday>
+            <Icon name="material-symbols:celebration-rounded" class="calendar-holiday-icon" aria-hidden="true" />
+            <span data-calendar-holiday-text>正在计算下一个传统节日…</span>
+        </div>
+    </div>
+</WidgetLayout>
+
+<script is:inline define:vars={{ calendarPosts }}>
+    (() => {
+        const root = document.querySelector('[data-calendar]');
+        if (!root || root.dataset.ready) return;
+        root.dataset.ready = 'true';
+        const title = root.querySelector('[data-calendar-title]');
+        const days = root.querySelector('[data-calendar-days]');
+        const holiday = root.querySelector('[data-calendar-holiday-text]');
+        const currentMonthButton = root.querySelector('[data-calendar-current]');
+        const now = new Date();
+        let view = new Date(now.getFullYear(), now.getMonth(), 1);
+        const postsByDate = calendarPosts.reduce((map, post) => {
+            (map[post.date] ||= []).push(post);
+            return map;
+        }, {});
+        const holidays = {
+            2026: [['春节', '2026-02-17'], ['端午节', '2026-06-19'], ['七夕', '2026-08-19'], ['中秋节', '2026-09-25'], ['重阳节', '2026-10-18']],
+            2027: [['春节', '2027-02-06'], ['端午节', '2027-06-09'], ['七夕', '2027-08-08'], ['中秋节', '2027-09-15'], ['重阳节', '2027-10-08']],
+            2028: [['春节', '2028-01-26'], ['端午节', '2028-06-15'], ['七夕', '2028-08-19'], ['中秋节', '2028-10-03'], ['重阳节', '2028-10-29']],
+            2029: [['春节', '2029-02-13'], ['端午节', '2029-06-05'], ['七夕', '2029-08-07'], ['中秋节', '2029-09-22'], ['重阳节', '2029-10-17']],
+            2030: [['春节', '2030-02-03'], ['端午节', '2030-06-25'], ['七夕', '2030-08-03'], ['中秋节', '2030-09-12'], ['重阳节', '2030-10-07']],
+        };
+        const pad = (n) => String(n).padStart(2, '0');
+        const dateKey = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+        function render() {
+            const year = view.getFullYear(), month = view.getMonth();
+            title.textContent = `${year}年${pad(month + 1)}月`;
+            currentMonthButton.hidden = year === now.getFullYear() && month === now.getMonth();
+            days.innerHTML = '';
+            const first = new Date(year, month, 1).getDay();
+            const last = new Date(year, month + 1, 0).getDate();
+            for (let i = 0; i < first; i++) days.insertAdjacentHTML('beforeend', '<span class="calendar-empty"></span>');
+            for (let day = 1; day <= last; day++) {
+                const date = new Date(year, month, day);
+                const isToday = dateKey(date) === dateKey(now);
+                const key = dateKey(date);
+                const posts = postsByDate[key] || [];
+                const dayElement = document.createElement('span');
+                dayElement.className = `calendar-day${isToday ? ' is-today' : ''}${posts.length ? ' has-posts' : ''}`;
+                dayElement.textContent = String(day);
+                if (isToday) dayElement.setAttribute('aria-label', `今天 ${key}`);
+                if (posts.length) {
+                    dayElement.tabIndex = 0;
+                    dayElement.setAttribute('aria-label', `${key} 发布了 ${posts.length} 篇文章`);
+                    const marker = document.createElement('span');
+                    marker.className = 'calendar-post-marker';
+                    marker.setAttribute('aria-hidden', 'true');
+                    const popover = document.createElement('span');
+                    popover.className = 'calendar-post-popover';
+                    popover.setAttribute('role', 'tooltip');
+                    posts.slice(0, 3).forEach((post) => {
+                        const link = document.createElement('a');
+                        link.href = post.url;
+                        link.textContent = post.title;
+                        popover.appendChild(link);
+                    });
+                    if (posts.length > 3) {
+                        const more = document.createElement('small');
+                        more.textContent = `还有 ${posts.length - 3} 篇…`;
+                        popover.appendChild(more);
+                    }
+                    dayElement.append(marker, popover);
+                }
+                days.appendChild(dayElement);
+            }
+        }
+        function renderHoliday() {
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const list = Object.values(holidays).flat().map(([name, date]) => ({ name, date: new Date(`${date}T00:00:00`) })).filter(item => item.date >= today).sort((a, b) => a.date - b.date);
+            const next = list[0];
+            if (!next) return;
+            const distance = Math.ceil((next.date - today) / 86400000);
+            holiday.innerHTML = `距离 <strong>${next.name}</strong> 还有 <strong>${distance}</strong> 天`;
+        }
+        root.querySelector('[data-calendar-prev]').addEventListener('click', () => { view.setMonth(view.getMonth() - 1); render(); });
+        root.querySelector('[data-calendar-next]').addEventListener('click', () => { view.setMonth(view.getMonth() + 1); render(); });
+        currentMonthButton.addEventListener('click', () => {
+            view = new Date(now.getFullYear(), now.getMonth(), 1);
+            render();
+        });
+        render(); renderHoliday();
+    })();
+</script>
+
+<style>
+    :global(.calendar-card) { overflow: visible !important; }
+    .calendar-widget { padding: 0 0.25rem; }
+    .calendar-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem; }
+    .calendar-heading-center { display: flex; min-width: 7.5rem; flex-direction: column; align-items: center; gap: 0.2rem; }
+    .calendar-heading strong { color: rgb(38 38 38); font-size: 1.05rem; }
+    .calendar-heading > button { width: 1.75rem; height: 1.75rem; border-radius: 999px; color: var(--primary); font-size: 1.6rem; line-height: 1; transition: background-color 0.2s; }
+    .calendar-heading > button:hover { background: color-mix(in srgb, var(--primary) 12%, transparent); }
+    .calendar-current-month { padding: 0.15rem 0.55rem; border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent); border-radius: 999px; color: var(--primary); background: color-mix(in srgb, var(--primary) 7%, transparent); font-size: 0.6rem; font-weight: 750; line-height: 1.3; transition: background-color 160ms ease, transform 160ms ease; }
+    .calendar-current-month:hover { background: color-mix(in srgb, var(--primary) 13%, transparent); transform: translateY(-1px); }
+    .calendar-current-month[hidden] { display: none; }
+    .calendar-weekdays, .calendar-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.2rem; text-align: center; }
+    .calendar-weekdays { color: rgb(115 115 115); font-size: 0.7rem; margin-bottom: 0.3rem; }
+    .calendar-weekdays span:first-child, .calendar-weekdays span:last-child { color: color-mix(in srgb, var(--primary) 72%, rgb(115 115 115)); font-weight: 700; }
+    :global(.calendar-day), :global(.calendar-empty) { display: grid; place-items: center; min-height: 1.8rem; border-radius: 0.55rem; font-size: 0.78rem; }
+    :global(.calendar-day) { color: rgb(64 64 64); transition: color 160ms ease, background-color 160ms ease, transform 160ms ease; }
+    :global(.calendar-day:hover) { color: var(--primary); background: color-mix(in srgb, var(--primary) 9%, transparent); transform: translateY(-1px); }
+    :global(.calendar-day.has-posts) { position: relative; cursor: pointer; font-weight: 700; }
+    :global(.calendar-post-marker) { position: absolute; right: 0.2rem; bottom: 0.15rem; width: 0.28rem; height: 0.28rem; border: 1px solid rgb(255 255 255 / 0.75); border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 0.12rem color-mix(in srgb, var(--primary) 12%, transparent); }
+    :global(.calendar-post-popover) { position: absolute; z-index: 20; left: 50%; bottom: calc(100% + 0.4rem); display: flex; width: max-content; max-width: 11.5rem; flex-direction: column; gap: 0.3rem; padding: 0.5rem 0.6rem; border: 1px solid color-mix(in srgb, var(--primary) 16%, white); border-radius: 0.75rem; background: color-mix(in srgb, var(--cream-base) 82%, transparent); backdrop-filter: blur(20px) saturate(145%); -webkit-backdrop-filter: blur(20px) saturate(145%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 0.65rem 1.4rem rgb(112 77 67 / 0.13); color: rgb(64 64 64); font-size: 0.65rem; font-weight: 650; line-height: 1.35; text-align: left; opacity: 0; visibility: hidden; pointer-events: none; transform: translate(-50%, 0.25rem); transition: opacity 150ms ease, transform 150ms ease, visibility 150ms ease; }
+    :global(.calendar-post-popover a) { display: -webkit-box; overflow: hidden; color: inherit; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    :global(.calendar-post-popover a:hover) { color: var(--primary); }
+    :global(.calendar-post-popover small) { color: rgb(115 115 115); font-size: 0.62rem; }
+    :global(.calendar-day.has-posts:hover .calendar-post-popover), :global(.calendar-day.has-posts:focus-within .calendar-post-popover) { opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0); }
+    :global(.calendar-days > .calendar-day:nth-child(7n) .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 6) .calendar-post-popover) { right: -0.25rem; left: auto; transform: translateY(0.25rem); }
+    :global(.calendar-days > .calendar-day:nth-child(7n):hover .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n):focus-within .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 6):hover .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 6):focus-within .calendar-post-popover) { transform: translateY(0); }
+    :global(.calendar-days > .calendar-day:nth-child(7n + 1) .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 2) .calendar-post-popover) { right: auto; left: -0.25rem; transform: translateY(0.25rem); }
+    :global(.calendar-days > .calendar-day:nth-child(7n + 1):hover .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 1):focus-within .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 2):hover .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 2):focus-within .calendar-post-popover) { transform: translateY(0); }
+    :global(.calendar-day.is-today) { color: white !important; background: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent); font-weight: 700; }
+    .calendar-holiday { display: flex; align-items: center; justify-content: center; gap: 0.35rem; margin-top: 0.75rem; border-top: 1px dashed rgb(0 0 0 / 0.1); padding-top: 0.75rem; color: rgb(115 115 115); text-align: center; font-size: 0.75rem; }
+    .calendar-holiday-icon { flex: 0 0 auto; color: var(--primary); font-size: 1.05rem; }
+    .calendar-holiday strong { color: var(--primary); }
+    :global(.dark) .calendar-heading strong, :global(.dark) .calendar-day { color: rgb(229 229 229); }
+    :global(.dark) .calendar-day.is-today { color: white !important; }
+    :global(.dark) .calendar-holiday { border-color: rgb(255 255 255 / 0.1); }
+    :global(.dark) .calendar-post-popover { border-color: rgb(255 255 255 / 0.12); background: color-mix(in srgb, var(--cream-base) 78%, transparent); color: rgb(229 229 229); }
+</style>

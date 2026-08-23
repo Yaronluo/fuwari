@@ -23,6 +23,38 @@ html.is-animating .transition-swup-fade {
     animation: 350ms cubic-bezier(0.16, 1, 0.3, 1) fade-in-scale;
     animation-fill-mode: backwards;
 }
+
+/* A long article must not scale as one giant box. With the default centered
+   transform origin, scaling a 10,000px+ wrapper by 0.98 moves its heading by
+   hundreds of pixels and looks like a second page refresh. The wrapper owns
+   the single opacity reveal; its child sections own the gentle upward motion. */
+@keyframes article-page-enter {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.article-content-wrapper.onload-animation {
+    animation-name: article-page-enter;
+}
+
+/* Article pages fade in once as a whole. Their staggered child animations keep
+   the gentle motion, but must not fade each section a second time. */
+@keyframes article-section-rise {
+    0% {
+        transform: translateY(0.45rem) scale(0.995);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+    }
+}
+
+.article-content-wrapper .onload-animation {
+    animation-name: article-section-rise;
+}
 @keyframes fade-in-opacity {
     0% {
         opacity: 0;

@@ -46,9 +46,48 @@ const maxLevel = siteConfig.toc.depth;
 </table-of-contents>
 }
 <style is:global>
+    table-of-contents {
+        display: block;
+        margin: 0.5rem 0.65rem;
+        padding: 0.85rem 0.4rem 0.55rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--glass-border));
+        border-radius: 1.2rem;
+        background: linear-gradient(145deg, rgb(255 255 255 / 0.4), transparent 55%), color-mix(in srgb, var(--glass-card) 82%, transparent);
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.65), 0 0.8rem 2rem rgb(100 65 56 / 0.07);
+        backdrop-filter: blur(16px) saturate(115%);
+    }
+
+    table-of-contents::before {
+        display: block;
+        margin: 0 0.55rem 0.55rem;
+        padding-bottom: 0.55rem;
+        border-bottom: 1px dashed color-mix(in srgb, var(--primary) 18%, transparent);
+        color: var(--primary);
+        content: "✦  READING MAP · 阅读目录";
+        font-size: 0.58rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+    }
+
+    table-of-contents .toc-link {
+        margin: 0.08rem 0;
+        border-radius: 0.7rem;
+    }
+
+    table-of-contents .toc-link:hover {
+        background: color-mix(in srgb, var(--primary) 8%, transparent) !important;
+        color: var(--primary) !important;
+    }
+
     .toc-link.visible {
         color: var(--primary) !important;
         font-weight: bold;
+    }
+
+    .dark table-of-contents {
+        border-color: rgb(255 255 255 / 0.07);
+        background: linear-gradient(145deg, rgb(255 255 255 / 0.035), transparent 55%), rgb(25 21 22 / 0.78);
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 0.8rem 2rem rgb(0 0 0 / 0.18);
     }
 </style>
 
@@ -108,10 +147,12 @@ class TableOfContents extends HTMLElement {
         if (min > max) {
             this.activeIndicator?.setAttribute("style", `opacity: 0`);
         } else {
-            let parentOffset = this.tocEl?.getBoundingClientRect().top || 0;
-            let scrollOffset = this.tocEl?.scrollTop || 0;
-            let top = this.tocEntries[min].getBoundingClientRect().top - parentOffset + scrollOffset;
-            let bottom = this.tocEntries[max].getBoundingClientRect().bottom - parentOffset + scrollOffset;
+            const indicatorParent = this.activeIndicator?.offsetParent;
+            const parentOffset = indicatorParent instanceof HTMLElement
+                ? indicatorParent.getBoundingClientRect().top
+                : 0;
+            const top = this.tocEntries[min].getBoundingClientRect().top - parentOffset;
+            const bottom = this.tocEntries[max].getBoundingClientRect().bottom - parentOffset;
             this.activeIndicator?.setAttribute("style", `top: ${top}px; height: ${bottom - top}px`);
         }
     };

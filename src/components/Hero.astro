@@ -5,23 +5,41 @@ import { Icon } from "astro-icon/components";
 ---
 
 <div id="hero-section" class="relative w-full h-[calc(100vh-6.5rem)] min-h-[500px] flex flex-col items-center justify-center">
+    <div class="hero-doodles" aria-hidden="true">
+        <span class="hero-doodle hero-doodle--note">♫</span>
+        <span class="hero-doodle hero-doodle--spark">✦</span>
+        <span class="hero-doodle hero-doodle--ribbon">୨୧</span>
+        <span class="hero-doodle hero-doodle--heart">♡</span>
+    </div>
+
     <!-- Main Content Area -->
-    <div class="w-full max-w-[var(--page-width)] px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-12 md:gap-8 z-10 onload-animation">
+    <div class="hero-main-content w-full max-w-[var(--page-width)] mx-auto px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-12 md:gap-8 z-10">
         
         <!-- Left: Text & Social (Ordered 2nd on mobile, 1st on desktop) -->
-        <div class="order-2 md:order-1 flex flex-col items-center md:items-start text-center md:text-left flex-1 space-y-4 w-full md:w-auto mt-6 md:mt-0">
-            <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black/80 dark:text-white/90 leading-tight md:whitespace-nowrap">
-                Hi everyone, I'm <span class="whitespace-nowrap"><span class="text-[var(--primary)]">{profileConfig.name}</span> <span class="animate-wave inline-block origin-bottom-right ml-1">✌️</span></span>
-            </h1>
-            <h2 class="text-xl md:text-2xl text-black/70 dark:text-white/70 font-medium leading-relaxed">
-                {profileConfig.bio}
-            </h2>
-            <p class="text-sm md:text-base text-black/40 dark:text-white/40 font-bold tracking-widest uppercase mt-2">
-                认真生活 · 快乐追番 · 慢慢成长
-            </p>
+        <div class="hero-copy order-2 md:order-1 flex flex-col items-center md:items-start text-center md:text-left flex-1 w-full md:w-auto mt-6 md:mt-0">
+            <div class="hero-copy-intro onload-animation">
+                <div class="hero-kicker" aria-hidden="true">
+                    <span class="hero-kicker-note">♫</span>
+                    <span>放学后的生活手账</span>
+                    <span class="hero-kicker-heart">୨୧</span>
+                </div>
+
+                <h1 class="hero-title text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black/80 dark:text-white/90 leading-tight md:whitespace-nowrap">
+                    Hi everyone, I'm <span class="whitespace-nowrap"><span class="hero-name-mark text-[var(--primary)]">{profileConfig.name}</span> <span class="animate-wave inline-block origin-center ml-1" aria-hidden="true">🍓</span></span>
+                </h1>
+                <h2 class="hero-bio text-xl md:text-2xl text-black/70 dark:text-white/70 font-medium leading-relaxed">
+                    {profileConfig.bio}
+                </h2>
+
+                <div class="hero-tags" aria-label="生活关键词">
+                    <span class="hero-tag"><span aria-hidden="true">♡</span>认真生活</span>
+                    <span class="hero-tag"><span aria-hidden="true">♫</span>快乐追番</span>
+                    <span class="hero-tag"><span aria-hidden="true">✦</span>慢慢成长</span>
+                </div>
+            </div>
             
             <!-- Social Icons -->
-            <div class="flex flex-wrap justify-center md:justify-start gap-4 pt-4">
+            <div class="hero-socials flex flex-wrap justify-center md:justify-start gap-4">
                 {profileConfig.links.map((link, index) => {
                     const nameLower = link.name.toLowerCase();
                     let brandClass = "default-link";
@@ -43,16 +61,26 @@ import { Icon } from "astro-icon/components";
         </div>
 
         <!-- Right: Avatar (Ordered 1st on mobile, 2nd on desktop) -->
-        <div class="order-1 md:order-2 flex-shrink-0 flex items-center justify-center w-56 h-56 md:w-72 md:h-72 lg:w-[22rem] lg:h-[22rem] rounded-full overflow-hidden shadow-2xl border-4 border-white/50 dark:border-black/50 transition-transform duration-500 hover:scale-105">
-            <ImageWrapper src={profileConfig.avatar || ""} alt="Avatar" class="w-full h-full object-cover" />
+        <div class="avatar-scene order-1 md:order-2 flex-shrink-0 flex items-center justify-center w-56 h-56 md:w-72 md:h-72 lg:w-[22rem] lg:h-[22rem] onload-animation" style="animation-delay: 80ms;">
+            <span class="avatar-tape" aria-hidden="true"></span>
+            <span class="avatar-spark avatar-spark--one" aria-hidden="true">✦</span>
+            <span class="avatar-spark avatar-spark--two" aria-hidden="true">♡</span>
+            <button id="hero-avatar-button" class="avatar-photo" type="button" aria-label="点一下平泽唯头像">
+                <span class="avatar-image-shell">
+                    <ImageWrapper src={profileConfig.avatar || ""} alt="Avatar" class="w-full h-full object-cover" />
+                </span>
+            </button>
+            <span class="avatar-bubble" aria-live="polite">うんたん♪</span>
+            <span class="avatar-caption" aria-hidden="true">今日份开心</span>
         </div>
         
     </div>
 
     <!-- Bottom: Pure Love Quote & Scroll Down -->
-    <div class="absolute bottom-8 left-0 w-full flex flex-col items-center justify-center space-y-4 z-10 onload-animation" style="animation-delay: 300ms;">
-        <pure-love-quote class="block text-black/60 dark:text-white/60 text-sm md:text-base font-serif font-medium tracking-wide cursor-pointer hover:opacity-80 transition-opacity px-4 text-center" title="点击刷新台词">
-            「<span class="quote-text">正在寻找灵魂深处的共鸣...</span>」
+    <div class="hero-bottom absolute bottom-8 left-0 w-full flex flex-col items-center justify-center space-y-3 z-10 onload-animation" style="animation-delay: 300ms;">
+        <pure-love-quote class="hero-quote block text-black/60 dark:text-white/60 text-sm md:text-base font-serif font-medium tracking-wide cursor-pointer text-center" title="点击刷新台词">
+            <span class="hero-quote-heart" aria-hidden="true">♡</span>
+            <span class="hero-quote-content">「<span class="quote-text">正在寻找灵魂深处的共鸣...</span>」</span>
             <span class="quote-author text-xs font-normal ml-2 opacity-70 hidden md:inline-block"></span>
         </pure-love-quote>
         
@@ -63,20 +91,510 @@ import { Icon } from "astro-icon/components";
 </div>
 
 <style>
+    #hero-section {
+        isolation: isolate;
+        overflow: hidden;
+    }
+
+    .hero-main-content {
+        position: relative;
+    }
+
+    .hero-copy {
+        position: relative;
+        max-width: 48rem;
+    }
+
+    .hero-copy-intro {
+        display: flex;
+        width: 100%;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    @media (min-width: 768px) {
+        .hero-copy-intro {
+            align-items: flex-start;
+        }
+    }
+
+    .hero-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-bottom: 0.7rem;
+        padding: 0.4rem 0.75rem;
+        border: 1px dashed color-mix(in srgb, var(--primary) 34%, transparent);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--card-bg) 60%, transparent);
+        color: color-mix(in srgb, var(--primary) 86%, #885f56);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        box-shadow: 0 0.6rem 1.5rem rgb(169 104 113 / 0.08);
+        backdrop-filter: blur(12px);
+        transform: rotate(-1deg);
+    }
+
+    .hero-kicker-note,
+    .hero-kicker-heart {
+        font-size: 0.85rem;
+        line-height: 1;
+    }
+
+    .hero-kicker-heart {
+        color: color-mix(in srgb, var(--primary) 72%, #d5a270);
+    }
+
+    .hero-title {
+        position: relative;
+        margin: 0;
+        letter-spacing: -0.035em;
+        text-wrap: balance;
+    }
+
+    .hero-name-mark {
+        position: relative;
+        z-index: 0;
+        display: inline-block;
+    }
+
+    .hero-name-mark::before {
+        position: absolute;
+        z-index: -1;
+        right: -0.12em;
+        bottom: 0.06em;
+        left: -0.08em;
+        height: 0.34em;
+        border-radius: 55% 40% 48% 38%;
+        background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 24%, transparent), color-mix(in srgb, #ffc9d5 64%, transparent));
+        content: "";
+        transform: rotate(-2deg);
+    }
+
+    .hero-bio {
+        margin-top: 0.72rem;
+    }
+
+    .hero-tags {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.55rem;
+        margin-top: 1rem;
+    }
+
+    .hero-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.32rem;
+        padding: 0.42rem 0.7rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 14%, white 42%);
+        border-radius: 999px;
+        background: color-mix(in srgb, #fff5f4 72%, transparent);
+        color: color-mix(in srgb, var(--text-body) 70%, #9b746c);
+        font-size: 0.76rem;
+        font-weight: 700;
+        box-shadow: 0 0.5rem 1.2rem rgb(127 91 82 / 0.06);
+        backdrop-filter: blur(12px);
+    }
+
+    .hero-tag:nth-child(2) {
+        background: color-mix(in srgb, #f4f8ff 74%, transparent);
+        transform: translateY(0.18rem) rotate(1deg);
+    }
+
+    .hero-tag:nth-child(3) {
+        background: color-mix(in srgb, #fff7e9 78%, transparent);
+        transform: rotate(-1deg);
+    }
+
+    .hero-tag > span {
+        color: var(--primary);
+    }
+
+    .hero-socials {
+        margin-top: 1.35rem;
+    }
+
+    .avatar-scene {
+        position: relative;
+    }
+
+    .avatar-scene::before {
+        position: absolute;
+        top: 54%;
+        left: -6.4rem;
+        width: 5.4rem;
+        border-top: 2px dashed color-mix(in srgb, var(--primary) 28%, transparent);
+        content: "";
+        transform: rotate(-5deg);
+    }
+
+    .avatar-scene::after {
+        position: absolute;
+        top: calc(54% - 0.45rem);
+        left: -1.35rem;
+        color: color-mix(in srgb, var(--primary) 72%, #dab5ab);
+        content: "♡";
+        font-size: 0.92rem;
+        transform: rotate(10deg);
+    }
+
+    .avatar-photo {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        padding: 0.7rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 15%, white 62%);
+        border-radius: 48% 52% 47% 53% / 52% 46% 54% 48%;
+        background: linear-gradient(145deg, rgb(255 255 255 / 0.82), rgb(255 244 242 / 0.66));
+        box-shadow: 0 1.8rem 3.4rem rgb(100 74 67 / 0.19), inset 0 0 0 0.32rem rgb(255 255 255 / 0.34);
+        cursor: pointer;
+        transition: transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 450ms ease;
+        transform: rotate(1.4deg);
+    }
+
+    .avatar-photo:hover,
+    .avatar-photo:focus-visible {
+        box-shadow: 0 2rem 4rem rgb(120 75 74 / 0.24), 0 0 0 0.45rem color-mix(in srgb, var(--primary) 9%, transparent);
+        outline: none;
+        transform: rotate(-0.8deg) translateY(-0.35rem) scale(1.025);
+    }
+
+    .avatar-photo:active {
+        transform: rotate(0deg) scale(0.98);
+    }
+
+    .avatar-image-shell {
+        display: block;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border-radius: inherit;
+        background: color-mix(in srgb, var(--primary) 7%, white);
+    }
+
+    .avatar-tape {
+        position: absolute;
+        z-index: 3;
+        top: -0.55rem;
+        left: 50%;
+        width: 5.7rem;
+        height: 1.55rem;
+        border: 1px solid rgb(255 255 255 / 0.34);
+        background: linear-gradient(90deg, rgb(249 181 193 / 0.38), rgb(255 220 225 / 0.7), rgb(249 181 193 / 0.38));
+        box-shadow: 0 0.3rem 0.9rem rgb(163 99 112 / 0.08);
+        clip-path: polygon(3% 8%, 97% 0, 94% 92%, 5% 100%);
+        transform: translateX(-50%) rotate(-3deg);
+        backdrop-filter: blur(4px);
+    }
+
+    .avatar-bubble {
+        position: absolute;
+        z-index: 4;
+        right: -0.7rem;
+        bottom: 2rem;
+        padding: 0.48rem 0.72rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 20%, white);
+        border-radius: 1rem 1rem 0.25rem 1rem;
+        background: rgb(255 250 247 / 0.82);
+        color: color-mix(in srgb, var(--primary) 76%, #8d675f);
+        font-size: 0.72rem;
+        font-weight: 800;
+        box-shadow: 0 0.8rem 1.8rem rgb(137 92 87 / 0.12);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease, transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        transform: translateY(0.55rem) rotate(2deg) scale(0.82);
+        backdrop-filter: blur(14px);
+    }
+
+    .avatar-photo:hover ~ .avatar-bubble,
+    .avatar-photo:focus-visible ~ .avatar-bubble,
+    .avatar-bubble.is-visible {
+        opacity: 1;
+        transform: translateY(0) rotate(2deg) scale(1);
+    }
+
+    .avatar-caption {
+        position: absolute;
+        z-index: 3;
+        bottom: -0.9rem;
+        left: 1.8rem;
+        padding: 0.25rem 0.62rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, #fff9f5 82%, transparent);
+        color: color-mix(in srgb, var(--primary) 62%, #a48378);
+        font-size: 0.6rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        box-shadow: 0 0.55rem 1.3rem rgb(130 88 82 / 0.08);
+        transform: rotate(-4deg);
+    }
+
+    .avatar-spark {
+        position: absolute;
+        z-index: 4;
+        color: color-mix(in srgb, var(--primary) 70%, #e8b5b0);
+        pointer-events: none;
+        filter: drop-shadow(0 0.3rem 0.5rem rgb(174 102 116 / 0.15));
+    }
+
+    .avatar-spark--one {
+        top: 1.2rem;
+        right: -0.6rem;
+        font-size: 1.4rem;
+    }
+
+    .avatar-spark--two {
+        right: 0.8rem;
+        bottom: 0.25rem;
+        font-size: 1.15rem;
+        transform: rotate(12deg);
+    }
+
+    .hero-doodles {
+        position: absolute;
+        z-index: 0;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .hero-doodle {
+        position: absolute;
+        color: color-mix(in srgb, var(--primary) 42%, transparent);
+        font-weight: 700;
+        opacity: 0.32;
+        filter: blur(0.1px);
+    }
+
+    .hero-doodle--note { top: 19%; left: 7%; font-size: 2rem; transform: rotate(-13deg); }
+    .hero-doodle--spark { top: 16%; right: 29%; font-size: 1.2rem; transform: rotate(12deg); }
+    .hero-doodle--ribbon { right: 7%; bottom: 22%; font-size: 1.55rem; transform: rotate(8deg); }
+    .hero-doodle--heart { bottom: 25%; left: 11%; font-size: 2.1rem; transform: rotate(-11deg); }
+
+    .hero-quote {
+        position: relative;
+        max-width: min(88vw, 54rem);
+        padding: 0.62rem 1.05rem 0.62rem 2rem;
+        border: 1px dashed color-mix(in srgb, var(--primary) 20%, transparent);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--card-bg) 58%, transparent);
+        box-shadow: 0 0.8rem 2rem rgb(115 80 72 / 0.07);
+        backdrop-filter: blur(15px);
+        transition: opacity 180ms ease, transform 220ms ease;
+    }
+
+    .hero-quote:hover {
+        opacity: 0.88;
+        transform: translateY(-0.12rem);
+    }
+
+    .hero-quote-heart {
+        position: absolute;
+        top: 50%;
+        left: 0.78rem;
+        color: var(--primary);
+        font-family: sans-serif;
+        transform: translateY(-50%) rotate(-8deg);
+    }
+
+    /* Keep the delayed footer entrance, but let the hero own the only
+       page-level opacity fade so the two animations do not flicker. */
+    #hero-section .hero-bottom.onload-animation {
+        animation: 350ms cubic-bezier(0.16, 1, 0.3, 1) hero-bottom-rise;
+        animation-delay: 300ms;
+        animation-fill-mode: backwards;
+    }
+
+    @keyframes hero-bottom-rise {
+        from { transform: translateY(0.65rem) scale(0.98); }
+        to { transform: translateY(0) scale(1); }
+    }
+
+    @media (max-width: 767px) {
+        #hero-section {
+            min-height: 640px;
+        }
+
+        .hero-main-content {
+            width: 100%;
+            margin-inline: auto;
+            padding-inline: 1.25rem;
+            gap: 1.5rem;
+            translate: 0 -2.6rem;
+        }
+
+        .hero-copy {
+            max-width: 25rem;
+            margin-top: 0;
+        }
+
+        .hero-kicker {
+            margin-bottom: 0.55rem;
+            padding: 0.34rem 0.65rem;
+            font-size: 0.64rem;
+        }
+
+        .hero-title {
+            width: max-content;
+            max-width: none;
+            font-size: clamp(1.3rem, 7.2vw, 1.72rem);
+            line-height: 1.12;
+            letter-spacing: -0.045em;
+            white-space: nowrap;
+        }
+
+        .hero-bio {
+            margin-top: 0.55rem;
+            font-size: 1rem;
+        }
+
+        .hero-tags {
+            gap: 0.42rem;
+            margin-top: 0.75rem;
+        }
+
+        .hero-tag {
+            padding: 0.35rem 0.58rem;
+            font-size: 0.68rem;
+        }
+
+        .hero-socials {
+            gap: 0.72rem;
+            margin-top: 0.9rem;
+        }
+
+        .avatar-scene {
+            width: 11.5rem;
+            height: 11.5rem;
+        }
+
+        .avatar-scene::before,
+        .avatar-scene::after {
+            display: none;
+        }
+
+        .avatar-photo {
+            padding: 0.5rem;
+        }
+
+        .avatar-tape {
+            top: -0.45rem;
+            width: 4.6rem;
+            height: 1.25rem;
+        }
+
+        .avatar-bubble {
+            right: -0.2rem;
+            bottom: 0.8rem;
+            padding: 0.38rem 0.58rem;
+            font-size: 0.64rem;
+        }
+
+        .avatar-caption {
+            bottom: -0.65rem;
+            left: 1rem;
+            font-size: 0.52rem;
+        }
+
+        .avatar-spark--one {
+            top: 0.7rem;
+            right: -0.25rem;
+            font-size: 1rem;
+        }
+
+        .avatar-spark--two {
+            right: 0.4rem;
+            bottom: -0.15rem;
+            font-size: 0.9rem;
+        }
+
+        .hero-bottom {
+            bottom: 1rem;
+            padding-inline: 1rem;
+        }
+
+        .hero-quote {
+            width: auto;
+            max-width: 100%;
+            padding: 0.5rem 0.8rem 0.5rem 1.75rem;
+            font-size: 0.72rem;
+            line-height: 1.5;
+        }
+
+        .hero-quote-heart {
+            left: 0.65rem;
+        }
+
+        .hero-doodle--note { top: 18%; left: 4%; font-size: 1.25rem; }
+        .hero-doodle--spark { top: 15%; right: 7%; }
+        .hero-doodle--ribbon { right: 4%; bottom: 27%; font-size: 1.05rem; }
+        .hero-doodle--heart { bottom: 29%; left: 5%; font-size: 1.3rem; }
+    }
+
+    @media (min-width: 768px) {
+        .hero-tags {
+            justify-content: flex-start;
+        }
+    }
+
+    :global(.dark) .hero-kicker,
+    :global(.dark) .hero-tag,
+    :global(.dark) .hero-quote,
+    :global(.dark) .avatar-bubble,
+    :global(.dark) .avatar-caption {
+        border-color: rgb(255 255 255 / 0.1);
+        background: rgb(35 29 30 / 0.52);
+        color: rgb(255 240 240 / 0.76);
+    }
+
+    :global(.dark) .avatar-photo {
+        border-color: rgb(255 255 255 / 0.12);
+        background: linear-gradient(145deg, rgb(52 43 45 / 0.72), rgb(28 24 25 / 0.6));
+        box-shadow: 0 1.8rem 3.4rem rgb(0 0 0 / 0.34), inset 0 0 0 0.32rem rgb(255 255 255 / 0.05);
+    }
+
     @keyframes wave {
-        0%, 100% { transform: rotate(0deg); }
-        25% { transform: rotate(15deg); }
-        50% { transform: rotate(-5deg); }
-        75% { transform: rotate(15deg); }
+        0%, 100% { transform: rotate(-3deg) scale(1); }
+        50% { transform: rotate(4deg) scale(1.08); }
     }
     .animate-wave {
-        animation: wave 2s infinite;
+        animation: wave 2.8s ease-in-out infinite;
     }
 
     .social-hero-link {
         opacity: 0;
         animation: 450ms cubic-bezier(0.34, 1.56, 0.64, 1) pop-up-item;
         animation-fill-mode: both;
+    }
+
+    .social-hero-link:nth-child(odd) {
+        rotate: -2deg;
+    }
+
+    .social-hero-link:nth-child(even) {
+        translate: 0 0.18rem;
+        rotate: 2deg;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .animate-wave,
+        .social-hero-link {
+            animation: none;
+        }
+
+        .social-hero-link {
+            opacity: 1;
+        }
+
+        .avatar-photo,
+        .avatar-bubble,
+        .hero-quote {
+            transition: none;
+        }
     }
 
     /* Icon Tilt Animation */
@@ -170,14 +688,18 @@ import { Icon } from "astro-icon/components";
 
     @keyframes pop-up-item {
         0% {
-            transform: translateY(20px) scale(0.6);
             opacity: 0;
+            transform: translateY(20px) scale(0.6);
         }
-        100% {
-            transform: translateY(0) scale(1);
+        55% {
             opacity: 1;
         }
+        100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
     }
+
 </style>
 
 <script is:inline>
@@ -201,57 +723,43 @@ import { Icon } from "astro-icon/components";
             const authorEl = this.querySelector('.quote-author');
             if (!textEl) return;
             
+            // 只选恋爱关系本身就是叙事主线的作品；中文译法可能因字幕版本略有不同。
             const pureLoveQuotes = [
-                { text: "只要记住你的名字，不管你在世界的哪个地方，我一定会，去见你。", from: "你的名字" },
-                { text: "在这个瞬间，我仿佛明白了‘永远’、‘心’和‘灵魂’的所在。", from: "秒速五厘米" },
-                { text: "我喜欢你，比地球上的任何一个人都要喜欢。", from: "名侦探柯南" },
-                { text: "哪怕是世界毁灭，我也想再见你一面。", from: "你的名字" },
-                { text: "因为有了喜欢的人，所以原本毫无色彩的世界，瞬间变得五彩斑斓。", from: "四月是你的谎言" },
                 { text: "我所知道的关于你的事情，希望能再多一点。", from: "月色真美" },
-                { text: "与其说是连在一起，不如说是你早已成为了我的一部分。", from: "擅长捉弄的高木同学" },
-                { text: "能遇见你，真的是太好了。", from: "CLANNAD" },
-                { text: "如果能实现，我想和你一起去看海。", from: "CLANNAD" },
-                { text: "无论在哪里遇到你，我都会再次喜欢上你。", from: "Angel Beats!" },
-                { text: "我想成为你的专属，不管世界变成什么样。", from: "青春猪头少年不会梦到兔女郎学姐" },
-                { text: "我一定会拯救你，无论重来多少次。", from: "命运石之门" },
-                { text: "我喜欢你，所以希望你也能笑。", from: "可塑性记忆" },
-                { text: "和你一起仰望的星空，是我最珍贵的宝物。", from: "化物語" },
-                { text: "如果我是雨的话，能不能像把不曾交会的天空与大地连接起来那样，把某人的心串联起来呢？", from: "死神" },
-                { text: "我想和你一起，看一辈子的风景。", from: "CLANNAD" },
-                { text: "不管你变成什么样，我都会一直喜欢你。", from: "擅长捉弄的高木同学" },
-                { text: "只要有你在我身边，我就不会迷惘。", from: "刀剑神域" },
+                { text: "和我交往吧。", from: "月色真美" },
+                { text: "我深信着，我喜欢的人也能喜欢上自己，我认为这就是奇迹。", from: "月色真美" },
                 { text: "我想告诉你，我喜欢你，这份心情，直到永远。", from: "玉子爱情故事" },
+                { text: "我一直都很喜欢你。", from: "玉子爱情故事" },
+                { text: "我的心，因为你而跳动。", from: "玉子爱情故事" },
                 { text: "只要能看着你，我就觉得很幸福了。", from: "好想告诉你" },
-                { text: "我喜欢你，不是因为你是谁，而是因为在你面前我才是真正的我。", from: "辉夜大小姐想让我告白" },
-                { text: "即便跨越千年的时光，我也依然深爱着你。", from: "犬夜叉" },
-                { text: "我的心里，永远都有你的位置。", from: "冰菓" },
-                { text: "如果这是梦，我希望永远不要醒来。", from: "境界的彼方" },
+                { text: "我想把自己的心意，好好地传达给你。", from: "好想告诉你" },
+                { text: "我喜欢你，是恋爱的那种喜欢。", from: "好想告诉你" },
+                { text: "不管你变成什么样，我都会一直喜欢你。", from: "擅长捉弄的高木同学" },
+                { text: "西片，我喜欢你。", from: "擅长捉弄的高木同学" },
+                { text: "与你相遇之后，每一天都变得很有趣。", from: "擅长捉弄的高木同学" },
                 { text: "我只想，每一天都能看到你的笑容。", from: "堀与宫村" },
-                { text: "就算记忆消失，这份感情也绝对不会消失。", from: "魔法禁书目录" },
-                { text: "能和你相遇，是我这辈子最幸运的事。", from: "龙与虎" },
-                { text: "因为你，我爱上了这个世界。", from: "中二病也要谈恋爱！" },
-                { text: "我喜欢你，不是朋友那种喜欢，是想做你女朋友的那种喜欢。", from: "青春之旅" },
-                { text: "我希望能成为你的力量，哪怕只有一点点。", from: "某科学的超电磁炮" },
-                { text: "如果世界对你恶语相向，我就对你说上一世情话。", from: "魔法少女小圆" },
-                { text: "只要能陪在你身边，无论去哪里我都愿意。", from: "零之使魔" },
-                { text: "我喜欢你，这份心意，绝对不会输给任何人。", from: "伪恋" },
-                { text: "因为你在那里，所以我才会在这里。", from: "凉宫春日的忧郁" },
-                { text: "我的眼里只有你，再也容不下其他人。", from: "纯白交响曲" },
-                { text: "我想保护你，不仅是现在，还有未来。", from: "结城友奈是勇者" },
-                { text: "我喜欢你，无论发生什么，这份心意都不会改变。", from: "告白实行委员会" },
-                { text: "能和你在一起，就是我最大的幸福。", from: "徒然喜欢你" },
-                { text: "我的世界，因为你而变得完整。", from: "宅男腐女恋爱真难" },
-                { text: "我喜欢你，哪怕只是远远地看着你，我也觉得很满足。", from: "邻座的怪同学" },
-                { text: "我想和你一起，走过每一个春夏秋冬。", from: "元气少女缘结神" },
-                { text: "只要是你，无论变成什么样我都能认出来。", from: "狼与香辛料" },
-                { text: "我的心，早就已经被你填满了。", from: "会长是女仆大人！" },
-                { text: "我想成为能配得上你的人。", from: "樱花庄的宠物女孩" },
-                { text: "我喜欢你，所以想把最好的一切都给你。", from: "只要你说你爱我" },
-                { text: "能认识你，是我漫长生命中最美好的奇迹。", from: "葬送的芙莉莲" },
-                { text: "我的梦想，就是让你幸福。", from: "Fate/stay night" },
-                { text: "我想和你一起，创造属于我们的回忆。", from: "冰菓" },
-                { text: "就算发了一千条短信，心与心之间的距离也不曾拉近过一厘米。", from: "秒速五厘米" },
-                { text: "就算世界末日到来，我也会紧紧握住你的手。", from: "末日时在做什么？有没有空？可以来拯救吗？" }
+                { text: "我喜欢的，是只有我知道的那个你。", from: "堀与宫村" },
+                { text: "以后也请一直待在我身边。", from: "堀与宫村" },
+                { text: "喜欢一个人，是藏不住的。", from: "月色真美" },
+                { text: "只要和你在一起，平凡的日子也会发光。", from: "玉子爱情故事" },
+                { text: "我想和你一起，看很多很多次日落。", from: "玉子爱情故事" },
+                { text: "今天也要一起回家吗？", from: "擅长捉弄的高木同学" },
+                { text: "因为是你，所以什么都变得有趣。", from: "擅长捉弄的高木同学" },
+                { text: "我不是因为寂寞才喜欢你。", from: "堀与宫村" },
+                { text: "能遇见你，真的是一件很幸运的事。", from: "堀与宫村" },
+                { text: "我想一直和你这样走下去。", from: "好想告诉你" },
+                { text: "只要你愿意，我就会一直在这里。", from: "好想告诉你" },
+                { text: "我想成为你心里特别的那个人。", from: "好想告诉你" },
+                { text: "你笑起来的时候，真的很好看。", from: "月色真美" },
+                { text: "我想把今天的心情也告诉你。", from: "月色真美" },
+                { text: "无论晴天还是雨天，我都想见到你。", from: "天气之子" },
+                { text: "比起世界，我更想要你。", from: "天气之子" },
+                { text: "我会把这份喜欢，好好珍藏起来。", from: "四月是你的谎言" },
+                { text: "因为遇见了你，我才看见了新的风景。", from: "四月是你的谎言" },
+                { text: "我一直在寻找着某个人。", from: "你的名字。" },
+                { text: "无论你在世界的哪个地方，我都会去见你。", from: "你的名字。" },
+                { text: "重要的人，不能忘记的人，绝对不能忘记的人。", from: "你的名字。" },
+                { text: "我好像做了一个很长的梦，一个不会醒来的梦。", from: "你的名字。" }
             ];
 
             try {
@@ -295,17 +803,42 @@ import { Icon } from "astro-icon/components";
         }
     }
 
-    setupHeroScroll();
+    function setupHeroAvatar() {
+        const avatarButton = document.getElementById('hero-avatar-button');
+        const bubble = avatarButton?.parentElement?.querySelector('.avatar-bubble');
+        if (!avatarButton || !bubble || avatarButton.dataset.avatarBound === 'true') return;
+
+        const messages = ['うんたん♪', '吉太～', '今天也要开心 ୨୧', '放学后见吧 ♫'];
+        let messageIndex = 0;
+        let hideTimer;
+
+        avatarButton.dataset.avatarBound = 'true';
+        avatarButton.addEventListener('click', () => {
+            bubble.textContent = messages[messageIndex % messages.length];
+            messageIndex += 1;
+            bubble.classList.remove('is-visible');
+            requestAnimationFrame(() => bubble.classList.add('is-visible'));
+            window.clearTimeout(hideTimer);
+            hideTimer = window.setTimeout(() => bubble.classList.remove('is-visible'), 1800);
+        });
+    }
+
+    function setupHero() {
+        setupHeroScroll();
+        setupHeroAvatar();
+    }
+
+    setupHero();
 
     if (!window.__fuwariHeroScrollHookRegistered) {
         window.__fuwariHeroScrollHookRegistered = true;
 
         if (window.swup) {
-            window.swup.hooks.on('page:view', setupHeroScroll);
+            window.swup.hooks.on('page:view', setupHero);
         } else {
             document.addEventListener('swup:enable', () => {
-                window.swup.hooks.on('page:view', setupHeroScroll);
-                setupHeroScroll();
+                window.swup.hooks.on('page:view', setupHero);
+                setupHero();
             }, { once: true });
         }
     }

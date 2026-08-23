@@ -1,0 +1,436 @@
+---
+import { Icon } from "astro-icon/components";
+
+const techGroups = [
+	{
+		name: "编程语言",
+		icon: "fa6-solid:code",
+		face: "( •̀ ω •́ )✧",
+		items: [
+			{ name: "C 语言", mark: "C", tone: "blue", status: "已学习" },
+			{ name: "Java", mark: "J", tone: "coral", status: "已学习" },
+			{ name: "JavaScript", mark: "JS", tone: "tea", status: "已学习" },
+		],
+	},
+	{
+		name: "网页基础",
+		icon: "fa6-solid:globe",
+		face: "₍ᐢ. ̫.ᐢ₎",
+		items: [
+			{ name: "HTML5", mark: "H5", tone: "coral", status: "已学习" },
+			{ name: "CSS3", mark: "C3", tone: "blue", status: "已学习" },
+		],
+	},
+	{
+		name: "计算机基础",
+		icon: "fa6-solid:diagram-project",
+		face: "(｡•̀ᴗ-)✧",
+		items: [
+			{ name: "数据结构", mark: "DS", tone: "green", status: "已学习" },
+		],
+	},
+	{
+		name: "工具与工程",
+		icon: "material-symbols:build-rounded",
+		face: "(๑•̀ㅂ•́)و✧",
+		items: [
+			{ name: "Git", mark: "G", tone: "tea", status: "日常使用" },
+			{ name: "GitHub", mark: "GH", tone: "blue", status: "日常使用" },
+			{ name: "Cloudflare", mark: "CF", tone: "coral", status: "部署使用" },
+			{ name: "Claude Code", mark: "CC", tone: "pink", status: "辅助开发" },
+			{ name: "Codex", mark: "CX", tone: "purple", status: "辅助开发" },
+			{ name: "Hermes", mark: "H", tone: "green", status: "辅助开发" },
+			{ name: "OpenCode", mark: "OC", tone: "blue", status: "辅助开发" },
+			{ name: "Antigravity", mark: "AG", tone: "pink", status: "辅助开发" },
+			{ name: "IntelliJ IDEA", mark: "I", tone: "coral", status: "日常使用" },
+			{ name: "CLion", mark: "CL", tone: "tea", status: "日常使用" },
+			{ name: "WebStorm", mark: "WS", tone: "purple", status: "日常使用" },
+		],
+	},
+];
+
+const projects = [
+	{
+		name: "BILI for Android TV",
+		description: "为电视端打造的第三方哔哩哔哩客户端，持续打磨遥控器焦点、视频播放与应用更新体验。",
+		url: "https://github.com/Yaronluo/BILI-For-Android-TV",
+		icon: "fa6-solid:tv",
+		status: "持续开发",
+		tone: "pink",
+		tags: ["Kotlin", "Jetpack Compose", "Media3", "Android TV"],
+	},
+	{
+		name: "Yaron's Life",
+		description: "现在看到的这座小站。以 Fuwari 为起点，慢慢加入追番、文章地图、旅行足迹与属于自己的可爱细节。",
+		url: "https://github.com/Yaronluo/fuwari",
+		icon: "fa6-solid:heart",
+		status: "持续生长",
+		tone: "blue",
+		tags: ["Astro", "TypeScript", "Svelte", "Cloudflare"],
+	},
+];
+---
+
+<section class="dev-journal" aria-labelledby="dev-journal-title">
+	<div class="dev-decoration dev-decoration-code" aria-hidden="true">&lt;/&gt;</div>
+	<div class="dev-decoration dev-decoration-star" aria-hidden="true">✦</div>
+	<div class="dev-decoration dev-decoration-heart" aria-hidden="true">♡</div>
+
+	<header class="dev-header">
+		<div>
+			<div class="dev-eyebrow">
+				<Icon name="material-symbols:terminal-rounded" />
+				<span>DEV JOURNAL</span>
+				<span aria-hidden="true">(｡•̀ᴗ-)✧</span>
+			</div>
+			<h1 id="dev-journal-title">把今天学会的，写进明天的作品里</h1>
+			<p>从第一次运行成功，到慢慢做出真正属于自己的作品。</p>
+		</div>
+		<a class="github-profile" href="https://github.com/Yaronluo" target="_blank" rel="noopener noreferrer">
+			<Icon name="fa6-brands:github" />
+			<span><small>GITHUB</small><strong>@Yaronluo</strong></span>
+			<Icon name="material-symbols:arrow-outward-rounded" />
+		</a>
+	</header>
+
+	<section class="dev-section" aria-labelledby="tech-stack-title">
+		<div class="dev-section-heading">
+			<div>
+				<span class="dev-section-kicker">MY TOOLBOX</span>
+				<h2 id="tech-stack-title">目前学过的技术与工具</h2>
+			</div>
+			<span class="dev-heading-note">如实记录，再一点一点把工具箱装满 ฅ՞•ﻌ•՞ฅ</span>
+		</div>
+
+		<div class="tech-grid">
+			{techGroups.map((group) => (
+				<article class:list={["tech-card", group.name === "工具与工程" && "tech-card-tools"]}>
+					<div class="tech-card-heading">
+						<div class="tech-card-icon"><Icon name={group.icon} /></div>
+						<h3>{group.name}</h3>
+						<span aria-hidden="true">{group.face}</span>
+					</div>
+					<div class="tech-list">
+						{group.items.map((item) => (
+							<div class="tech-item">
+								<span class:list={["tech-mark", `tone-${item.tone}`]}>{item.mark}</span>
+								<strong>{item.name}</strong>
+								<small>{item.status}</small>
+							</div>
+						))}
+					</div>
+				</article>
+			))}
+		</div>
+	</section>
+
+	<section class="dev-section contribution-section" aria-labelledby="contribution-title">
+		<div class="dev-section-heading contribution-heading">
+			<div>
+				<span class="dev-section-kicker">GITHUB 贡献</span>
+				<h2 id="contribution-title">代码留下的小脚印</h2>
+			</div>
+		</div>
+
+		<div class="contribution-paper">
+			<div class="contribution-count-line" aria-live="polite">
+				<strong id="contribution-total">···</strong>
+				<span>次贡献 · 过去一年</span>
+			</div>
+			<div id="contribution-status" class="contribution-status"><i></i> Loading contribution calendar...</div>
+			<div class="contribution-scroll" tabindex="0" aria-label="GitHub 过去一年贡献日历">
+				<div class="github-calendar">
+					<div id="contribution-months" class="contribution-months" aria-hidden="true"></div>
+					<div class="github-calendar-body">
+						<div class="contribution-weekdays" aria-hidden="true">
+							<span style="grid-row: 2">周一</span>
+							<span style="grid-row: 4">周三</span>
+							<span style="grid-row: 6">周五</span>
+						</div>
+						<div id="contribution-grid" class="contribution-grid"></div>
+					</div>
+				</div>
+			</div>
+			<div class="contribution-footer">
+				<a href="https://docs.github.com/en/account-and-profile/reference/profile-contributions-reference" target="_blank" rel="noopener noreferrer">了解贡献如何统计</a>
+				<div class="contribution-legend" aria-label="贡献强度图例">
+					<span>少</span>
+					<i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i>
+					<span>多</span>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="dev-section" aria-labelledby="projects-title">
+		<div class="dev-section-heading">
+			<div>
+				<span class="dev-section-kicker">THINGS I MADE</span>
+				<h2 id="projects-title">一点点成形的作品</h2>
+			</div>
+			<span class="dev-heading-note">不是练习题，是想认真做下去的东西。</span>
+		</div>
+
+		<div class="project-grid">
+			{projects.map((project, index) => (
+				<a class:list={["project-card", `project-${project.tone}`]} href={project.url} target="_blank" rel="noopener noreferrer">
+					<div class="project-number">PROJECT {String(index + 1).padStart(2, "0")}</div>
+					<div class="project-icon"><Icon name={project.icon} /></div>
+					<div class="project-copy">
+						<div class="project-title-row">
+							<h3>{project.name}</h3>
+							<span>{project.status}</span>
+						</div>
+						<p>{project.description}</p>
+						<div class="project-tags">{project.tags.map((tag) => <span>{tag}</span>)}</div>
+					</div>
+					<Icon class="project-arrow" name="material-symbols:arrow-outward-rounded" />
+				</a>
+			))}
+		</div>
+	</section>
+
+	<footer class="dev-footer-note">
+		<span>const dream = "做出真正属于自己的作品";</span>
+		<span>还在学习，也还在继续创造。♡</span>
+	</footer>
+</section>
+
+<script>
+	type Contribution = { date: string; count: number; level: number };
+	type ContributionResponse = { total: Record<string, number>; contributions: Contribution[] };
+
+	async function initDevJournal() {
+		const journal = document.querySelector<HTMLElement>(".dev-journal");
+		const grid = document.getElementById("contribution-grid");
+		const months = document.getElementById("contribution-months");
+		const total = document.getElementById("contribution-total");
+		const status = document.getElementById("contribution-status");
+		if (!journal || !grid || !months || !total || !status || journal.dataset.contributionsReady === "true") return;
+
+		journal.dataset.contributionsReady = "true";
+		try {
+			const response = await fetch("https://github-contributions-api.jogruber.de/v4/Yaronluo?y=last");
+			if (!response.ok) throw new Error(`GitHub contributions: ${response.status}`);
+			const data = await response.json() as ContributionResponse;
+			const contributions = data.contributions || [];
+			const firstDay = contributions[0] ? new Date(`${contributions[0].date}T00:00:00`).getDay() : 0;
+			const fragment = document.createDocumentFragment();
+			const monthFragment = document.createDocumentFragment();
+			const monthLabels: Array<{ label: string; column: number }> = [];
+			let previousMonth = -1;
+
+			contributions.forEach((day, index) => {
+				const cell = document.createElement("span");
+				const offset = index + firstDay;
+				const date = new Date(`${day.date}T00:00:00`);
+				const month = date.getMonth();
+				cell.className = "contribution-cell";
+				cell.dataset.level = String(Math.max(0, Math.min(4, day.level || 0)));
+				cell.style.gridColumn = String(Math.floor(offset / 7) + 1);
+				cell.style.gridRow = String((offset % 7) + 1);
+				cell.title = `${day.date} · ${day.count} 次贡献`;
+				cell.setAttribute("aria-label", cell.title);
+				fragment.appendChild(cell);
+
+				if (month !== previousMonth) {
+					monthLabels.push({
+						label: `${month + 1}月`,
+						column: Math.floor(offset / 7) + 1,
+					});
+					previousMonth = month;
+				}
+			});
+
+			if (monthLabels.length > 1 && monthLabels[1].column - monthLabels[0].column < 3) {
+				monthLabels.shift();
+			}
+			monthLabels.forEach(({ label, column }) => {
+				const monthLabel = document.createElement("span");
+				monthLabel.textContent = label;
+				monthLabel.style.gridColumn = `${column} / span 4`;
+				monthFragment.appendChild(monthLabel);
+			});
+
+			grid.replaceChildren(fragment);
+			months.replaceChildren(monthFragment);
+			const totalCount = Object.values(data.total || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+			total.textContent = new Intl.NumberFormat("zh-CN").format(totalCount);
+			status.textContent = "贡献日历已更新";
+			status.classList.add("is-ready");
+		} catch (error) {
+			console.error(error);
+			journal.dataset.contributionsReady = "error";
+			total.textContent = "—";
+			status.textContent = "贡献日历暂时在偷懒，稍后再来看看吧 (｡•́︿•̀｡)";
+			status.classList.add("is-error");
+		}
+	}
+
+	const devWindow = window as Window & { __devJournalHookRegistered?: boolean };
+	initDevJournal();
+	if (window.swup && !devWindow.__devJournalHookRegistered) {
+		devWindow.__devJournalHookRegistered = true;
+		window.swup.hooks.on("page:view", initDevJournal);
+	}
+</script>
+
+<style>
+	.dev-journal { position: relative; isolation: isolate; width: min(100%, 74rem); margin: 0 auto; padding: clamp(1.25rem, 3vw, 2.4rem); overflow: hidden; border: 1px solid color-mix(in srgb, var(--primary) 15%, var(--glass-border)); border-radius: 2.25rem; background: radial-gradient(circle at 94% 3%, color-mix(in srgb, var(--azusa-blue) 10%, transparent) 0 5rem, transparent 11rem), radial-gradient(circle at 4% 94%, color-mix(in srgb, var(--primary) 10%, transparent) 0 4rem, transparent 10rem), linear-gradient(145deg, color-mix(in srgb, var(--cream-base) 94%, white), color-mix(in srgb, var(--cream-base) 82%, var(--primary) 4%)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.62), 0 1.5rem 4rem color-mix(in srgb, var(--tea) 11%, transparent); }
+	.dev-journal::before { content: ""; position: absolute; inset: 0.65rem; z-index: -1; border: 1px dashed color-mix(in srgb, var(--primary) 15%, transparent); border-radius: 1.8rem; pointer-events: none; }
+	.dev-decoration { position: absolute; z-index: -1; color: color-mix(in srgb, var(--primary) 18%, transparent); font-weight: 900; pointer-events: none; user-select: none; }
+	.dev-decoration-code { right: 6%; top: 9rem; font-family: monospace; font-size: 3rem; transform: rotate(-7deg); }
+	.dev-decoration-star { left: 1.6rem; top: 38%; font-size: 2rem; transform: rotate(14deg); }
+	.dev-decoration-heart { right: 2rem; bottom: 3rem; font-size: 2.6rem; transform: rotate(-10deg); }
+	.dev-header { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; margin-bottom: 2rem; padding: 0.35rem; }
+	.dev-eyebrow { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.45rem; color: var(--primary); font-size: 0.72rem; font-weight: 850; letter-spacing: 0.08em; }
+	.dev-eyebrow :global(svg) { width: 1rem; height: 1rem; }
+	.dev-header h1 { margin: 0; color: color-mix(in srgb, var(--tea) 82%, black); font-size: clamp(1.75rem, 3.3vw, 3rem); font-weight: 800; letter-spacing: -0.04em; line-height: 1.14; }
+	.dev-header p { margin: 0.65rem 0 0; color: color-mix(in srgb, var(--tea) 52%, transparent); font-size: 0.86rem; }
+	.github-profile { display: flex; flex: 0 0 auto; align-items: center; gap: 0.65rem; padding: 0.75rem 0.9rem; border: 1px solid rgb(255 255 255 / 0.62); border-radius: 1rem; color: color-mix(in srgb, var(--tea) 78%, black); background: rgb(255 255 255 / 0.48); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 0.55rem 1.3rem rgb(112 77 67 / 0.07); transition: transform 180ms ease, border-color 180ms ease; }
+	.github-profile:hover { border-color: color-mix(in srgb, var(--primary) 35%, transparent); transform: translateY(-2px) rotate(0.5deg); }
+	.github-profile > :global(svg:first-child) { width: 1.65rem; height: 1.65rem; }
+	.github-profile > :global(svg:last-child) { width: 1rem; height: 1rem; color: var(--primary); }
+	.github-profile span { display: flex; flex-direction: column; }
+	.github-profile small { color: color-mix(in srgb, var(--primary) 72%, var(--tea)); font-size: 0.48rem; font-weight: 850; letter-spacing: 0.12em; }
+	.github-profile strong { font-size: 0.76rem; }
+	.dev-section { margin-top: 1.8rem; }
+	.dev-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 0.8rem; padding: 0 0.35rem; }
+	.dev-section-kicker { color: var(--primary); font-size: 0.58rem; font-weight: 850; letter-spacing: 0.12em; }
+	.dev-section-heading h2 { margin: 0.18rem 0 0; color: color-mix(in srgb, var(--tea) 82%, black); font-size: clamp(1.2rem, 2vw, 1.55rem); font-weight: 850; }
+	.dev-heading-note { color: color-mix(in srgb, var(--tea) 42%, transparent); font-size: 0.62rem; }
+	.tech-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
+	.tech-card { padding: 1rem; border: 1px solid rgb(255 255 255 / 0.64); border-radius: 1.35rem; background: rgb(255 255 255 / 0.44); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.72), 0 0.7rem 1.6rem rgb(112 77 67 / 0.055); }
+	.tech-card:nth-child(2) { transform: rotate(0.35deg); }
+	.tech-card:nth-child(3) { transform: rotate(-0.3deg); }
+	.tech-card:nth-child(4) { transform: rotate(0.25deg); }
+	.tech-card-heading { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.48rem; margin-bottom: 0.75rem; }
+	.tech-card-icon { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 0.72rem; color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, white 45%); }
+	.tech-card-icon :global(svg) { width: 1.05rem; height: 1.05rem; }
+	.tech-card-heading h3 { margin: 0; color: color-mix(in srgb, var(--tea) 76%, black); font-size: 0.78rem; }
+	.tech-card-heading > span { color: color-mix(in srgb, var(--primary) 55%, transparent); font-size: 0.52rem; white-space: nowrap; }
+	.tech-list { display: flex; flex-direction: column; gap: 0.42rem; }
+	.tech-card-tools .tech-list { max-height: 7.4rem; overflow-y: auto; padding-right: 0.18rem; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--primary) 38%, transparent) transparent; }
+	.tech-item { display: grid; grid-template-columns: 1.8rem minmax(0, 1fr) auto; align-items: center; gap: 0.45rem; min-height: 2.05rem; padding: 0.28rem 0.38rem; border-radius: 0.7rem; background: color-mix(in srgb, var(--primary) 4%, transparent); }
+	.tech-mark { display: grid; place-items: center; width: 1.55rem; height: 1.55rem; border-radius: 0.5rem; color: white; font-size: 0.56rem; font-weight: 900; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.38); }
+	.tone-coral { background: #dc806f; }.tone-green { background: #72ad91; }.tone-purple { background: #8f7bb7; }.tone-blue { background: #6f9fc2; }.tone-pink { background: #d67d9b; }.tone-tea { background: #8e746a; }
+	.tech-item strong { min-width: 0; overflow: hidden; color: color-mix(in srgb, var(--tea) 72%, black); font-size: 0.66rem; text-overflow: ellipsis; white-space: nowrap; }
+	.tech-item small { color: color-mix(in srgb, var(--tea) 40%, transparent); font-size: 0.48rem; white-space: nowrap; }
+	.contribution-section { padding: 1.15rem; border: 1px solid rgb(255 255 255 / 0.66); border-radius: 1.55rem; background: rgb(255 255 255 / 0.42); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.72), 0 0.8rem 2rem rgb(112 77 67 / 0.06); }
+	.contribution-heading { margin-bottom: 0.85rem; padding: 0; }
+	.contribution-paper { --calendar-cell: 0.72rem; --calendar-gap: 0.22rem; position: relative; padding: 0.9rem 1rem 0.8rem; border: 1px dashed color-mix(in srgb, var(--primary) 18%, transparent); border-radius: 1rem; color: color-mix(in srgb, var(--tea) 78%, black); background: color-mix(in srgb, var(--cream-base) 72%, transparent); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.52); }
+	.contribution-count-line { display: flex; align-items: baseline; gap: 0.28rem; margin-bottom: 0.7rem; color: color-mix(in srgb, var(--tea) 78%, black); font-size: 0.78rem; }
+	.contribution-count-line strong { color: var(--primary); font-size: 1.1rem; font-weight: 850; font-variant-numeric: tabular-nums; }
+	.contribution-count-line span { color: color-mix(in srgb, var(--tea) 58%, transparent); font-weight: 500; }
+	.contribution-status { display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 0.6rem; color: color-mix(in srgb, var(--tea) 45%, transparent); font-size: 0.58rem; }
+	.contribution-status i { width: 0.4rem; height: 0.4rem; border-radius: 50%; background: #bf8700; }
+	.contribution-status.is-ready { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+	.contribution-status.is-error { color: #cf222e; }
+	.contribution-legend { display: flex; align-items: center; gap: 0.22rem; color: color-mix(in srgb, var(--tea) 48%, transparent); font-size: 0.58rem; }
+	.contribution-legend i,
+	:global(.contribution-cell) { width: var(--calendar-cell); height: var(--calendar-cell); border: 1px solid color-mix(in srgb, var(--tea) 7%, transparent); border-radius: 0.2rem; background: color-mix(in srgb, var(--tea) 7%, var(--cream-base)); }
+	.contribution-legend i[data-level="1"], :global(.contribution-cell[data-level="1"]) { background: color-mix(in srgb, #a8d9ae 74%, var(--cream-base)); }
+	.contribution-legend i[data-level="2"], :global(.contribution-cell[data-level="2"]) { background: #72c48b; }
+	.contribution-legend i[data-level="3"], :global(.contribution-cell[data-level="3"]) { background: #42a967; }
+	.contribution-legend i[data-level="4"], :global(.contribution-cell[data-level="4"]) { background: #287548; }
+	.contribution-scroll { overflow-x: auto; padding: 0 0 0.45rem; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--primary) 35%, transparent) transparent; }
+	.github-calendar { width: max-content; min-width: 100%; }
+	.contribution-months { display: grid; grid-template-columns: repeat(53, var(--calendar-cell)); column-gap: var(--calendar-gap); height: 1.15rem; margin-left: 2.35rem; color: color-mix(in srgb, var(--tea) 58%, transparent); font-size: 0.62rem; }
+	.contribution-months :global(span) { overflow: visible; white-space: nowrap; }
+	.github-calendar-body { display: grid; grid-template-columns: 2rem auto; gap: 0.35rem; }
+	.contribution-weekdays { display: grid; grid-template-rows: repeat(7, var(--calendar-cell)); row-gap: var(--calendar-gap); color: color-mix(in srgb, var(--tea) 55%, transparent); font-size: 0.54rem; line-height: var(--calendar-cell); text-align: right; }
+	.contribution-grid { display: grid; grid-template-columns: repeat(53, var(--calendar-cell)); grid-template-rows: repeat(7, var(--calendar-cell)); gap: var(--calendar-gap); width: max-content; min-height: calc(var(--calendar-cell) * 7 + var(--calendar-gap) * 6); }
+	:global(.contribution-cell) { display: block; transition: transform 120ms ease, filter 120ms ease; }
+	:global(.contribution-cell:hover) { z-index: 2; transform: scale(1.5); filter: saturate(1.2); }
+	.contribution-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 0.5rem; padding-left: 2.35rem; }
+	.contribution-footer a { color: color-mix(in srgb, var(--primary) 76%, var(--tea)); font-size: 0.6rem; }
+	.contribution-footer a:hover { text-decoration: underline; }
+	.project-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.85rem; }
+	.project-card { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 0.85rem; min-height: 12rem; padding: 1.2rem; overflow: hidden; border: 1px solid rgb(255 255 255 / 0.68); border-radius: 1.45rem; background: rgb(255 255 255 / 0.46); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.75), 0 0.8rem 1.8rem rgb(112 77 67 / 0.06); transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
+	.project-card::after { content: ""; position: absolute; right: -2rem; bottom: -2.2rem; width: 7rem; height: 7rem; border-radius: 50%; background: color-mix(in srgb, var(--primary) 8%, transparent); }
+	.project-blue::after { background: color-mix(in srgb, var(--azusa-blue) 9%, transparent); }
+	.project-card:hover { border-color: color-mix(in srgb, var(--primary) 28%, transparent); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.75), 0 1rem 2.2rem rgb(112 77 67 / 0.09); transform: translateY(-3px); }
+	.project-number { position: absolute; right: 1rem; top: 0.75rem; color: color-mix(in srgb, var(--primary) 36%, transparent); font-size: 0.48rem; font-weight: 850; letter-spacing: 0.09em; }
+	.project-icon { display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: 1rem; color: var(--primary); background: color-mix(in srgb, var(--primary) 11%, white 42%); transform: rotate(-3deg); }
+	.project-blue .project-icon { color: var(--azusa-blue); background: color-mix(in srgb, var(--azusa-blue) 10%, white 44%); transform: rotate(3deg); }
+	.project-icon :global(svg) { width: 1.5rem; height: 1.5rem; }
+	.project-copy { min-width: 0; padding-top: 0.2rem; }
+	.project-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding-right: 4.5rem; }
+	.project-title-row h3 { margin: 0; color: color-mix(in srgb, var(--tea) 82%, black); font-size: 1rem; }
+	.project-title-row span { padding: 0.15rem 0.45rem; border-radius: 999px; color: color-mix(in srgb, var(--primary) 78%, var(--tea)); background: color-mix(in srgb, var(--primary) 9%, transparent); font-size: 0.5rem; font-weight: 800; }
+	.project-copy p { margin: 0.65rem 0 0.8rem; color: color-mix(in srgb, var(--tea) 50%, transparent); font-size: 0.65rem; line-height: 1.7; }
+	.project-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+	.project-tags span { padding: 0.22rem 0.48rem; border: 1px solid color-mix(in srgb, var(--primary) 13%, transparent); border-radius: 999px; color: color-mix(in srgb, var(--tea) 57%, transparent); background: rgb(255 255 255 / 0.38); font-size: 0.52rem; }
+	.project-arrow { width: 1.1rem; height: 1.1rem; margin-top: 2.1rem; color: color-mix(in srgb, var(--primary) 55%, transparent); }
+	.dev-footer-note { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 1.25rem 0 -0.3rem; padding: 0 0.4rem; color: color-mix(in srgb, var(--tea) 40%, transparent); font-size: 0.56rem; }
+	.dev-footer-note span:first-child { font-family: var(--font-mono); color: color-mix(in srgb, var(--primary) 58%, var(--tea)); }
+	:global(.dark) .dev-journal { background: radial-gradient(circle at 94% 3%, color-mix(in srgb, var(--azusa-blue) 10%, transparent) 0 5rem, transparent 11rem), linear-gradient(145deg, color-mix(in srgb, var(--cream-base) 92%, black), color-mix(in srgb, var(--cream-base) 78%, var(--primary) 4%)); }
+	:global(.dark) .tech-card,
+	:global(.dark) .contribution-section,
+	:global(.dark) .project-card,
+	:global(.dark) .github-profile {
+		border-color: rgb(255 255 255 / 0.08);
+		background: color-mix(in srgb, var(--cream-base) 84%, transparent);
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 0.8rem 2rem rgb(0 0 0 / 0.18);
+	}
+	:global(.dark) .dev-header h1,
+	:global(.dark) .dev-section-heading h2,
+	:global(.dark) .tech-card-heading h3,
+	:global(.dark) .tech-item strong,
+	:global(.dark) .project-title-row h3 { color: rgb(245 237 232 / 0.9); }
+	:global(.dark) .github-profile { color: rgb(245 237 232 / 0.82); }
+	:global(.dark) .dev-heading-note,
+	:global(.dark) .tech-item small,
+	:global(.dark) .project-copy p,
+	:global(.dark) .dev-footer-note { color: rgb(245 237 232 / 0.48); }
+	:global(.dark) .tech-card-icon,
+	:global(.dark) .project-icon {
+		background: color-mix(in srgb, var(--primary) 14%, var(--cream-base));
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+	}
+	:global(.dark) .project-blue .project-icon {
+		background: color-mix(in srgb, var(--azusa-blue) 15%, var(--cream-base));
+	}
+	:global(.dark) .project-tags span {
+		border-color: color-mix(in srgb, var(--primary) 20%, rgb(255 255 255 / 0.06));
+		color: rgb(245 237 232 / 0.62);
+		background: color-mix(in srgb, var(--cream-base) 74%, transparent);
+	}
+	:global(.dark) .contribution-count-line { color: rgb(245 237 232 / 0.84); }
+	:global(.dark) .contribution-count-line span,
+	:global(.dark) .contribution-status { color: rgb(245 237 232 / 0.54); }
+	:global(.dark) .contribution-paper { border-color: color-mix(in srgb, var(--primary) 24%, transparent); color: rgb(245 237 232 / 0.9); background: color-mix(in srgb, var(--cream-base) 84%, transparent); }
+	:global(.dark) .contribution-months,
+	:global(.dark) .contribution-weekdays { color: rgb(245 237 232 / 0.66); }
+	:global(.dark) .contribution-legend { color: rgb(245 237 232 / 0.54); }
+	:global(.dark) .contribution-footer a { color: var(--primary); }
+	:global(.dark) .contribution-legend i[data-level="0"],
+	:global(.dark) :global(.contribution-cell[data-level="0"]) { border-color: rgb(255 255 255 / 0.04); background: #161b22; }
+	:global(.dark) .contribution-legend i[data-level="1"], :global(.dark) :global(.contribution-cell[data-level="1"]) { background: #0e4429; }
+	:global(.dark) .contribution-legend i[data-level="2"], :global(.dark) :global(.contribution-cell[data-level="2"]) { background: #006d32; }
+	:global(.dark) .contribution-legend i[data-level="3"], :global(.dark) :global(.contribution-cell[data-level="3"]) { background: #26a641; }
+	:global(.dark) .contribution-legend i[data-level="4"], :global(.dark) :global(.contribution-cell[data-level="4"]) { background: #39d353; }
+	@media (max-width: 1000px) { .tech-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+	@media (max-width: 760px) {
+		.dev-header { align-items: flex-start; flex-direction: column; }
+		.github-profile { align-self: flex-start; }
+		.project-grid { grid-template-columns: 1fr; }
+		.dev-heading-note { display: none; }
+	}
+	@media (max-width: 560px) {
+		.dev-journal { padding: 1.1rem; border-radius: 1.55rem; }
+		.dev-journal::before { inset: 0.42rem; border-radius: 1.2rem; }
+		.dev-header { margin-bottom: 1.35rem; padding: 0.15rem; }
+		.dev-header h1 { font-size: 1.8rem; }
+		.tech-grid { grid-template-columns: 1fr; }
+		.tech-card:nth-child(2), .tech-card:nth-child(3), .tech-card:nth-child(4) { transform: none; }
+		.contribution-section { padding: 0.85rem; }
+		.contribution-heading { align-items: flex-start; flex-direction: column; }
+		.contribution-toolbar { align-items: flex-start; flex-direction: column; gap: 0.5rem; }
+		.contribution-paper { padding: 0.7rem; }
+		.project-card { grid-template-columns: auto minmax(0, 1fr); padding: 1rem; }
+		.project-arrow { display: none; }
+		.project-title-row { padding-right: 0; }
+		.dev-footer-note { align-items: flex-start; flex-direction: column; }
+	}
+</style>

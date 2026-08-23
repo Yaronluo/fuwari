@@ -1,0 +1,20 @@
+---
+import DevJournal from "../components/DevJournal.astro";
+import MainGridLayout from "../layouts/MainGridLayout.astro";
+---
+
+<MainGridLayout title="开发手账" description="记录代码、项目与一路积累的成长">
+	<div class="dev-page-shell">
+		<DevJournal />
+	</div>
+</MainGridLayout>
+
+<style>
+	.dev-page-shell {
+		width: 100%;
+		padding: 1.25rem 1rem 2rem;
+	}
+	@media (max-width: 640px) {
+		.dev-page-shell { padding: 0.75rem 0.5rem 1.5rem; }
+	}
+</style>

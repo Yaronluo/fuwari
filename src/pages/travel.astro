@@ -1,0 +1,20 @@
+---
+import TravelMap from "../components/TravelMap.astro";
+import MainGridLayout from "../layouts/MainGridLayout.astro";
+---
+
+<MainGridLayout title="旅行足迹" description="收藏走过的城市与旅途中的风景">
+	<div class="travel-page-shell">
+		<TravelMap />
+	</div>
+</MainGridLayout>
+
+<style>
+	.travel-page-shell {
+		width: 100%;
+		padding: 1.25rem 1rem 2rem;
+	}
+	@media (max-width: 640px) {
+		.travel-page-shell { padding: 0.75rem 0.5rem 1.5rem; }
+	}
+</style>

@@ -1,10 +1,8 @@
 ---
 import MainGridLayout from '@layouts/MainGridLayout.astro'
 import SeriesPanel from '@components/SeriesPanel.astro'
-import { i18n } from '@i18n/translation'
-import I18nKey from '@i18n/i18nKey'
 ---
 
-<MainGridLayout title={i18n(I18nKey.series)}>
+<MainGridLayout title="文章地图" description="通过系列、分类与标签浏览所有文章">
     <SeriesPanel></SeriesPanel>
 </MainGridLayout>

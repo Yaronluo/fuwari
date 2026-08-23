@@ -53,7 +53,7 @@ const jsonLd = {
 ---
 <MainGridLayout banner={entry.data.image} title={entry.data.title} description={entry.data.description} lang={entry.data.lang} setOGTypeArticle={true} series={entry.data.series} headings={headings}>
     <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>
-    <div class:list={["flex w-full card-base overflow-hidden relative mb-4", animeThemeClass]} data-anime-mood={anime ? (anime.theme === "k-on" ? "intro" : "rain") : undefined}>
+    <div class:list={["post-article-shell flex w-full card-base overflow-hidden relative mb-4", animeThemeClass]} data-anime-mood={anime ? (anime.theme === "k-on" ? "intro" : "rain") : undefined}>
         {anime && (
             <div class="anime-weather-layer" aria-hidden="true">
                 <div class="anime-weather-clouds"></div>
@@ -75,8 +75,11 @@ const jsonLd = {
                 />
             ) : (
             <>
+            <header class="post-journal-header">
+            <span class="post-header-tape" aria-hidden="true"></span>
+            <div class="post-header-eyebrow onload-animation"><span>✦</span> MY BLOG NOTE <b>(˶ᵔ ᵕ ᵔ˶)</b></div>
             <!-- word count and reading time -->
-            <div class="flex flex-row text-black/30 dark:text-white/30 gap-5 mb-3 transition onload-animation">
+            <div class="post-reading-stats flex flex-row text-black/30 dark:text-white/30 gap-3 mb-3 transition onload-animation">
                 <div class="flex flex-row items-center">
                     <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 text-black/50 dark:text-white/50 flex items-center justify-center mr-2">
                         <Icon name="material-symbols:notes-rounded"></Icon>
@@ -97,7 +100,7 @@ const jsonLd = {
             <div class="relative onload-animation">
                 <div
                     data-pagefind-body data-pagefind-weight="10" data-pagefind-meta="title"
-                    class="transition w-full block font-bold mb-3
+                    class="post-title transition w-full block font-bold mb-3
                     text-3xl md:text-[2.25rem]/[2.75rem]
                     text-black/90 dark:text-white/90
                     md:before:w-1 before:h-5 before:rounded-md before:bg-[var(--primary)]
@@ -118,6 +121,8 @@ const jsonLd = {
                 ></PostMetadata>
                 {!entry.data.image && <div class="border-[var(--line-divider)] border-dashed border-b-[1px] mb-5"></div>}
             </div>
+            <span class="post-header-heart" aria-hidden="true">♡</span>
+            </header>
 
             <ArticleDescription description={entry.data.description} />
 
@@ -168,3 +173,299 @@ const jsonLd = {
     </div>
 
 </MainGridLayout>
+
+<style>
+    .post-article-shell:not(.anime-theme) {
+        border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--glass-border));
+        border-radius: 1.8rem;
+        background:
+            linear-gradient(90deg, rgb(255 255 255 / 0.18), transparent 12% 88%, rgb(255 255 255 / 0.12)),
+            linear-gradient(145deg, rgb(255 255 255 / 0.42), transparent 45%),
+            color-mix(in srgb, var(--glass-card) 95%, var(--primary) 1.5%);
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.72), 0 1.4rem 3.5rem rgb(104 67 58 / 0.08);
+        backdrop-filter: blur(18px) saturate(116%);
+    }
+
+    .post-article-shell:not(.anime-theme)::before,
+    .post-article-shell:not(.anime-theme)::after {
+        position: absolute;
+        z-index: 1;
+        color: color-mix(in srgb, var(--primary) 30%, transparent);
+        pointer-events: none;
+    }
+
+    .post-article-shell:not(.anime-theme)::before {
+        top: 8rem;
+        left: 1rem;
+        content: "✦";
+        font-size: 0.8rem;
+        transform: rotate(-10deg);
+    }
+
+    .post-article-shell:not(.anime-theme)::after {
+        right: 1.2rem;
+        bottom: 1rem;
+        content: "⌁ happy reading ♡";
+        font-size: 0.58rem;
+        transform: rotate(-2deg);
+    }
+
+    .post-journal-header {
+        position: relative;
+        margin: -0.2rem -0.65rem 1.4rem;
+        padding: 1.45rem 1.55rem 1.1rem;
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb, var(--primary) 12%, transparent);
+        border-radius: 1.35rem;
+        background:
+            radial-gradient(circle at 92% 15%, color-mix(in srgb, var(--primary) 13%, transparent), transparent 30%),
+            linear-gradient(145deg, color-mix(in srgb, var(--glass-card) 72%, rgb(255 255 255 / 0.2)), color-mix(in srgb, var(--primary) 3%, transparent));
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.62);
+    }
+
+    .post-header-tape {
+        position: absolute;
+        top: 0;
+        left: 3rem;
+        width: 4.5rem;
+        height: 0.5rem;
+        border-radius: 0 0 0.3rem 0.3rem;
+        background: repeating-linear-gradient(120deg, rgb(255 255 255 / 0.24) 0 0.4rem, transparent 0.4rem 0.72rem), color-mix(in srgb, var(--primary) 38%, transparent);
+        transform: rotate(-1.5deg);
+    }
+
+    .post-header-eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 0.38rem;
+        margin-bottom: 0.7rem;
+        color: var(--primary);
+        font-size: 0.62rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+    }
+
+    .post-header-eyebrow b { margin-left: 0.2rem; font-weight: 750; letter-spacing: 0; }
+
+    .post-reading-stats > div {
+        padding: 0.3rem 0.55rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--glass-card) 68%, transparent);
+    }
+
+    .post-reading-stats > div > div:first-child {
+        width: 1.25rem;
+        height: 1.25rem;
+        margin-right: 0.35rem;
+        background: color-mix(in srgb, var(--primary) 9%, transparent);
+        color: color-mix(in srgb, var(--primary) 66%, var(--text-color));
+    }
+
+    .post-reading-stats > div > div:last-child { font-size: 0.68rem; }
+
+    .post-title {
+        padding-right: 2.6rem;
+        color: color-mix(in srgb, var(--text-color) 88%, #65463e) !important;
+        letter-spacing: -0.035em;
+        text-wrap: balance;
+    }
+
+    .post-title::before { height: 1.8rem !important; top: 0.5rem !important; box-shadow: 0 0 0 0.28rem color-mix(in srgb, var(--primary) 8%, transparent); }
+
+    .post-header-heart {
+        position: absolute;
+        right: 1.2rem;
+        bottom: 0.8rem;
+        color: color-mix(in srgb, var(--primary) 36%, transparent);
+        font-size: 1.45rem;
+        transform: rotate(-9deg);
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .article-description) {
+        margin: 0.2rem 0 2rem;
+        padding: 1rem 1.15rem 1rem 3.2rem;
+        border: 1px dashed color-mix(in srgb, var(--primary) 18%, transparent);
+        border-radius: 1rem;
+        background: color-mix(in srgb, var(--primary) 4%, var(--glass-card));
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .article-description)::before {
+        position: absolute;
+        top: 0.75rem;
+        left: 1rem;
+        display: grid;
+        place-items: center;
+        width: 1.55rem;
+        height: 1.55rem;
+        border-radius: 0.55rem;
+        background: color-mix(in srgb, var(--primary) 10%, rgb(255 255 255 / 0.35));
+        color: var(--primary);
+        content: "✎";
+        font-size: 0.72rem;
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .markdown-content) {
+        color: color-mix(in srgb, var(--text-color) 72%, transparent);
+        font-size: 0.98rem;
+        line-height: 1.9;
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .markdown-content > section) {
+        position: relative;
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .markdown-content h1) {
+        position: relative;
+        margin: 2.7rem 0 1.2rem;
+        padding: 0 0 0.7rem 1.8rem;
+        border-bottom: 1px dashed color-mix(in srgb, var(--primary) 18%, transparent);
+        color: color-mix(in srgb, var(--text-color) 88%, #67483f);
+        font-size: 1.8rem;
+        font-weight: 900;
+        letter-spacing: -0.025em;
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .markdown-content h1)::before {
+        position: absolute;
+        top: 0.08em;
+        left: 0;
+        color: var(--primary);
+        content: "✿";
+        font-size: 1rem;
+        transform: rotate(-8deg);
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .markdown-content h2) {
+        position: relative;
+        margin: 2.8rem 0 1.15rem;
+        padding: 0.62rem 1rem 0.62rem 2.8rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 12%, transparent);
+        border-radius: 0.95rem;
+        background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 9%, var(--glass-card)), transparent);
+        color: color-mix(in srgb, var(--text-color) 86%, #67483f);
+        font-size: 1.45rem;
+        font-weight: 900;
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .markdown-content h2)::before {
+        position: absolute;
+        top: 50%;
+        left: 0.85rem;
+        color: var(--primary);
+        content: "✦";
+        font-size: 0.9rem;
+        transform: translateY(-50%) rotate(8deg);
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .markdown-content h3) {
+        position: relative;
+        margin-top: 2rem;
+        padding-left: 1rem;
+        color: color-mix(in srgb, var(--text-color) 82%, #67483f);
+        font-size: 1.15rem;
+        font-weight: 850;
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .markdown-content h3)::before {
+        position: absolute;
+        top: 0.25em;
+        left: 0;
+        width: 0.28rem;
+        height: 1em;
+        border-radius: 999px;
+        background: var(--primary);
+        content: "";
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .markdown-content blockquote) {
+        position: relative;
+        margin: 1.4rem 0;
+        padding: 1rem 1.2rem 1rem 2.8rem;
+        border: 1px dashed color-mix(in srgb, var(--primary) 20%, transparent);
+        border-radius: 1rem;
+        background: color-mix(in srgb, var(--primary) 6%, var(--glass-card));
+        color: color-mix(in srgb, var(--text-color) 62%, transparent);
+        font-style: normal;
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .markdown-content blockquote)::before {
+        position: absolute;
+        top: 0.8rem;
+        left: 0.95rem;
+        color: var(--primary);
+        content: "♡";
+        font-size: 1.15rem;
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .markdown-content a) {
+        color: var(--primary);
+        text-decoration-color: color-mix(in srgb, var(--primary) 34%, transparent);
+        text-decoration-thickness: 0.12rem;
+        text-underline-offset: 0.2rem;
+    }
+
+    :global(.post-article-shell:not(.anime-theme) .markdown-content img) {
+        padding: 0.32rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 14%, transparent);
+        border-radius: 1rem;
+        background: color-mix(in srgb, var(--glass-card) 75%, white 8%);
+        box-shadow: 0 0.9rem 2rem rgb(83 55 49 / 0.1);
+    }
+
+    :global(.dark .post-article-shell:not(.anime-theme)) {
+        border-color: color-mix(in srgb, var(--primary) 18%, rgb(255 255 255 / 0.07));
+        background: linear-gradient(145deg, rgb(255 255 255 / 0.035), transparent 45%), rgb(25 21 22 / 0.84);
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 1.4rem 3.5rem rgb(0 0 0 / 0.2);
+    }
+
+    :global(.dark .post-journal-header),
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content h2),
+    :global(.dark .post-article-shell:not(.anime-theme) .article-description),
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content blockquote) {
+        border-color: rgb(255 255 255 / 0.07);
+        background: rgb(20 17 18 / 0.58);
+    }
+
+    :global(.dark .post-title),
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content h1),
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content h2),
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content h3),
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content h4) { color: rgb(247 239 235 / 0.92) !important; }
+
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content),
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content p),
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content li),
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content td),
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content figcaption) {
+        color: rgb(247 239 235 / 0.76) !important;
+    }
+
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content strong),
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content th) {
+        color: rgb(255 247 244 / 0.94) !important;
+    }
+
+    @media (max-width: 640px) {
+        .post-article-shell:not(.anime-theme) { border-radius: 1.35rem; }
+        .post-journal-header { margin: -0.35rem -0.25rem 1rem; padding: 1.2rem 1rem 0.9rem; border-radius: 1.05rem; }
+        .post-header-eyebrow { margin-bottom: 0.55rem; font-size: 0.56rem; }
+        .post-reading-stats { gap: 0.38rem; }
+        .post-reading-stats > div { padding: 0.25rem 0.42rem; }
+        .post-title { padding-right: 1rem; font-size: 1.65rem !important; line-height: 1.35 !important; }
+        .post-header-heart { right: 0.75rem; bottom: 0.6rem; }
+        :global(#post-container) { padding: 1rem 0.9rem 0.75rem; }
+        :global(.post-article-shell:not(.anime-theme) .article-description) { padding: 0.85rem 0.9rem 0.85rem 2.8rem; }
+        :global(.post-article-shell:not(.anime-theme) .markdown-content) { font-size: 0.9rem; line-height: 1.85; }
+        :global(.post-article-shell:not(.anime-theme) .markdown-content h1) { margin-top: 2.2rem; padding-left: 1.5rem; font-size: 1.45rem; }
+        :global(.post-article-shell:not(.anime-theme) .markdown-content h2) { margin-top: 2.2rem; padding: 0.55rem 0.75rem 0.55rem 2.35rem; font-size: 1.2rem; }
+        :global(.post-article-shell:not(.anime-theme) .markdown-content h2)::before { left: 0.7rem; }
+        :global(.post-article-shell:not(.anime-theme) .markdown-content h3) { font-size: 1.02rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .post-article-shell *,
+        .post-article-shell *::before,
+        .post-article-shell *::after { scroll-behavior: auto !important; }
+    }
+</style>

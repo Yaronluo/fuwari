@@ -43,9 +43,35 @@ export const navBarConfig: NavBarConfig = {
 	links: [
 		LinkPreset.Home,
 		LinkPreset.Archive,
-		LinkPreset.Series,
-		{ name: "网站统计", url: "/stats/", icon: "fa6-solid:chart-pie" },
-		{ name: "番剧观测", url: "/bangumi/", icon: "fa6-solid:tv" }, // ✨ 在这里为你新增了追番页面的入口
+		{ name: "文章地图", url: "/series/", icon: "fa6-solid:map" },
+		{ name: "追番小窝", url: "/bangumi/", icon: "fa6-solid:tv" }, // ✨ 在这里为你新增了追番页面的入口
+		{
+			name: "探索",
+			url: "/stats/",
+			icon: "fa6-solid:compass",
+			children: [
+				{
+					name: "网站统计",
+					url: "/stats/",
+					icon: "fa6-solid:chart-pie",
+				},
+				{
+					name: "旅行足迹",
+					url: "/travel/",
+					icon: "fa6-solid:location-dot",
+				},
+				{
+					name: "开发手账",
+					url: "/dev/",
+					icon: "fa6-solid:code",
+				},
+				{
+					name: "小小收藏馆",
+					url: "/collection/",
+					icon: "fa6-solid:heart",
+				},
+			],
+		},
 		LinkPreset.About,
 		//{
 		//name: "GitHub",
