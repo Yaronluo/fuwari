@@ -177,10 +177,18 @@ const updateAnimeMood = () => {
 if (!animeWindow.__animeArticleExperienceBound) {
 	animeWindow.__animeArticleExperienceBound = true;
 	window.addEventListener("scroll", updateAnimeMood, { passive: true });
-	document.addEventListener("astro:page-load", () => {
+	const setupAnimeArticle = () => {
 		prepareAnimeArticle();
 		updateAnimeMood();
-	});
+	};
+
+	if (window.swup) {
+		window.swup.hooks.on("page:view", setupAnimeArticle);
+	} else {
+		document.addEventListener("swup:enable", () => {
+			window.swup.hooks.on("page:view", setupAnimeArticle);
+		}, { once: true });
+	}
 }
 
 prepareAnimeArticle();

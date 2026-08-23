@@ -11,6 +11,16 @@ declare global {
 				}>;
 			}>;
 		};
+		__fuwariClickOutsideInitialized?: boolean;
+		__fuwariLayoutHooksInitialized?: boolean;
+		__fuwariLayoutScrollInitialized?: boolean;
+		__fuwariPhotoSwipeHooksInitialized?: boolean;
+		__fuwariArticleTypingHookRegistered?: boolean;
+		__fuwariHeroScrollHookRegistered?: boolean;
+		__fuwariMarkdownCopyBound?: boolean;
+		__fuwariTravelHookRegistered?: boolean;
+		__fuwariStatsGardenHookRegistered?: boolean;
+		__fuwariAboutHookRegistered?: boolean;
 	}
 }
 

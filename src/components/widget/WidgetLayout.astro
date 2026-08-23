@@ -17,6 +17,7 @@ const { id, name, icon, isCollapsed, collapsedHeight, style, isCard = true } = A
 const className = Astro.props.class;
 ---
 <widget-layout data-id={id} data-is-collapsed={String(isCollapsed)} class:list={["pb-4", {"card-base widget-card": isCard}, className]} style={style}>
+	{isCard && <span class="widget-card-glass" aria-hidden="true"></span>}
     <div class="widget-heading font-bold transition text-lg text-neutral-900 dark:text-neutral-100 flex items-center gap-2.5 ml-4 mt-4 mb-3">
         {icon && <span class="widget-heading-icon"><Icon name={icon} /></span>}
         {name}
@@ -39,13 +40,24 @@ const className = Astro.props.class;
         isolation: isolate;
         overflow: hidden;
         border-color: color-mix(in srgb, var(--primary) 13%, var(--glass-border));
-        background:
-            linear-gradient(145deg, rgb(255 255 255 / 0.34), transparent 45%),
-            color-mix(in srgb, var(--glass-card) 94%, var(--primary) 3%);
+        background: transparent;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
         box-shadow:
             inset 0 1px 0 rgb(255 255 255 / 0.72),
             0 0.7rem 1.8rem rgb(119 80 69 / 0.065);
     }
+	.widget-card-glass {
+		position: absolute;
+		inset: 0;
+		z-index: -2;
+		background:
+			linear-gradient(145deg, rgb(255 255 255 / 0.34), transparent 45%),
+			color-mix(in srgb, var(--glass-card) 94%, var(--primary) 3%);
+		backdrop-filter: blur(40px);
+		-webkit-backdrop-filter: blur(40px);
+		pointer-events: none;
+	}
     .widget-card::before {
         content: "";
         position: absolute;
@@ -92,11 +104,13 @@ const className = Astro.props.class;
     }
     :global(.dark) .widget-card {
         border-color: color-mix(in srgb, var(--primary) 18%, var(--glass-border));
-        background:
-            linear-gradient(145deg, rgb(255 255 255 / 0.035), transparent 48%),
-            color-mix(in srgb, var(--glass-card) 95%, var(--primary) 4%);
         box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 0.8rem 2rem rgb(0 0 0 / 0.16);
     }
+	:global(.dark) .widget-card-glass {
+		background:
+			linear-gradient(145deg, rgb(255 255 255 / 0.035), transparent 48%),
+			color-mix(in srgb, var(--glass-card) 95%, var(--primary) 4%);
+	}
     :global(.dark) .widget-heading-icon {
         border-color: color-mix(in srgb, var(--primary) 24%, transparent);
         background: color-mix(in srgb, var(--primary) 12%, transparent);

@@ -134,7 +134,13 @@ const qqLink = profileConfig.links.find((link) => link.name === "QQ")?.url || "#
 	};
 
 	setupEnglishDrawer();
-	document.addEventListener("astro:page-load", setupEnglishDrawer);
+	const setupAboutHooks = () => {
+		if (window.__fuwariAboutHookRegistered) return;
+		window.__fuwariAboutHookRegistered = true;
+		window.swup.hooks.on("page:view", setupEnglishDrawer);
+	};
+	if (window.swup) setupAboutHooks();
+	else document.addEventListener("swup:enable", setupAboutHooks, { once: true });
 </script>
 
 <style>

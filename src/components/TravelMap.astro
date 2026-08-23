@@ -42,12 +42,12 @@ function project(position: Position): [number, number] {
 }
 
 function ringToPath(ring: Position[]): string {
-	return ring
+	return `${ring
 		.map((position, index) => {
 			const [x, y] = project(position);
 			return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
 		})
-		.join("") + "Z";
+		.join("")}Z`;
 }
 
 function geometryToPath(geometry: Geometry): string {
@@ -253,6 +253,8 @@ const markers = travelPlaces.flatMap((place) => {
 		if (!label || provinces.length === 0) return;
 
 		provinces.forEach((province) => {
+			if (province.dataset.travelLabelBound === "true") return;
+			province.dataset.travelLabelBound = "true";
 			const showProvince = () => {
 				const name = province.dataset.province || "这里";
 				label.textContent = province.classList.contains("visited")
@@ -264,6 +266,8 @@ const markers = travelPlaces.flatMap((place) => {
 		});
 
 		document.querySelectorAll<SVGGElement>(".travel-marker").forEach((marker) => {
+			if (marker.dataset.travelLabelBound === "true") return;
+			marker.dataset.travelLabelBound = "true";
 			const showPlace = () => {
 				const place = marker.dataset.place || "这里";
 				const province = marker.dataset.province || "旅行地图";
@@ -302,10 +306,16 @@ const markers = travelPlaces.flatMap((place) => {
 
 	initTravelMap();
 	initTravelScrollbar();
-	if (window.swup) window.swup.hooks.on("page:view", () => {
-		initTravelMap();
-		initTravelScrollbar();
-	});
+	const setupTravelHooks = () => {
+		if (window.__fuwariTravelHookRegistered) return;
+		window.__fuwariTravelHookRegistered = true;
+		window.swup.hooks.on("page:view", () => {
+			initTravelMap();
+			initTravelScrollbar();
+		});
+	};
+	if (window.swup) setupTravelHooks();
+	else document.addEventListener("swup:enable", setupTravelHooks, { once: true });
 </script>
 
 <style>

@@ -36,6 +36,7 @@ const techGroups = [
 		items: [
 			{ name: "Git", mark: "G", tone: "tea", status: "日常使用" },
 			{ name: "GitHub", mark: "GH", tone: "blue", status: "日常使用" },
+			{ name: "VS Code", mark: "VS", tone: "blue", status: "日常使用" },
 			{ name: "Cloudflare", mark: "CF", tone: "coral", status: "部署使用" },
 			{ name: "Claude Code", mark: "CC", tone: "pink", status: "辅助开发" },
 			{ name: "Codex", mark: "CX", tone: "purple", status: "辅助开发" },
@@ -269,10 +270,13 @@ const projects = [
 
 	const devWindow = window as Window & { __devJournalHookRegistered?: boolean };
 	initDevJournal();
-	if (window.swup && !devWindow.__devJournalHookRegistered) {
+	const setupDevJournalHooks = () => {
+		if (devWindow.__devJournalHookRegistered) return;
 		devWindow.__devJournalHookRegistered = true;
 		window.swup.hooks.on("page:view", initDevJournal);
-	}
+	};
+	if (window.swup) setupDevJournalHooks();
+	else document.addEventListener("swup:enable", setupDevJournalHooks, { once: true });
 </script>
 
 <style>

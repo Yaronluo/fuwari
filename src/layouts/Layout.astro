@@ -4,7 +4,8 @@ import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
 import ConfigCarrier from "@components/ConfigCarrier.astro";
-import LightDarkSwitch from "@components/LightDarkSwitch.svelte";
+import MouseNoteTrail from "@components/MouseNoteTrail.astro";
+import ThemeSwitch from "@components/ThemeSwitch.astro";
 import { profileConfig, siteConfig } from "@/config";
 import {
 	AUTO_MODE,
@@ -36,8 +37,7 @@ let { title, banner, description, lang, setOGTypeArticle } = Astro.props;
 // so use Swup hooks instead to change the height immediately when a link is clicked
 const isHomePage = pathsEqual(Astro.url.pathname, url("/"));
 
-// defines global css variables
-// why doing this in Layout instead of GlobalStyles: https://github.com/withastro/astro/issues/6728#issuecomment-1502203757
+// Define global CSS variables at the layout level so every page receives them.
 const configHue = siteConfig.themeColor.hue;
 if (!banner || typeof banner !== "string" || banner.trim() === "") {
 	banner = siteConfig.banner.src;
@@ -87,6 +87,28 @@ const bannerOffset =
 		</style>
 		<script is:inline>
 			(() => {
+				const navigationEntry = performance.getEntriesByType('navigation')[0];
+				const isPageReload = navigationEntry?.type === 'reload';
+
+				if (isPageReload) {
+					document.documentElement.classList.add('is-page-reload');
+					document.documentElement.classList.remove('navbar-loading');
+
+					const keepReloadedContentStill = () => {
+						document.querySelectorAll('.onload-animation').forEach((element) => {
+							element.classList.add('skip-enter-animation');
+						});
+						document.documentElement.classList.remove('is-page-reload');
+					};
+
+					if (document.readyState === 'loading') {
+						document.addEventListener('DOMContentLoaded', keepReloadedContentStill, { once: true });
+					} else {
+						keepReloadedContentStill();
+					}
+					return;
+				}
+
 				const revealNavbar = () => {
 					setTimeout(() => {
 						requestAnimationFrame(() => {
@@ -127,7 +149,7 @@ const bannerOffset =
 		<meta name="twitter:title" content={pageTitle}>
 		<meta name="twitter:description" content={description || pageTitle}>
 
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
 		{favicons.map(favicon => (
 			<link rel="icon"
@@ -139,8 +161,10 @@ const bannerOffset =
 
 		<!-- Set the theme before the page is rendered to avoid a flash -->
 		<script is:inline define:vars={{DEFAULT_THEME, LIGHT_MODE, DARK_MODE, AUTO_MODE, BANNER_HEIGHT_EXTEND, PAGE_WIDTH, configHue, themeColorFixed: siteConfig.themeColor.fixed}}>
+			(() => {
 			// Load the theme from local storage
 			const theme = localStorage.getItem('theme') || DEFAULT_THEME;
+			document.documentElement.dataset.themeMode = theme;
 			switch (theme) {
 				case LIGHT_MODE:
 					document.documentElement.classList.remove('dark');
@@ -169,6 +193,7 @@ const bannerOffset =
 			let offset = Math.floor(window.innerHeight * (BANNER_HEIGHT_EXTEND / 100));
 			offset = offset - offset % 4;
 			document.documentElement.style.setProperty('--banner-height-extend', `${offset}px`);
+			})();
 		</script>
 		<style define:vars={{
 			configHue,
@@ -192,6 +217,7 @@ const bannerOffset =
 			<div class="palette-blob palette-blob--mio absolute top-[35%] right-[15%] w-[35%] h-[35%] rounded-full blur-[80px] pointer-events-none transition-colors duration-500"></div>
 		</div>
 		<ConfigCarrier></ConfigCarrier>
+		<MouseNoteTrail />
 
 		<!-- 阅读进度条 -->
 		<div id="reading-progress-bar" role="progressbar" aria-label="文章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" class="reading-track fixed top-0 left-0 w-full z-[9999] pointer-events-none opacity-0 transition-opacity duration-300">
@@ -205,7 +231,7 @@ const bannerOffset =
 
 		<!-- 悬浮的亮暗色切换按钮 -->
 		<div class="fixed bottom-6 left-6 md:bottom-8 md:left-8 z-[9999] pointer-events-auto">
-			<LightDarkSwitch client:only="svelte" />
+			<ThemeSwitch />
 		</div>
 
 		<slot />
@@ -221,19 +247,6 @@ const bannerOffset =
 	'banner-height': `${BANNER_HEIGHT}vh`,
 }}>
 @tailwind components;
-html,
-body {
-	width: 100%;
-	max-width: 100%;
-	overflow-x: clip;
-}
-@media (max-width: 767px) {
-	body > .k-on-palette-bg,
-	#top-row {
-		right: auto;
-		width: 100vw;
-	}
-}
 .k-on-palette-bg {
 	background: linear-gradient(135deg, var(--cream-soft) 0%, var(--cream-base) 52%, color-mix(in srgb, var(--primary) 7%, var(--cream-base)) 100%);
 }
@@ -365,70 +378,31 @@ import {
 } from "../constants/constants";
 import { siteConfig } from '../config';
 
-/* Preload fonts */
-// (async function() {
-// 	try {
-// 		await Promise.all([
-// 			document.fonts.load("400 1em Roboto"),
-// 			document.fonts.load("700 1em Roboto"),
-// 		]);
-// 		document.body.classList.remove("hidden");
-// 	} catch (error) {
-// 		console.log("Failed to load fonts:", error);
-// 	}
-// })();
-
-/* TODO This is a temporary solution for style flicker issue when the transition is activated */
-/* issue link: https://github.com/withastro/astro/issues/8711, the solution get from here too */
-/* update: fixed in Astro 3.2.4 */
-/*
-function disableAnimation() {
-	const css = document.createElement('style')
-	css.appendChild(
-		document.createTextNode(
-			`*{
-              -webkit-transition:none!important;
-              -moz-transition:none!important;
-              -o-transition:none!important;
-              -ms-transition:none!important;
-              transition:none!important
-              }`
-		)
-	)
-	document.head.appendChild(css)
-
-	return () => {
-		// Force restyle
-		;(() => window.getComputedStyle(document.body))()
-
-		// Wait for next tick before removing
-		setTimeout(() => {
-			document.head.removeChild(css)
-		}, 1)
-	}
-}
-*/
-
 const bannerEnabled = !!document.getElementById('banner-wrapper')
 
-function setClickOutsideToClose(panel: string, ignores: string[]) {
-	document.addEventListener("click", event => {
-		let panelDom = document.getElementById(panel);
-		let tDom = event.target;
-		if (!(tDom instanceof Node)) return;		// Ensure the event target is an HTML Node
-		for (let ig of ignores) {
-			let ie = document.getElementById(ig)
-			if (ie == tDom || (ie?.contains(tDom))) {
-				return;
-			}
-		}
-		panelDom!.classList.add("float-panel-closed");
-	});
-}
-setClickOutsideToClose("display-setting", ["display-setting", "display-settings-switch"])
-setClickOutsideToClose("nav-menu-panel", ["nav-menu-panel", "nav-menu-switch"])
-setClickOutsideToClose("search-panel", ["search-panel", "search-bar", "search-switch"])
+if (!window.__fuwariClickOutsideInitialized) {
+	window.__fuwariClickOutsideInitialized = true
+	const floatingPanels = [
+		{ panel: "display-setting", ignores: ["display-setting", "display-settings-switch"] },
+		{ panel: "nav-menu-panel", ignores: ["nav-menu-panel", "nav-menu-switch"] },
+		{ panel: "search-panel", ignores: ["search-panel", "search-bar", "search-switch"] },
+	]
 
+	document.addEventListener("click", event => {
+		const target = event.target
+		if (!(target instanceof Node)) return
+
+		floatingPanels.forEach(({ panel, ignores }) => {
+			const clickedInside = ignores.some(id => {
+				const ignoredElement = document.getElementById(id)
+				return ignoredElement === target || ignoredElement?.contains(target)
+			})
+			if (!clickedInside) {
+				document.getElementById(panel)?.classList.add("float-panel-closed")
+			}
+		})
+	})
+}
 
 function loadTheme() {
 	const theme = getStoredTheme()
@@ -442,11 +416,6 @@ function loadHue() {
 function initCustomScrollbar() {
 	const bodyElement = document.querySelector('body');
 	if (!bodyElement) return;
-	if (window.matchMedia('(max-width: 767px)').matches) {
-		document.documentElement.removeAttribute('data-overlayscrollbars-initialize');
-		bodyElement.removeAttribute('data-overlayscrollbars-initialize');
-		return;
-	}
 	OverlayScrollbars(
 		// docs say that a initialization to the body element would affect native functionality like window.scrollTo
 		// but just leave it here for now
@@ -456,10 +425,6 @@ function initCustomScrollbar() {
 				nativeScrollbarsOverlaid: true,    // don't initialize the overlay scrollbar if there is a native one
 			}
 		}, {
-		overflow: {
-			x: 'hidden',
-			y: 'scroll',
-		},
 		scrollbars: {
 			theme: 'scrollbar-base scrollbar-auto py-1',
 			autoHide: 'move',
@@ -526,7 +491,6 @@ function showBanner() {
 }
 
 function init() {
-	// disableAnimation()()		// TODO
 	loadTheme();
 	loadHue();
 	initCustomScrollbar();
@@ -537,18 +501,9 @@ function init() {
 init();
 
 const setup = () => {
-	// TODO: temp solution to change the height of the banner
-/*
-	window.swup.hooks.on('animation:out:start', () => {
-		const path = window.location.pathname
-		const body = document.querySelector('body')
-		if (path[path.length - 1] === '/' && !body.classList.contains('is-home')) {
-			body.classList.add('is-home')
-		} else if (path[path.length - 1] !== '/' && body.classList.contains('is-home')) {
-			body.classList.remove('is-home')
-		}
-	})
-*/
+	if (window.__fuwariLayoutHooksInitialized) return
+	window.__fuwariLayoutHooksInitialized = true
+
 	window.swup.hooks.on('link:click', () => {
 		// Remove the delay for the first time page load
 		document.documentElement.style.setProperty('--content-delay', '0ms')
@@ -608,11 +563,9 @@ const setup = () => {
 if (window?.swup?.hooks) {
 	setup()
 } else {
-	document.addEventListener('swup:enable', setup)
+	document.addEventListener('swup:enable', setup, { once: true })
 }
 
-let backToTopBtn = document.getElementById('back-to-top-btn');
-let toc = document.getElementById('toc-wrapper');
 function updateNavbarAppearance() {
 	if (document.documentElement.classList.contains('nav-route-changing')) return
 
@@ -625,7 +578,9 @@ function updateNavbarAppearance() {
 
 function scrollFunction() {
 	updateNavbarAppearance()
-	let bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100)
+	const bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100)
+	const backToTopBtn = document.getElementById('back-to-top-btn')
+	const toc = document.getElementById('toc-wrapper')
 
 	if (backToTopBtn) {
 		if (document.body.scrollTop > bannerHeight || document.documentElement.scrollTop > bannerHeight) {
@@ -643,11 +598,6 @@ function scrollFunction() {
 		}
 	}
 
-	// 导航栏分离/合并动画 - 顶部分开，向下滚动合并
-}
-window.onscroll = function() {
-	scrollFunction();
-	updateReadingProgress();
 }
 
 // 阅读进度条逻辑
@@ -685,15 +635,24 @@ function updateReadingProgress() {
 	progressBar.classList.toggle('is-complete', percent >= 96.5);
 }
 
-// 初始化进度条
-updateReadingProgress();
-
-window.onresize = () => {
+function updateBannerHeight() {
 	// calculate the --banner-height-extend, which needs to be a multiple of 4 to avoid blurry text
 	let offset = Math.floor(window.innerHeight * (BANNER_HEIGHT_EXTEND / 100));
 	offset = offset - offset % 4;
 	document.documentElement.style.setProperty('--banner-height-extend', `${offset}px`);
 }
+
+if (!window.__fuwariLayoutScrollInitialized) {
+	window.__fuwariLayoutScrollInitialized = true
+	window.addEventListener('scroll', () => {
+		scrollFunction()
+		updateReadingProgress()
+	}, { passive: true })
+	window.addEventListener('resize', updateBannerHeight, { passive: true })
+}
+
+scrollFunction()
+updateReadingProgress()
 
 </script>
 
@@ -736,6 +695,9 @@ function createPhotoSwipe() {
 }
 
 const setup = () => {
+	if (window.__fuwariPhotoSwipeHooksInitialized) return
+	window.__fuwariPhotoSwipeHooksInitialized = true
+
 	if (!lightbox) {
 		createPhotoSwipe()
 	}
@@ -754,7 +716,7 @@ const setup = () => {
 if (window.swup) {
 	setup()
 } else {
-	document.addEventListener("swup:enable", setup)
+	document.addEventListener("swup:enable", setup, { once: true })
 }
 </script>
 

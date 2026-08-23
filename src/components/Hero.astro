@@ -67,7 +67,14 @@ import { Icon } from "astro-icon/components";
             <span class="avatar-spark avatar-spark--two" aria-hidden="true">♡</span>
             <button id="hero-avatar-button" class="avatar-photo" type="button" aria-label="点一下平泽唯头像">
                 <span class="avatar-image-shell">
-                    <ImageWrapper src={profileConfig.avatar || ""} alt="Avatar" class="w-full h-full object-cover" />
+                    <ImageWrapper
+                        src={profileConfig.avatar || ""}
+                        alt="Avatar"
+                        class="w-full h-full object-cover"
+                        loading="eager"
+                        decoding="sync"
+                        fetchpriority="high"
+                    />
                 </span>
             </button>
             <span class="avatar-bubble" aria-live="polite">うんたん♪</span>
@@ -809,7 +816,8 @@ import { Icon } from "astro-icon/components";
         if (!avatarButton || !bubble || avatarButton.dataset.avatarBound === 'true') return;
 
         const messages = ['うんたん♪', '吉太～', '今天也要开心 ୨୧', '放学后见吧 ♫'];
-        let messageIndex = 0;
+        const initialMessageIndex = messages.indexOf(bubble.textContent?.trim() ?? '');
+        let messageIndex = initialMessageIndex >= 0 ? initialMessageIndex + 1 : 0;
         let hideTimer;
 
         avatarButton.dataset.avatarBound = 'true';

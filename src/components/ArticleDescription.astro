@@ -48,16 +48,16 @@ if (!description || description.trim() === '') {
             let index = 0;
             const typeSpeed = 25;
 
-            function typeWriter() {
-                if (index <= text.length) {
+			function typeWriter() {
+				if (!descElement.isConnected) return;
+				if (index <= text.length) {
                     typedSpan.textContent = text.slice(0, index);
                     untypedSpan.textContent = text.slice(index);
                     index++;
                     setTimeout(typeWriter, typeSpeed);
-                } else {
-                    cursorSpan.style.display = 'none';
-                    descElement.classList.add('typing-complete');
-                }
+				} else {
+					cursorSpan.style.display = 'none';
+				}
             }
 
             function startTyping() {
@@ -71,17 +71,22 @@ if (!description || description.trim() === '') {
             const parent = descElement.closest('.article-description');
             
             // 安全机制：如果由于某种原因没有触发 animationend，设置 800ms 的兜底定时器
-            let fallbackTimer = setTimeout(() => {
-                parent?.removeEventListener('animationend', onAnimationEnd);
-                startTyping();
-            }, 800);
+			const fallbackTimer = setTimeout(() => {
+				parent?.removeEventListener('animationend', onAnimationEnd);
+				if (descElement.isConnected) startTyping();
+			}, 800);
 
-            function onAnimationEnd() {
-                clearTimeout(fallbackTimer);
-                startTyping();
+			function onAnimationEnd(event: Event) {
+				if (event.target !== parent) return;
+				clearTimeout(fallbackTimer);
+				startTyping();
             }
 
-            if (parent && parent.classList.contains('onload-animation')) {
+            const hasEnterAnimation = parent
+                && parent.classList.contains('onload-animation')
+                && getComputedStyle(parent).animationName !== 'none';
+
+            if (hasEnterAnimation) {
                 parent.addEventListener('animationend', onAnimationEnd, { once: true });
             } else {
                 clearTimeout(fallbackTimer);
@@ -94,9 +99,10 @@ if (!description || description.trim() === '') {
     initTyping();
 
     // 🎯 关键修复：注册 Swup 钩子，确保页面切换后重新初始化打字机效果
-    function setupSwupHooks() {
-        if (window.swup?.hooks) {
-            window.swup.hooks.on('page:view', () => {
+	function setupSwupHooks() {
+		if (window.swup?.hooks && !window.__fuwariArticleTypingHookRegistered) {
+			window.__fuwariArticleTypingHookRegistered = true;
+			window.swup.hooks.on('page:view', () => {
                 // Swup 页面切换完成后重新初始化打字机
                 initTyping();
             });
@@ -105,9 +111,9 @@ if (!description || description.trim() === '') {
 
     if (window.swup) {
         setupSwupHooks();
-    } else {
-        document.addEventListener('swup:enable', setupSwupHooks);
-    }
+	} else {
+		document.addEventListener('swup:enable', setupSwupHooks, { once: true });
+	}
 </script>
 
 <style>

@@ -371,10 +371,13 @@ const UMAMI_SHARE_ID = "1Dc4PAeDKgLAox0M";
 		}
 
 		initStatsGarden();
-		if (window.swup && !window.__statsGardenHookRegistered) {
-			window.__statsGardenHookRegistered = true;
+		const setupStatsHooks = () => {
+			if (window.__fuwariStatsGardenHookRegistered) return;
+			window.__fuwariStatsGardenHookRegistered = true;
 			window.swup.hooks.on('page:view', initStatsGarden);
-		}
+		};
+		if (window.swup) setupStatsHooks();
+		else document.addEventListener('swup:enable', setupStatsHooks, { once: true });
 	})();
 </script>
 

@@ -8,9 +8,9 @@ import type { SearchResult } from "@/global";
 
 let keyword = "";
 let result: SearchResult[] = [];
-let isSearching = false;
 let pagefindLoaded = false;
 let initialized = false;
+let searchRequestId = 0;
 
 const fakeResult: SearchResult[] = [
 	{
@@ -21,24 +21,18 @@ const fakeResult: SearchResult[] = [
 	{
 		url: url("/"),
 		meta: { title: "If You Want to Test the Search" },
-		excerpt: "Try running <mark>npm build && npm preview</mark> instead.",
+		excerpt: "Try running <mark>pnpm build && pnpm preview</mark> instead.",
 	},
 ];
 
-const togglePanel = () => {
-	const panel = document.getElementById("search-panel");
-	panel?.classList.toggle("float-panel-closed");
-};
-
 const search = async (kw: string): Promise<void> => {
+	const requestId = ++searchRequestId;
 	if (!kw) {
 		result = [];
 		return;
 	}
 
 	if (!initialized) return;
-
-	isSearching = true;
 
 	try {
 		let searchResults: SearchResult[] = [];
@@ -55,12 +49,10 @@ const search = async (kw: string): Promise<void> => {
 			console.error("Pagefind is not available in production environment.");
 		}
 
-		result = searchResults;
+		if (requestId === searchRequestId) result = searchResults;
 	} catch (error) {
 		console.error("Search error:", error);
-		result = [];
-	} finally {
-		isSearching = false;
+		if (requestId === searchRequestId) result = [];
 	}
 };
 
@@ -77,7 +69,6 @@ onMount(() => {
 			typeof window !== "undefined" &&
 			!!window.pagefind &&
 			typeof window.pagefind.search === "function";
-		if (keyword) search(keyword);
 	};
 
 	if (import.meta.env.DEV) {
@@ -85,24 +76,24 @@ onMount(() => {
 	} else {
 		document.addEventListener("pagefindready", initializeSearch);
 		document.addEventListener("pagefindloaderror", initializeSearch);
-		setTimeout(() => {
+		const fallbackTimer = window.setTimeout(() => {
 			if (!initialized) initializeSearch();
 		}, 2000);
+
+		return () => {
+			window.clearTimeout(fallbackTimer);
+			document.removeEventListener("pagefindready", initializeSearch);
+			document.removeEventListener("pagefindloaderror", initializeSearch);
+		};
 	}
 });
 
-$: if (initialized && keyword) {
+$: if (initialized) {
 	(async () => {
 		await search(keyword);
 	})();
 }
 </script>
-
-<!-- toggle btn for all views -->
-<button on:click={togglePanel} aria-label="Search Panel" id="search-switch"
-        class="btn-plain scale-animation rounded-lg w-10 h-10 active:scale-90">
-    <Icon icon="material-symbols:search" class="text-[1.25rem]"></Icon>
-</button>
 
 <!-- search panel -->
 <div id="search-panel" class="float-panel float-panel-closed search-panel fixed w-[calc(100%-2rem)] md:w-[30rem]

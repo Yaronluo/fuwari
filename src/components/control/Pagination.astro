@@ -18,7 +18,6 @@ const className = Astro.props.class;
 const ADJ_DIST = 2;
 const VISIBLE = ADJ_DIST * 2 + 1;
 
-// for test
 let count = 1;
 let l = page.currentPage;
 let r = page.currentPage;
@@ -53,16 +52,16 @@ const getPageUrl = (p: number) => {
 
 <nav class:list={[className, "flex justify-center"]} style={style} aria-label="Pagination">
     <div class="pagination-shell inline-flex items-center gap-1 rounded-full p-1.5 font-bold text-neutral-700 dark:text-neutral-300">
-        <a href={page.url.prev || ""} aria-label="Previous Page" aria-disabled={page.url.prev == undefined ? "true" : undefined}
-           tabindex={page.url.prev == undefined ? -1 : undefined}
-           class:list={["pagination-item pagination-arrow", {"is-disabled": page.url.prev == undefined}]}
+        <a href={page.url.prev || ""} aria-label="Previous Page" aria-disabled={page.url.prev === undefined ? "true" : undefined}
+           tabindex={page.url.prev === undefined ? -1 : undefined}
+           class:list={["pagination-item pagination-arrow", {"is-disabled": page.url.prev === undefined}]}
         >
             <Icon name="material-symbols:chevron-left-rounded" class="text-[1.6rem]"></Icon>
         </a>
         {pages.map((p) => {
-            if (p == HIDDEN)
+            if (p === HIDDEN)
                 return <span class="pagination-ellipsis"><Icon name="material-symbols:more-horiz" /></span>;
-            if (p == page.currentPage)
+            if (p === page.currentPage)
                 return <span class="pagination-item is-current" aria-current="page">
                     {p}
                 </span>
@@ -70,9 +69,9 @@ const getPageUrl = (p: number) => {
                 class="pagination-item"
             >{p}</a>
         })}
-        <a href={page.url.next || ""} aria-label="Next Page" aria-disabled={page.url.next == undefined ? "true" : undefined}
-           tabindex={page.url.next == undefined ? -1 : undefined}
-           class:list={["pagination-item pagination-arrow", {"is-disabled": page.url.next == undefined}]}
+        <a href={page.url.next || ""} aria-label="Next Page" aria-disabled={page.url.next === undefined ? "true" : undefined}
+           tabindex={page.url.next === undefined ? -1 : undefined}
+           class:list={["pagination-item pagination-arrow", {"is-disabled": page.url.next === undefined}]}
         >
             <Icon name="material-symbols:chevron-right-rounded" class="text-[1.6rem]"></Icon>
         </a>

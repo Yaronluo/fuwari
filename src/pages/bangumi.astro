@@ -19,6 +19,30 @@ const GENRE_TAGS = new Set([
     '魔法', '机战', '后宫', '历史', '职场', '公路', '偶像', '美食'
 ]);
 
+interface BangumiSubject {
+    id: number;
+    name?: string;
+    name_cn?: string;
+    score?: number;
+    eps?: number;
+    total_episodes?: number;
+    images?: { large?: string; common?: string };
+    tags?: Array<{ name?: string }>;
+}
+
+interface BangumiCollection {
+    type: number;
+    rate?: number;
+    ep_status?: number;
+    subject?: BangumiSubject;
+}
+
+type BangumiCollectionWithSubject = BangumiCollection & { subject: BangumiSubject };
+
+function hasSubject(item: BangumiCollection): item is BangumiCollectionWithSubject {
+    return Boolean(item.subject);
+}
+
 function selectDisplayTags(tags: Array<{ name?: string }> | undefined) {
     const names = Array.from(new Set((tags || []).map((tag) => tag?.name?.trim()).filter(Boolean))) as string[];
     const genres = names.filter((name) => GENRE_TAGS.has(name));
@@ -33,10 +57,9 @@ function selectDisplayTags(tags: Array<{ name?: string }> | undefined) {
     return [...genres, ...fallback].slice(0, 5);
 }
 
-let allCollections: any[] = [];
-let statusCounts: Record<string, number> = { '3': 0, '2': 0, '1': 0, '4': 0, '5': 0 };
+let allCollections: BangumiCollectionWithSubject[] = [];
+const statusCounts: Record<string, number> = { '3': 0, '2': 0, '1': 0, '4': 0, '5': 0 };
 let errorMessage: string | null = null;
-let isLoading = true;
 
 try {
     if (!BANGUMI_TOKEN) {
@@ -46,7 +69,7 @@ try {
     const fetchPromises = COLLECTION_TYPES.map(async (collectionType) => {
         const batchSize = 50;
         let offset = 0;
-        const collections: any[] = [];
+		const collections: BangumiCollection[] = [];
 
         while (true) {
             const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${collectionType.id}&limit=${batchSize}&offset=${offset}`;
@@ -61,9 +84,9 @@ try {
                 throw new Error(`API 请求失败 (${response.status}): ${errorText}`);
             }
 
-            const responseData = await response.json();
-            const batch = responseData.data || [];
-            collections.push(...batch.map((item: any) => ({ ...item, type: collectionType.id })));
+			const responseData = await response.json() as { data?: BangumiCollection[] };
+			const batch = responseData.data || [];
+			collections.push(...batch.map((item) => ({ ...item, type: collectionType.id })));
 
             if (batch.length < batchSize) break;
             offset += batchSize;
@@ -73,16 +96,14 @@ try {
     });
 
     const results = await Promise.all(fetchPromises);
-    allCollections = results.flat().filter((item) => item?.subject);
+	allCollections = results.flat().filter(hasSubject);
 
-    allCollections.forEach((item: any) => {
+	allCollections.forEach((item) => {
         statusCounts[String(item.type)] = (statusCounts[String(item.type)] || 0) + 1;
     });
 } catch (error) {
     console.error("获取 Bangumi 数据失败:", error);
     errorMessage = error instanceof Error ? error.message : "未知错误";
-} finally {
-    isLoading = false;
 }
 
 const userRatings = allCollections
@@ -126,11 +147,7 @@ const maxRatingCount = Math.max(...ratingDistribution.map((item) => item.count),
             </div>
         </header>
 
-        {isLoading ? (
-            <div class="bangumi-state">
-                <div class="bangumi-spinner" aria-label="正在加载"></div>
-            </div>
-        ) : errorMessage ? (
+		{errorMessage ? (
             <div class="bangumi-state bangumi-state-error">
                 <span class="bangumi-state-icon">!</span>
                 <strong>数据加载失败</strong>
@@ -185,7 +202,7 @@ const maxRatingCount = Math.max(...ratingDistribution.map((item) => item.count),
                 </nav>
 
                 <section class="bangumi-grid" id="bangumi-grid" aria-label="番剧收藏列表">
-                    {allCollections.map((item: any) => {
+					{allCollections.map((item) => {
                         const statusInfo = COLLECTION_TYPES.find((collectionType) => collectionType.id === item.type);
                         const name = item.subject.name_cn || item.subject.name || 'Anime';
                         const scoreValue = Number(item.subject.score || 0);
@@ -859,19 +876,6 @@ const maxRatingCount = Math.max(...ratingDistribution.map((item) => item.count),
         font-weight: 900;
     }
 
-    .bangumi-spinner {
-        width: 2rem;
-        height: 2rem;
-        border: 2px solid color-mix(in srgb, var(--primary) 18%, transparent);
-        border-top-color: var(--primary);
-        border-radius: 50%;
-        animation: bangumi-spin 800ms linear infinite;
-    }
-
-    @keyframes bangumi-spin {
-        to { transform: rotate(360deg); }
-    }
-
     @keyframes bangumi-status-pulse {
         0%, 100% { opacity: 0.35; transform: scale(0.85); }
         50% { opacity: 1; transform: scale(1.15); }
@@ -1015,7 +1019,6 @@ const maxRatingCount = Math.max(...ratingDistribution.map((item) => item.count),
     }
 
     @media (prefers-reduced-motion: reduce) {
-        .bangumi-spinner { animation: none; }
         .bangumi-poster,
         .bangumi-poster img,
         .bangumi-tab,

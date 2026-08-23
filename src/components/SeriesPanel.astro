@@ -25,7 +25,7 @@ const groups: { category: string; series: Series[] }[] = (() => {
         (grouped: { [category: string]: {[seriesName: string]: Series} }, post) => {
             const category = post.data.category || UNCATEGORIZED
             const series = post.data.series || UNCATEGORIZED
-            if (category == UNCATEGORIZED || series === UNCATEGORIZED) {
+			if (category === UNCATEGORIZED || series === UNCATEGORIZED) {
                 return grouped
             }
             if (!grouped[category]) {

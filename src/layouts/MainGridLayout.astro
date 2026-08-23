@@ -92,17 +92,14 @@ const isHomePage = pathsEqual(Astro.url.pathname, url("/"));
             <main id="swup-container" class:list={["transition-swup-fade col-span-2 overflow-hidden", {"lg:col-span-1": isHomePage}]}>
                 <div id="content-wrapper" class:list={["onload-animation", { "article-content-wrapper": setOGTypeArticle }]}>
                     <!-- the overflow-hidden here prevent long text break the layout-->
-                    <!-- make id different from windows.swup global property -->
-                    <slot></slot>
-                    <div class="footer col-span-2 onload-animation hidden lg:block">
-                        <Footer></Footer>
-                    </div>
-                </div>
-            </main>
+					<!-- make id different from windows.swup global property -->
+					<slot></slot>
+				</div>
+			</main>
 
-            <div class="footer col-span-2 onload-animation block lg:hidden">
-                <Footer></Footer>
-            </div>
+			<div class:list={["footer col-span-2 onload-animation", {"lg:col-start-2 lg:col-span-1": isHomePage}]}>
+				<Footer></Footer>
+			</div>
         </div>
 
         <BackToTop></BackToTop>

@@ -120,7 +120,9 @@
 		render();
 
 		return () => {
-			eventListeners.forEach((cleanup) => cleanup());
+			eventListeners.forEach((cleanup) => {
+				cleanup();
+			});
 			eventListeners.length = 0;
 		};
 	});

@@ -24,6 +24,14 @@ html.is-animating .transition-swup-fade {
     animation-fill-mode: backwards;
 }
 
+/* A hard refresh should paint the already available page immediately. Keep
+   entrance motion for first visits and Swup navigation, but do not hide and
+   reveal the same content again when the browser reloads the document. */
+html.is-page-reload .onload-animation,
+.onload-animation.skip-enter-animation {
+    animation: none !important;
+}
+
 /* A long article must not scale as one giant box. With the default centered
    transform origin, scaling a 10,000px+ wrapper by 0.98 moves its heading by
    hundreds of pixels and looks like a second page refresh. The wrapper owns

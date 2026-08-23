@@ -79,7 +79,7 @@ function selectPalette(palette: ThemePalette) {
 				onclick={() => selectPalette(palette.id)}
 			>
 				<span class="palette-emblem" aria-hidden="true" style={`--palette-accent:${palette.colors[1]}`}>
-					<Icon icon={palette.icon} class="palette-instrument" />
+					<Icon icon={palette.icon} class="w-[1.35rem] h-[1.35rem]" />
 					<span class="palette-swatches">
 						{#each palette.colors as color}
 							<span class="palette-swatch" style={`background:${color}`}></span>
@@ -147,11 +147,6 @@ function selectPalette(palette: ThemePalette) {
 	.palette-option.active .palette-emblem {
 		transform: rotate(-3deg) scale(1.04);
 		background: color-mix(in srgb, var(--palette-accent) 17%, var(--cream-base));
-	}
-
-	.palette-instrument {
-		width: 1.35rem;
-		height: 1.35rem;
 	}
 
 	.palette-swatch {

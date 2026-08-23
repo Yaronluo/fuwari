@@ -1,0 +1,115 @@
+---
+import { Icon } from "astro-icon/components";
+import { AUTO_MODE, DARK_MODE, LIGHT_MODE } from "@constants/constants";
+import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
+---
+
+<div id="theme-switch-root" class="relative z-50 flex items-center justify-center" role="menu" tabindex="-1">
+    <button
+        aria-label="Light/Dark Mode"
+        role="menuitem"
+        class="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 bg-white/35 dark:bg-black/45 backdrop-blur-md border border-white/30 dark:border-white/10 shadow-lg hover:shadow-xl hover:scale-110 active:scale-95"
+        id="scheme-switch"
+    >
+        <span class="scheme-switch-icon scheme-switch-icon--light absolute transition-opacity duration-300 text-[var(--primary)]">
+            <Icon name="material-symbols:wb-sunny-outline-rounded" class="text-[1.5rem]"></Icon>
+        </span>
+        <span class="scheme-switch-icon scheme-switch-icon--dark absolute transition-opacity duration-300 text-[var(--primary)]">
+            <Icon name="material-symbols:dark-mode-outline-rounded" class="text-[1.5rem]"></Icon>
+        </span>
+        <span class="scheme-switch-icon scheme-switch-icon--auto absolute transition-opacity duration-300 text-[var(--primary)]">
+            <Icon name="material-symbols:radio-button-partial-outline" class="text-[1.5rem]"></Icon>
+        </span>
+    </button>
+
+    <div id="light-dark-panel" class="hidden absolute transition float-panel-closed bottom-full left-0 mb-3 lg:block">
+        <div class="card-base float-panel p-2 bg-white/35 dark:bg-black/45 backdrop-blur-2xl shadow-xl border border-white/40 dark:border-white/10">
+            <button role="menuitemradio" data-theme-choice={LIGHT_MODE} class="theme-choice flex transition whitespace-nowrap items-center !justify-start w-full btn-plain scale-animation rounded-lg h-9 px-3 font-medium active:scale-95 mb-0.5">
+                <Icon name="material-symbols:wb-sunny-outline-rounded" class="text-[1.25rem] mr-3"></Icon>
+                {i18n(I18nKey.lightMode)}
+            </button>
+            <button role="menuitemradio" data-theme-choice={DARK_MODE} class="theme-choice flex transition whitespace-nowrap items-center !justify-start w-full btn-plain scale-animation rounded-lg h-9 px-3 font-medium active:scale-95 mb-0.5">
+                <Icon name="material-symbols:dark-mode-outline-rounded" class="text-[1.25rem] mr-3"></Icon>
+                {i18n(I18nKey.darkMode)}
+            </button>
+            <button role="menuitemradio" data-theme-choice={AUTO_MODE} class="theme-choice flex transition whitespace-nowrap items-center !justify-start w-full btn-plain scale-animation rounded-lg h-9 px-3 font-medium active:scale-95">
+                <Icon name="material-symbols:radio-button-partial-outline" class="text-[1.25rem] mr-3"></Icon>
+                {i18n(I18nKey.systemMode)}
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .scheme-switch-icon {
+        opacity: 0;
+    }
+
+    :global(html[data-theme-mode="light"]) .scheme-switch-icon--light,
+    :global(html[data-theme-mode="dark"]) .scheme-switch-icon--dark,
+    :global(html[data-theme-mode="auto"]) .scheme-switch-icon--auto {
+        opacity: 1;
+    }
+
+    :global(html[data-theme-mode="light"]) .theme-choice[data-theme-choice="light"],
+    :global(html[data-theme-mode="dark"]) .theme-choice[data-theme-choice="dark"],
+    :global(html[data-theme-mode="auto"]) .theme-choice[data-theme-choice="auto"] {
+        color: var(--primary);
+        background: var(--btn-plain-bg-hover);
+    }
+</style>
+
+<script>
+    import { AUTO_MODE, DARK_MODE, LIGHT_MODE } from "@constants/constants";
+    import { getStoredTheme, setTheme } from "@utils/setting-utils";
+    import type { LIGHT_DARK_MODE } from "@/types/config";
+
+    const root = document.getElementById('theme-switch-root');
+
+    if (root && root.dataset.initialized !== 'true') {
+        root.dataset.initialized = 'true';
+
+        const modes: LIGHT_DARK_MODE[] = [LIGHT_MODE, DARK_MODE, AUTO_MODE];
+        const switchButton = root.querySelector<HTMLButtonElement>('#scheme-switch');
+        const panel = root.querySelector<HTMLElement>('#light-dark-panel');
+        const choiceButtons = root.querySelectorAll<HTMLButtonElement>('[data-theme-choice]');
+
+        const syncMode = (mode: LIGHT_DARK_MODE) => {
+            document.documentElement.dataset.themeMode = mode;
+		choiceButtons.forEach((button) => {
+                button.setAttribute('aria-checked', String(button.dataset.themeChoice === mode));
+            });
+        };
+
+        const selectMode = (mode: LIGHT_DARK_MODE) => {
+            setTheme(mode);
+            syncMode(mode);
+        };
+
+        syncMode(getStoredTheme());
+
+        switchButton?.addEventListener('click', () => {
+            const current = getStoredTheme();
+            const index = modes.indexOf(current);
+            selectMode(modes[(index + 1) % modes.length]);
+        });
+        switchButton?.addEventListener('mouseenter', () => {
+            panel?.classList.remove('float-panel-closed');
+        });
+        root.addEventListener('mouseleave', () => {
+            panel?.classList.add('float-panel-closed');
+        });
+
+        choiceButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const mode = button.dataset.themeChoice as LIGHT_DARK_MODE;
+                selectMode(mode);
+			});
+		});
+
+		window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+			if (getStoredTheme() === AUTO_MODE) selectMode(AUTO_MODE);
+		});
+	}
+</script>
