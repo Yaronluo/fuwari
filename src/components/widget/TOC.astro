@@ -103,6 +103,8 @@ class TableOfContents extends HTMLElement {
     tocEntries: HTMLAnchorElement[] = [];
     active: boolean[] = [];
     activeIndicator: HTMLElement | null = null;
+    initialized = false;
+    initTimer: number | null = null;
 
     constructor() {
         super();
@@ -242,16 +244,28 @@ class TableOfContents extends HTMLElement {
                 this.init();
             }, { once: true });
         } else {
-            console.debug('Animation element not found');
+            this.init();
         }
+
+        // The animation may finish before this custom element starts listening.
+        // Keep a short fallback so the scroll spy is always initialized.
+        this.initTimer = window.setTimeout(() => this.init(), 900);
     };
 
     init() {
+        if (this.initialized || !this.isConnected) return;
+
         this.tocEl = document.getElementById(
             "toc-inner-wrapper"
         );
 
         if (!this.tocEl) return;
+
+        this.initialized = true;
+        if (this.initTimer !== null) {
+            window.clearTimeout(this.initTimer);
+            this.initTimer = null;
+        }
 
         this.tocEl.addEventListener("click", this.handleAnchorClick, {
             capture: true,
@@ -288,11 +302,16 @@ class TableOfContents extends HTMLElement {
     };
 
     disconnectedCallback() {
+        if (this.initTimer !== null) {
+            window.clearTimeout(this.initTimer);
+            this.initTimer = null;
+        }
         this.sections.forEach((section) =>
             this.observer.unobserve(section)
         );
         this.observer.disconnect();
         this.tocEl?.removeEventListener("click", this.handleAnchorClick);
+        this.initialized = false;
     };
 }
 

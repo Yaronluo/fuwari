@@ -379,7 +379,7 @@ const jsonLd = {
         content: "";
     }
 
-    :global(.post-article-shell:not(.anime-theme) .markdown-content blockquote) {
+    :global(.post-article-shell:not(.anime-theme) .markdown-content blockquote:not(.admonition)) {
         position: relative;
         margin: 1.4rem 0;
         padding: 1rem 1.2rem 1rem 2.8rem;
@@ -390,7 +390,7 @@ const jsonLd = {
         font-style: normal;
     }
 
-    :global(.post-article-shell:not(.anime-theme) .markdown-content blockquote)::before {
+    :global(.post-article-shell:not(.anime-theme) .markdown-content blockquote:not(.admonition))::before {
         position: absolute;
         top: 0.8rem;
         left: 0.95rem;
@@ -432,7 +432,7 @@ const jsonLd = {
 
     :global(.dark .post-article-shell:not(.anime-theme) .markdown-content h2),
     :global(.dark .post-article-shell:not(.anime-theme) .article-description),
-    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content blockquote) {
+    :global(.dark .post-article-shell:not(.anime-theme) .markdown-content blockquote:not(.admonition)) {
 		border-color: color-mix(in srgb, var(--primary) 18%, rgb(255 255 255 / 0.07));
 		background: color-mix(in srgb, var(--primary) 6%, rgb(49 39 42 / 0.86));
     }

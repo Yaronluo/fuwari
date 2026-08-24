@@ -1,21 +1,22 @@
 .custom-md
 
   blockquote.admonition
-    background: transparent !important
     position: relative
     z-index: 1
+    padding: 1rem 1.25rem
+    border-top: 1px solid unquote("color-mix(in srgb, var(--admonition-accent) 24%, transparent)")
+    border-right: 1px solid unquote("color-mix(in srgb, var(--admonition-accent) 24%, transparent)")
+    border-bottom: 1px solid unquote("color-mix(in srgb, var(--admonition-accent) 24%, transparent)")
+    border-radius: 0.9rem
+    background: unquote("color-mix(in srgb, var(--admonition-accent) 15%, var(--glass-card))")
+    color: var(--text-body)
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35)
     &:after
-      content: ''
-      position: absolute
-      inset: 0
-      z-index: -1
-      border-radius: inherit
-      opacity: 0.1
-      pointer-events: none
+      content: none
     .bdm-title
       display: flex
       align-items: center
-      margin-bottom: -.9rem
+      margin-bottom: -0.55rem
       font-weight: bold
 
       &:before
@@ -32,6 +33,7 @@
         mask-repeat: no-repeat
         transform: translateY(-0.0625rem)
     &.bdm-tip
+      --admonition-accent: var(--admonitions-color-tip)
       border-left: 4px solid var(--admonitions-color-tip)
       &:after
         background: var(--admonitions-color-tip)
@@ -45,6 +47,7 @@
       &:before
         background: var(--admonitions-color-tip)
     &.bdm-note
+      --admonition-accent: var(--admonitions-color-note)
       border-left: 4px solid var(--admonitions-color-note)
       &:after
         background: var(--admonitions-color-note)
@@ -58,6 +61,7 @@
       &:before
         background: var(--admonitions-color-note)
     &.bdm-important
+      --admonition-accent: var(--admonitions-color-important)
       border-left: 4px solid var(--admonitions-color-important)
       &:after
         background: var(--admonitions-color-important)
@@ -71,6 +75,7 @@
       &:before
         background: var(--admonitions-color-important)
     &.bdm-warning
+      --admonition-accent: var(--admonitions-color-warning)
       border-left: 4px solid var(--admonitions-color-warning)
       &:after
         background: var(--admonitions-color-warning)
@@ -84,6 +89,7 @@
       &:before
         background: var(--admonitions-color-warning)
     &.bdm-caution
+      --admonition-accent: var(--admonitions-color-caution)
       border-left: 4px solid var(--admonitions-color-caution)
       &:after
         background: var(--admonitions-color-caution)
@@ -109,6 +115,10 @@
     margin-left: auto
     margin-right: auto
     max-width: 100%
+
+.dark .custom-md blockquote.admonition
+  background: unquote("color-mix(in srgb, var(--admonition-accent) 14%, var(--glass-card))")
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06)
 
 a.card-github
   display: block
