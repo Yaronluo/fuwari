@@ -255,15 +255,24 @@ body {
 }
 .k-on-palette-bg {
 	background: linear-gradient(135deg, var(--cream-soft) 0%, var(--cream-base) 52%, color-mix(in srgb, var(--primary) 7%, var(--cream-base)) 100%);
+	background-size: 180% 180% !important;
+	animation: palette-gradient-flow 18s ease-in-out infinite;
+	will-change: background-position;
+}
+.palette-blob {
+	will-change: transform;
 }
 .palette-blob--sakura {
 	background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 25%, transparent), color-mix(in srgb, var(--tea) 9%, transparent));
+	animation: palette-blob-sakura 16s ease-in-out infinite;
 }
 .palette-blob--azusa {
 	background: linear-gradient(135deg, color-mix(in srgb, var(--azusa-blue) 17%, transparent), color-mix(in srgb, var(--primary) 12%, transparent));
+	animation: palette-blob-azusa 21s ease-in-out infinite;
 }
 .palette-blob--mio {
 	background: linear-gradient(135deg, color-mix(in srgb, var(--mio-purple) 14%, transparent), color-mix(in srgb, var(--tea) 8%, transparent));
+	animation: palette-blob-mio 14s ease-in-out infinite;
 }
 .reading-track {
 	height: 0.7rem;
@@ -335,6 +344,38 @@ body {
 }
 :root.dark .palette-blob {
 	opacity: 0.58;
+}
+@keyframes palette-gradient-flow {
+	0%, 100% { background-position: 0% 42%; }
+	35% { background-position: 72% 18%; }
+	68% { background-position: 100% 78%; }
+}
+@keyframes palette-blob-sakura {
+	0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+	45% { transform: translate3d(18vw, 9vh, 0) scale(1.14); }
+	72% { transform: translate3d(8vw, 17vh, 0) scale(0.94); }
+}
+@keyframes palette-blob-azusa {
+	0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+	38% { transform: translate3d(-16vw, -11vh, 0) scale(1.1); }
+	70% { transform: translate3d(-7vw, -18vh, 0) scale(0.96); }
+}
+@keyframes palette-blob-mio {
+	0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+	42% { transform: translate3d(-12vw, 13vh, 0) scale(1.16); }
+	74% { transform: translate3d(9vw, 7vh, 0) scale(0.92); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.k-on-palette-bg {
+		animation: none;
+		background-position: 50% 50%;
+		will-change: auto;
+	}
+	.palette-blob {
+		animation: none;
+		transform: none;
+		will-change: auto;
+	}
 }
 @layer components {
 	.enable-banner.is-home #banner-wrapper {

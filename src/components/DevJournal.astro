@@ -139,6 +139,11 @@ const projects = [
 				<span>次贡献 · 过去一年</span>
 			</div>
 			<div id="contribution-status" class="contribution-status"><i></i> Loading contribution calendar...</div>
+			<div id="contribution-detail" class="contribution-detail" aria-live="polite" hidden>
+				<i id="contribution-detail-level" data-level="0" aria-hidden="true"></i>
+				<strong id="contribution-detail-date"></strong>
+				<span id="contribution-detail-count"></span>
+			</div>
 			<div class="contribution-scroll" tabindex="0" aria-label="GitHub 过去一年贡献日历">
 				<div class="github-calendar">
 					<div id="contribution-months" class="contribution-months" aria-hidden="true"></div>
@@ -207,7 +212,11 @@ const projects = [
 		const months = document.getElementById("contribution-months");
 		const total = document.getElementById("contribution-total");
 		const status = document.getElementById("contribution-status");
-		if (!journal || !grid || !months || !total || !status || journal.dataset.contributionsReady === "true") return;
+		const detail = document.getElementById("contribution-detail");
+		const detailLevel = document.getElementById("contribution-detail-level");
+		const detailDate = document.getElementById("contribution-detail-date");
+		const detailCount = document.getElementById("contribution-detail-count");
+		if (!journal || !grid || !months || !total || !status || !detail || !detailLevel || !detailDate || !detailCount || journal.dataset.contributionsReady === "true") return;
 
 		journal.dataset.contributionsReady = "true";
 		try {
@@ -222,16 +231,20 @@ const projects = [
 			let previousMonth = -1;
 
 			contributions.forEach((day, index) => {
-				const cell = document.createElement("span");
+				const cell = document.createElement("button");
 				const offset = index + firstDay;
 				const date = new Date(`${day.date}T00:00:00`);
 				const month = date.getMonth();
+				cell.type = "button";
 				cell.className = "contribution-cell";
 				cell.dataset.level = String(Math.max(0, Math.min(4, day.level || 0)));
+				cell.dataset.date = day.date;
+				cell.dataset.count = String(day.count || 0);
 				cell.style.gridColumn = String(Math.floor(offset / 7) + 1);
 				cell.style.gridRow = String((offset % 7) + 1);
 				cell.title = `${day.date} · ${day.count} 次贡献`;
 				cell.setAttribute("aria-label", cell.title);
+				cell.setAttribute("aria-pressed", "false");
 				fragment.appendChild(cell);
 
 				if (month !== previousMonth) {
@@ -255,6 +268,31 @@ const projects = [
 
 			grid.replaceChildren(fragment);
 			months.replaceChildren(monthFragment);
+			grid.addEventListener("click", (event) => {
+				const target = event.target instanceof Element
+					? event.target.closest<HTMLButtonElement>(".contribution-cell")
+					: null;
+				if (!target || !grid.contains(target)) return;
+
+				grid.querySelectorAll<HTMLButtonElement>(".contribution-cell.is-selected").forEach((cell) => {
+					cell.classList.remove("is-selected");
+					cell.setAttribute("aria-pressed", "false");
+				});
+				target.classList.add("is-selected");
+				target.setAttribute("aria-pressed", "true");
+
+				const date = new Date(`${target.dataset.date}T00:00:00`);
+				detailDate.textContent = new Intl.DateTimeFormat("zh-CN", {
+					year: "numeric",
+					month: "long",
+					day: "numeric",
+					weekday: "short",
+				}).format(date);
+				const count = Number(target.dataset.count || 0);
+				detailCount.textContent = count > 0 ? `${count} 次贡献` : "没有贡献";
+				detailLevel.dataset.level = target.dataset.level || "0";
+				detail.hidden = false;
+			});
 			const totalCount = Object.values(data.total || {}).reduce((sum, value) => sum + Number(value || 0), 0);
 			total.textContent = new Intl.NumberFormat("zh-CN").format(totalCount);
 			status.textContent = "贡献日历已更新";
@@ -330,6 +368,15 @@ const projects = [
 	.contribution-status i { width: 0.4rem; height: 0.4rem; border-radius: 50%; background: #bf8700; }
 	.contribution-status.is-ready { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 	.contribution-status.is-error { color: #cf222e; }
+	.contribution-detail { display: flex; width: fit-content; align-items: center; gap: 0.42rem; margin: 0 0 0.65rem 2.35rem; padding: 0.38rem 0.62rem; border: 1px solid color-mix(in srgb, var(--primary) 14%, white); border-radius: 999px; color: color-mix(in srgb, var(--tea) 72%, black); background: rgb(255 255 255 / 0.46); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.62); font-size: 0.62rem; }
+	.contribution-detail[hidden] { display: none; }
+	.contribution-detail i { width: 0.62rem; height: 0.62rem; flex: none; border: 1px solid color-mix(in srgb, var(--tea) 7%, transparent); border-radius: 0.2rem; background: color-mix(in srgb, var(--tea) 7%, var(--cream-base)); }
+	.contribution-detail i[data-level="1"] { background: color-mix(in srgb, #a8d9ae 74%, var(--cream-base)); }
+	.contribution-detail i[data-level="2"] { background: #72c48b; }
+	.contribution-detail i[data-level="3"] { background: #42a967; }
+	.contribution-detail i[data-level="4"] { background: #287548; }
+	.contribution-detail strong { color: color-mix(in srgb, var(--tea) 80%, black); font-weight: 750; }
+	.contribution-detail span { color: color-mix(in srgb, var(--tea) 52%, transparent); }
 	.contribution-legend { display: flex; align-items: center; gap: 0.22rem; color: color-mix(in srgb, var(--tea) 48%, transparent); font-size: 0.58rem; }
 	.contribution-legend i,
 	:global(.contribution-cell) { width: var(--calendar-cell); height: var(--calendar-cell); border: 1px solid color-mix(in srgb, var(--tea) 7%, transparent); border-radius: 0.2rem; background: color-mix(in srgb, var(--tea) 7%, var(--cream-base)); }
@@ -344,8 +391,10 @@ const projects = [
 	.github-calendar-body { display: grid; grid-template-columns: 2rem auto; gap: 0.35rem; }
 	.contribution-weekdays { display: grid; grid-template-rows: repeat(7, var(--calendar-cell)); row-gap: var(--calendar-gap); color: color-mix(in srgb, var(--tea) 55%, transparent); font-size: 0.54rem; line-height: var(--calendar-cell); text-align: right; }
 	.contribution-grid { display: grid; grid-template-columns: repeat(53, var(--calendar-cell)); grid-template-rows: repeat(7, var(--calendar-cell)); gap: var(--calendar-gap); width: max-content; min-height: calc(var(--calendar-cell) * 7 + var(--calendar-gap) * 6); }
-	:global(.contribution-cell) { display: block; transition: transform 120ms ease, filter 120ms ease; }
+	:global(.contribution-cell) { display: block; padding: 0; cursor: pointer; appearance: none; transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease; }
 	:global(.contribution-cell:hover) { z-index: 2; transform: scale(1.5); filter: saturate(1.2); }
+	:global(.contribution-cell:focus-visible),
+	:global(.contribution-cell.is-selected) { z-index: 3; outline: none; box-shadow: 0 0 0 2px var(--cream-base), 0 0 0 4px color-mix(in srgb, var(--primary) 72%, transparent); transform: scale(1.22); }
 	.contribution-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 0.5rem; padding-left: 2.35rem; }
 	.contribution-footer a { color: color-mix(in srgb, var(--primary) 76%, var(--tea)); font-size: 0.6rem; }
 	.contribution-footer a:hover { text-decoration: underline; }
@@ -403,6 +452,9 @@ const projects = [
 	:global(.dark) .contribution-count-line { color: rgb(245 237 232 / 0.84); }
 	:global(.dark) .contribution-count-line span,
 	:global(.dark) .contribution-status { color: rgb(245 237 232 / 0.54); }
+	:global(.dark) .contribution-detail { border-color: rgb(255 255 255 / 0.1); color: rgb(245 237 232 / 0.84); background: rgb(255 255 255 / 0.06); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07); }
+	:global(.dark) .contribution-detail strong { color: rgb(245 237 232 / 0.88); }
+	:global(.dark) .contribution-detail span { color: rgb(245 237 232 / 0.58); }
 	:global(.dark) .contribution-paper { border-color: color-mix(in srgb, var(--primary) 24%, transparent); color: rgb(245 237 232 / 0.9); background: color-mix(in srgb, var(--cream-base) 84%, transparent); }
 	:global(.dark) .contribution-months,
 	:global(.dark) .contribution-weekdays { color: rgb(245 237 232 / 0.66); }

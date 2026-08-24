@@ -148,8 +148,8 @@ const seriesCount = groups.reduce((count, group) => count + group.series.length,
     .section-heading h2 { margin: 0.08rem 0 0; color: var(--text-strong); font-size: 1.12rem; }
     .section-icon { display: grid; place-items: center; flex: 0 0 auto; width: 2.55rem; height: 2.55rem; border-radius: 0.9rem; font-size: 1.3rem; }
     .series-icon { color: var(--primary); background: color-mix(in srgb, var(--primary) 11%, transparent); }
-    .category-icon { color: #cf9463; background: rgb(231 174 126 / 0.13); }
-    .tag-icon { color: #8c7abe; background: rgb(140 122 190 / 0.12); }
+    .category-icon,
+    .tag-icon { color: var(--primary); background: color-mix(in srgb, var(--primary) 11%, transparent); }
 
     .series-groups { display: grid; gap: 1.1rem; }
     .series-group { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 0.9rem; align-items: start; }

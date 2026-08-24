@@ -145,7 +145,7 @@ if (!description || description.trim() === '') {
         opacity: 0.8;
     }
     :global(.dark) .description-content {
-        color: rgba(255, 255, 255, 0.8);
+        color: color-mix(in srgb, var(--primary) 16%, rgb(247 239 235 / 0.84));
     }
     :global(html:not(.dark)) .description-content {
         color: rgba(0, 0, 0, 0.75);

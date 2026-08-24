@@ -9,11 +9,9 @@ import { getPostUrlBySlug } from "../utils/url-utils";
 export let tags: string[] = [];
 export let categories: string[] = [];
 export let sortedPosts: Post[] = [];
+export let initialNow: string;
 
-const params = new URLSearchParams(window.location.search);
-tags = params.has("tag") ? params.getAll("tag") : [];
-categories = params.has("category") ? params.getAll("category") : [];
-const uncategorized = params.get("uncategorized");
+let uncategorized: string | null = null;
 
 interface Post {
 	slug: string;
@@ -34,13 +32,12 @@ let groups: Group[] = [];
 
 let currentYearPosts = 0;
 let totalPosts = 0;
-let currentYear = new Date().getFullYear();
+let currentYear = new Date(initialNow).getFullYear();
 let dayOfYear = 0;
 let yearPassedPercent = "0.0";
 let todayPassedPercent = "0.0";
 
-function updateTimeStats() {
-    const now = new Date();
+function updateTimeStats(now = new Date()) {
     currentYear = now.getFullYear();
     const startOfYear = new Date(currentYear, 0, 1);
     const diff = now.getTime() - startOfYear.getTime();
@@ -67,7 +64,7 @@ function formatTag(tagList: string[]) {
 	return (tagList || []).map((t) => `#${t}`).join(" ");
 }
 
-onMount(async () => {
+function refreshGroups() {
 	let filteredPosts: Post[] = sortedPosts;
 
 	if (tags.length > 0) {
@@ -110,7 +107,20 @@ onMount(async () => {
 	groups = groupedPostsArray;
 	totalPosts = filteredPosts.length;
 	currentYearPosts = groups.find(g => g.year === currentYear)?.posts.length || 0;
+}
+
+// Render the complete timeline on the server so the footer cannot flash into
+// its place while the Svelte component is still loading in the browser.
+refreshGroups();
+updateTimeStats(new Date(initialNow));
+
+onMount(() => {
+	const params = new URLSearchParams(window.location.search);
+	tags = params.has("tag") ? params.getAll("tag") : [];
+	categories = params.has("category") ? params.getAll("category") : [];
+	uncategorized = params.get("uncategorized");
 	updateTimeStats();
+	refreshGroups();
 	const interval = setInterval(updateTimeStats, 1000);
 	return () => clearInterval(interval);
 });
