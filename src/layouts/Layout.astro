@@ -149,7 +149,7 @@ const bannerOffset =
 		<meta name="twitter:title" content={pageTitle}>
 		<meta name="twitter:description" content={description || pageTitle}>
 
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta name="generator" content={Astro.generator} />
 		{favicons.map(favicon => (
 			<link rel="icon"
@@ -247,6 +247,12 @@ const bannerOffset =
 	'banner-height': `${BANNER_HEIGHT}vh`,
 }}>
 @tailwind components;
+html,
+body {
+	width: 100%;
+	max-width: 100%;
+	overflow-x: clip;
+}
 .k-on-palette-bg {
 	background: linear-gradient(135deg, var(--cream-soft) 0%, var(--cream-base) 52%, color-mix(in srgb, var(--primary) 7%, var(--cream-base)) 100%);
 }
@@ -425,6 +431,10 @@ function initCustomScrollbar() {
 				nativeScrollbarsOverlaid: true,    // don't initialize the overlay scrollbar if there is a native one
 			}
 		}, {
+		overflow: {
+			x: 'hidden',
+			y: 'scroll',
+		},
 		scrollbars: {
 			theme: 'scrollbar-base scrollbar-auto py-1',
 			autoHide: 'move',

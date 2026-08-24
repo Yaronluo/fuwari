@@ -65,7 +65,7 @@ const isHomePage = pathsEqual(Astro.url.pathname, url("/"));
 </div>}
 
 <!-- Main content -->
-<div class="absolute left-0 w-screen z-30 pointer-events-none" style={`top: ${mainPanelTop}`}>
+<div class="absolute w-full z-30 pointer-events-none" style={`top: ${mainPanelTop}`}>
     <div id="top-full-width-wrapper" class="pointer-events-auto transition-swup-fade">
         <slot name="top-full-width"></slot>
     </div>
