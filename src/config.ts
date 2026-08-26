@@ -70,6 +70,11 @@ export const navBarConfig: NavBarConfig = {
 					url: "/collection/",
 					icon: "fa6-solid:heart",
 				},
+				{
+					name: "动画会社",
+					url: "/studios/",
+					icon: "fa6-solid:clapperboard",
+				},
 			],
 		},
 		LinkPreset.About,

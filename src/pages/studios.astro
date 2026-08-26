@@ -1,0 +1,810 @@
+---
+import MainGridLayout from "../layouts/MainGridLayout.astro";
+
+const BANGUMI_USER = import.meta.env.PUBLIC_BANGUMI_USER || "yaron";
+const BANGUMI_TOKEN = import.meta.env.PUBLIC_BANGUMI_TOKEN || "";
+
+interface BangumiSubject {
+	id: number;
+	name?: string;
+	name_cn?: string;
+	images?: { large?: string; common?: string };
+}
+
+interface BangumiCollection {
+	type: number;
+	rate?: number;
+	subject?: BangumiSubject;
+}
+
+const ARTICLE_LINKS: Record<number, string> = {
+	1424: "/posts/番剧观后感-轻音少女/",
+	269235: "/posts/番剧观后感-天气之子/",
+};
+
+const STUDIO_CHARMS = [
+	{ icon: "♪", text: "放学后" },
+	{ icon: "△", text: "去露营" },
+	{ icon: "☁", text: "看天空" },
+	{ icon: "♡", text: "青春开演" },
+	{ icon: "✦", text: "闪闪发光" },
+	{ icon: "☺", text: "心动日常" },
+	{ icon: "↺", text: "再来一次" },
+] as const;
+
+const STUDIO_DEFINITIONS = [
+	{
+		name: "京都动画",
+		originalName: "KYOTO ANIMATION",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/7/7a/Kyoto_Animation_logo_2rows.svg",
+		accent: "#e978a6",
+		impression: "把日常里的目光、停顿与告别，画得比奇迹更加动人。",
+		detail: "我喜欢京都动画，因为它总能发现日常里那些小小的可爱。《轻音少女》的放学后、《CLANNAD》的相遇与陪伴，看起来都是普通生活，却总能让我笑着笑着就悄悄红了眼眶。",
+		traits: ["细腻演出", "日常温度", "人物情绪"],
+		workIds: [876, 51, 1424, 3774, 12426, 90880, 29648, 55113],
+	},
+	{
+		name: "C-Station",
+		originalName: "シーステイション",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/8/8b/C-Station_Logo.png",
+		accent: "#6fa56f",
+		impression: "把脚步放慢一点，风景就会悄悄来到身边。",
+		detail: "《摇曳露营△》最吸引我的，是它愿意慢慢记录旅途中的小事。准备行李、等待日落、分享晚餐，每一个平淡的瞬间，都让忙碌的心情跟着安静下来。",
+		traits: ["户外治愈", "风景氛围", "悠闲日常"],
+		workIds: [262897, 207195],
+	},
+	{
+		name: "CoMix Wave Films",
+		originalName: "コミックス・ウェーブ・フィルム",
+		logo: "https://www.cwfilms.jp/common/favicon/apple-touch-icon.png",
+		accent: "#5b9fd4",
+		impression: "云会散，列车会到站，想见的人也会再次相遇。",
+		detail: "我喜欢新海诚电影里的天空，也喜欢那些拼命奔向彼此的少年少女。无论隔着城市、时间还是一场大雨，他们总会认真回应自己的心意。故事结束以后，某一片云、某一趟列车，也会跟着留在记忆里。",
+		traits: ["天空光影", "青春爱情", "城市诗意"],
+		workIds: [160209, 269235, 927, 362577],
+	},
+	{
+		name: "A-1 Pictures",
+		originalName: "A-1 PICTURES",
+		logo: "https://cdn.myanimelist.net/s/common/company_logos/4713c58b-833f-4c92-bf4a-0e2f7af8a461_600x600_i?s=925a453653da58d385adb82b5d423a69",
+		accent: "#8477c3",
+		impression: "从恋爱喜剧到青春群像，总能把情绪推向最有戏剧性的瞬间。",
+		detail: "它的作品类型跨度很大，却总能碰到我喜欢的那一面：《辉夜大小姐》的热闹与真心、《四月是你的谎言》的青春和告别，以及《刀剑神域》最初带来的冒险感，都有鲜明的记忆点。",
+		traits: ["青春群像", "情绪爆发", "类型丰富"],
+		workIds: [317613, 425211, 248175, 100444, 23686, 10440, 293049, 46213],
+	},
+	{
+		name: "三叶草工作室",
+		originalName: "CLOVERWORKS",
+		logo: "https://upload.wikimedia.org/wikipedia/commons/3/3b/CloverWorks_Logo.svg",
+		accent: "#54a997",
+		impression: "明亮轻盈的青春外表下，藏着细腻、克制又有力量的情绪。",
+		detail: "我喜欢它把青春题材做得很有呼吸感。无论是《青春猪头少年》的孤独与陪伴，还是《孤独摇滚！》里夸张又真实的社恐瞬间，角色的情绪都会被认真地看见。",
+		traits: ["青春感", "角色表达", "清新画面"],
+		workIds: [240038, 260680, 328609, 513345],
+	},
+	{
+		name: "新锐动画",
+		originalName: "SHIN-EI ANIMATION",
+		logo: "https://shin-ei-animation.jp/wp/wp-content/uploads/2026/05/ebd5e9695bdd294097d529c47e2dd7c2.png",
+		accent: "#de9c55",
+		impression: "不靠轰轰烈烈，只用捉弄、脸红和普通日常，把喜欢写得很长。",
+		detail: "《擅长捉弄的高木同学》是这里最特别的一份收藏。从第一季到剧场版，每一次看似重复的放学路，实际上都让两个人向彼此靠近了一点，也把纯爱写得格外耐看。",
+		traits: ["纯爱日常", "轻松喜剧", "细水长流"],
+		workIds: [219200, 271151, 347887, 347888],
+	},
+	{
+		name: "白狐社",
+		originalName: "WHITE FOX",
+		logo: "https://uzurea.net/cwp/wp-content/uploads/2025/07/whitefox_logo-1.webp",
+		accent: "#8c94aa",
+		impression: "让世界一次次崩塌，再把选择的重量与重新站起来的勇气交给角色。",
+		detail: "《Re：从零开始的异世界生活》让我记住的并不是“重来”本身，而是每一次失败都会留下痕迹。白狐社把绝望、挣扎和重新作出选择的过程做得足够沉重，也足够有力量。",
+		traits: ["异世界", "心理挣扎", "命运选择"],
+		workIds: [296195, 278826, 316247, 425998, 510728, 261805, 225462, 547888],
+	},
+] as const;
+
+let watchedCollections: BangumiCollection[] = [];
+let errorMessage: string | null = null;
+
+try {
+	if (!BANGUMI_TOKEN) throw new Error("未配置 Bangumi Token");
+
+	const batchSize = 50;
+	let offset = 0;
+	while (true) {
+		const response = await fetch(
+			`https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=2&limit=${batchSize}&offset=${offset}`,
+			{
+				headers: {
+					"User-Agent": "Fuwari-Studios/1.0",
+					Authorization: `Bearer ${BANGUMI_TOKEN}`,
+				},
+			},
+		);
+		if (!response.ok) throw new Error(`Bangumi API 请求失败 (${response.status})`);
+
+		const data = (await response.json()) as { data?: BangumiCollection[] };
+		const batch = data.data || [];
+		watchedCollections.push(...batch);
+		if (batch.length < batchSize) break;
+		offset += batchSize;
+	}
+} catch (error) {
+	console.error("获取动画会社数据失败:", error);
+	errorMessage = error instanceof Error ? error.message : "未知错误";
+}
+
+const watchedById = new Map(
+	watchedCollections
+		.filter((item) => item.type === 2 && item.subject)
+		.map((item) => [item.subject!.id, item]),
+);
+
+const studios = STUDIO_DEFINITIONS.map((studio) => {
+	const works = studio.workIds
+		.map((id) => watchedById.get(id))
+		.filter((item): item is BangumiCollection & { subject: BangumiSubject } => Boolean(item?.subject));
+	const ratings = works.map((item) => item.rate || 0).filter((rate) => rate > 0);
+	return {
+		...studio,
+		works,
+		averageRating: ratings.length ? ratings.reduce((sum, rate) => sum + rate, 0) / ratings.length : 0,
+		highestRating: ratings.length ? Math.max(...ratings) : 0,
+	};
+}).filter((studio) => studio.works.length > 0);
+
+const displayedWorkCount = studios.reduce((sum, studio) => sum + studio.works.length, 0);
+
+function getTitle(subject: BangumiSubject) {
+	return subject.name_cn || subject.name || "未命名作品";
+}
+
+function getCover(subject: BangumiSubject) {
+	const source = subject.images?.large || subject.images?.common;
+	return source ? `https://images.weserv.nl/?url=${source}` : "";
+}
+---
+
+<MainGridLayout title="动画会社" description="我喜欢的制作公司，以及它们创造的故事">
+	<main class="studios-page">
+		<header class="studios-hero">
+			<div class="studios-hero-copy">
+				<p class="studios-kicker"><span>WATCHED ONLY</span> 我的动画收藏册</p>
+				<h1>动画会社</h1>
+				<p class="studios-lead">有些会社的名字只在片头出现几秒，带来的故事却能喜欢好多年。于是我把它们和看过的动画一起，好好收藏在这里。</p>
+			</div>
+			<div class="studios-summary" aria-label="页面收录统计">
+				<div><strong>{studios.length}</strong><span>家制作会社</span></div>
+				<i aria-hidden="true"></i>
+				<div><strong>{displayedWorkCount}</strong><span>部看过的作品</span></div>
+			</div>
+			<span class="hero-ticket" aria-hidden="true">FILM<br />ARCHIVE</span>
+		</header>
+
+		<div class="watched-note">
+			<span aria-hidden="true">✓</span>
+			<p><strong>只收录我看完的番剧</strong><small>作品只来自“番剧观测”的完结撒花列表，点击封面可查看条目或我的观后感。</small></p>
+			<a href="/bangumi/">查看番剧观测 <b>→</b></a>
+		</div>
+
+		{errorMessage ? (
+			<section class="studios-empty">
+				<span>!</span>
+				<div><strong>收藏册暂时没有同步成功</strong><p>{errorMessage}</p></div>
+			</section>
+		) : (
+			<div class="studio-list">
+				{studios.map((studio, studioIndex) => {
+					const charm = STUDIO_CHARMS[studioIndex % STUDIO_CHARMS.length];
+					return (
+					<section class="studio-card" style={`--studio-accent: ${studio.accent};`}>
+						<div class="studio-intro">
+							<div class="studio-index">{String(studioIndex + 1).padStart(2, "0")}</div>
+							<div class="studio-charm" aria-hidden="true"><b>{charm.icon}</b><span>{charm.text}</span></div>
+							<div class="studio-logo">
+								<img src={studio.logo} alt={`${studio.name} 标志`} loading="eager" decoding="async" referrerpolicy="no-referrer" />
+							</div>
+							<div class="studio-identity">
+								<p class="studio-label">ANIMATION STUDIO</p>
+								<h2>{studio.name}</h2>
+								<p class="studio-original">{studio.originalName}</p>
+								<p class="studio-impression">“{studio.impression}”</p>
+							</div>
+							<div class="studio-story">
+								<span>我为什么喜欢它</span>
+								<p>{studio.detail}</p>
+								<div class="studio-traits">
+									{studio.traits.map((trait) => <small>{trait}</small>)}
+								</div>
+							</div>
+							<div class="studio-stats" aria-label={`${studio.name} 收藏数据`}>
+								<div><strong>{studio.works.length}</strong><span>作品入选</span></div>
+								<div><strong>{studio.averageRating.toFixed(1)}</strong><span>我的均分</span></div>
+								<div><strong>{studio.highestRating}</strong><span>最高评分</span></div>
+							</div>
+						</div>
+
+						<div class="studio-works">
+							<div class="works-heading"><span>我喜欢的作品</span><small>MY PICKS</small></div>
+							<div class="works-grid">
+								{studio.works.map((item, workIndex) => {
+									const subject = item.subject;
+									const title = getTitle(subject);
+									const articleLink = ARTICLE_LINKS[subject.id];
+									const href = articleLink || `https://bgm.tv/subject/${subject.id}`;
+									return (
+										<a class="work-card" href={href} target={articleLink ? undefined : "_blank"} rel={articleLink ? undefined : "noopener noreferrer"}>
+											<div class="work-cover">
+												{getCover(subject) ? (
+													<img src={getCover(subject)} alt={title} loading="lazy" referrerpolicy="no-referrer" />
+												) : <span class="cover-fallback">暂无封面</span>}
+												{workIndex === 0 && <span class="favorite-ribbon">本命</span>}
+												{articleLink && <span class="article-ribbon">观后感</span>}
+											</div>
+											<div class="work-info">
+												<h3>{title}</h3>
+												<div class="work-meta">
+									{item.rate ? <span><b>★</b> 我的评分 {item.rate}</span> : <span>已经看过</span>}
+													<i aria-hidden="true">↗</i>
+												</div>
+											</div>
+										</a>
+									);
+								})}
+							</div>
+						</div>
+					</section>
+					);
+				})}
+			</div>
+		)}
+	</main>
+</MainGridLayout>
+
+<style>
+	.studios-page {
+		width: 100%;
+		padding: 1.25rem 1rem 2.25rem;
+		color: var(--text-strong);
+	}
+
+	.studios-hero {
+		position: relative;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: end;
+		gap: 2rem;
+		overflow: hidden;
+		min-height: 17rem;
+		padding: 3rem 3.25rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--glass-border));
+		border-radius: 1.8rem;
+		background:
+			radial-gradient(circle at 83% 18%, color-mix(in srgb, var(--primary) 22%, transparent), transparent 28%),
+			linear-gradient(135deg, color-mix(in srgb, var(--glass-card) 96%, white), color-mix(in srgb, var(--primary) 8%, var(--glass-card)));
+		box-shadow: 0 1.15rem 2.8rem rgb(90 64 75 / 0.1);
+	}
+
+	.studios-hero::before,
+	.studios-hero::after {
+		content: "";
+		position: absolute;
+		pointer-events: none;
+	}
+
+	.studios-hero::before {
+		inset: 1rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 22%, transparent);
+		border-radius: 1.25rem;
+	}
+
+	.studios-hero::after {
+		width: 10rem;
+		height: 10rem;
+		right: 12%;
+		top: -5rem;
+		border: 1.25rem solid color-mix(in srgb, var(--primary) 7%, transparent);
+		border-radius: 50%;
+	}
+
+	.studios-hero-copy,
+	.studios-summary { position: relative; z-index: 1; }
+
+	.studios-kicker {
+		display: flex;
+		align-items: center;
+		gap: 0.65rem;
+		margin: 0 0 0.8rem;
+		font-size: 0.78rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		color: var(--primary);
+	}
+
+	.studios-kicker span {
+		padding: 0.35rem 0.6rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--primary) 13%, transparent);
+		font-size: 0.67rem;
+		letter-spacing: 0.12em;
+	}
+
+	.studios-hero h1 {
+		margin: 0;
+		font-size: clamp(2.65rem, 6vw, 4.5rem);
+		line-height: 1;
+		letter-spacing: -0.07em;
+	}
+
+	.studios-lead {
+		max-width: 42rem;
+		margin: 1.25rem 0 0;
+		font-size: 1rem;
+		line-height: 1.85;
+		color: var(--text-body);
+	}
+
+	.studios-summary {
+		display: flex;
+		align-items: center;
+		gap: 1.15rem;
+		min-width: 17rem;
+		padding: 1.2rem 1.4rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 17%, transparent);
+		border-radius: 1.2rem;
+		background: color-mix(in srgb, var(--glass-card) 82%, transparent);
+		backdrop-filter: blur(12px);
+	}
+
+	.studios-summary div { display: grid; gap: 0.15rem; }
+	.studios-summary strong { font-size: 1.8rem; line-height: 1; color: var(--primary); }
+	.studios-summary span { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
+	.studios-summary i { width: 1px; height: 2.5rem; background: color-mix(in srgb, var(--primary) 20%, transparent); }
+
+	.hero-ticket {
+		position: absolute;
+		right: 1.7rem;
+		top: 1.55rem;
+		padding: 0.45rem 0.75rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
+		border-radius: 0.5rem;
+		font: 700 0.58rem/1.25 monospace;
+		letter-spacing: 0.16em;
+		text-align: center;
+		color: color-mix(in srgb, var(--primary) 65%, transparent);
+		transform: rotate(4deg);
+	}
+
+	.watched-note {
+		display: grid;
+		grid-template-columns: auto 1fr auto;
+		align-items: center;
+		gap: 0.85rem;
+		margin: 1.15rem 0 1.6rem;
+		padding: 0.9rem 1.15rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 14%, transparent);
+		border-radius: 1rem;
+		background: color-mix(in srgb, var(--primary) 5%, var(--glass-card));
+	}
+
+	.watched-note > span {
+		display: grid;
+		place-items: center;
+		width: 2rem;
+		height: 2rem;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--primary) 14%, transparent);
+		color: var(--primary);
+		font-weight: 800;
+	}
+
+	.watched-note p { display: grid; gap: 0.1rem; margin: 0; }
+	.watched-note strong { font-size: 0.84rem; }
+	.watched-note small { color: var(--text-muted); line-height: 1.5; }
+	.watched-note a { font-size: 0.76rem; font-weight: 700; color: var(--primary); white-space: nowrap; }
+	.watched-note a:hover b { display: inline-block; transform: translateX(0.15rem); }
+
+	.studio-list { display: grid; gap: 1.5rem; }
+
+	.studio-card {
+		position: relative;
+		overflow: hidden;
+		border: 1px solid color-mix(in srgb, var(--studio-accent) 22%, var(--glass-border));
+		border-radius: 1.6rem;
+		background: color-mix(in srgb, var(--glass-card) 96%, var(--studio-accent) 4%);
+		box-shadow: 0 0.9rem 2.2rem rgb(75 56 64 / 0.08);
+		transition: border-color 240ms ease, box-shadow 240ms ease;
+	}
+
+	.studio-card:hover {
+		border-color: color-mix(in srgb, var(--studio-accent) 36%, var(--glass-border));
+		box-shadow: 0 1.1rem 2.7rem color-mix(in srgb, var(--studio-accent) 12%, rgb(75 56 64 / 0.08));
+	}
+
+	.studio-intro {
+		position: relative;
+		display: grid;
+		grid-template-columns: 6rem minmax(14rem, 0.56fr) minmax(20rem, 1fr);
+		grid-template-areas:
+			"logo identity story"
+			"stats stats stats";
+		align-items: center;
+		gap: 1.5rem 1.65rem;
+		padding: 2.25rem 2.25rem 1.65rem;
+		overflow: hidden;
+		background:
+			radial-gradient(circle at 110% -5%, color-mix(in srgb, var(--studio-accent) 30%, transparent), transparent 45%),
+			radial-gradient(circle, color-mix(in srgb, var(--studio-accent) 13%, transparent) 1.2px, transparent 1.4px) 0 0 / 1rem 1rem,
+			linear-gradient(145deg, color-mix(in srgb, var(--studio-accent) 11%, var(--glass-card)), color-mix(in srgb, var(--glass-card) 94%, transparent));
+	}
+
+	.studio-intro::after {
+		content: "";
+		position: absolute;
+		left: 0;
+		top: 1.8rem;
+		bottom: 1.8rem;
+		width: 0.22rem;
+		border-radius: 0 999px 999px 0;
+		background: var(--studio-accent);
+	}
+
+	.studio-index {
+		position: absolute;
+		right: 1.4rem;
+		top: 1.1rem;
+		font: 700 0.7rem/1 monospace;
+		letter-spacing: 0.14em;
+		color: color-mix(in srgb, var(--studio-accent) 60%, transparent);
+	}
+
+	.studio-charm {
+		position: absolute;
+		right: 3.7rem;
+		top: 0.78rem;
+		z-index: 2;
+		display: flex;
+		align-items: center;
+		gap: 0.32rem;
+		padding: 0.34rem 0.62rem 0.34rem 0.42rem;
+		border: 1px dashed color-mix(in srgb, var(--studio-accent) 38%, transparent);
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--glass-card) 88%, white 12%);
+		box-shadow: 0 0.3rem 0.8rem color-mix(in srgb, var(--studio-accent) 12%, transparent);
+		color: var(--studio-accent);
+		transform: rotate(-3deg);
+	}
+
+	.studio-charm b {
+		display: grid;
+		place-items: center;
+		width: 1.15rem;
+		height: 1.15rem;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--studio-accent) 15%, transparent);
+		font-size: 0.72rem;
+		line-height: 1;
+	}
+
+	.studio-charm span {
+		font-size: 0.58rem;
+		font-weight: 750;
+		letter-spacing: 0.05em;
+		white-space: nowrap;
+	}
+
+	.studio-logo {
+		position: relative;
+		grid-area: logo;
+		display: grid;
+		place-items: center;
+		width: 5.5rem;
+		height: 5.5rem;
+		border: 1px solid color-mix(in srgb, var(--studio-accent) 32%, transparent);
+		border-radius: 1.35rem;
+		background: rgb(255 255 255 / 0.9);
+		box-shadow: 0 0.65rem 1.5rem color-mix(in srgb, var(--studio-accent) 13%, transparent);
+		transform: rotate(-1.5deg);
+		transition: transform 240ms ease, box-shadow 240ms ease;
+	}
+
+	.studio-logo::before {
+		content: "";
+		position: absolute;
+		left: 50%;
+		top: -0.42rem;
+		width: 2.4rem;
+		height: 0.75rem;
+		border-radius: 0.15rem;
+		background: color-mix(in srgb, var(--studio-accent) 28%, rgb(255 247 221 / 0.88));
+		box-shadow: 0 1px 2px rgb(80 60 60 / 0.08);
+		transform: translateX(-50%) rotate(2deg);
+	}
+
+	.studio-logo::after {
+		content: "✦";
+		position: absolute;
+		right: -0.55rem;
+		bottom: -0.45rem;
+		display: grid;
+		place-items: center;
+		width: 1.55rem;
+		height: 1.55rem;
+		border: 1px solid color-mix(in srgb, var(--studio-accent) 28%, transparent);
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--glass-card) 90%, white);
+		box-shadow: 0 0.25rem 0.7rem color-mix(in srgb, var(--studio-accent) 14%, transparent);
+		color: var(--studio-accent);
+		font-size: 0.7rem;
+	}
+
+	.studio-card:hover .studio-logo {
+		box-shadow: 0 0.85rem 1.8rem color-mix(in srgb, var(--studio-accent) 18%, transparent);
+		transform: rotate(0deg) translateY(-0.15rem);
+	}
+
+	.studio-logo img {
+		width: 76%;
+		height: 76%;
+		object-fit: contain;
+	}
+
+	.studio-identity {
+		grid-area: identity;
+		min-width: 0;
+	}
+
+	.studio-label {
+		margin: 0 0 0.4rem;
+		font: 700 0.58rem/1 monospace;
+		letter-spacing: 0.16em;
+		color: var(--studio-accent);
+	}
+
+	.studio-intro h2 { margin: 0; font-size: clamp(1.55rem, 2.4vw, 2rem); letter-spacing: -0.035em; }
+	.studio-original { margin: 0.3rem 0 0; font: 600 0.68rem/1.4 monospace; letter-spacing: 0.08em; color: var(--text-muted); }
+	.studio-impression { margin: 1rem 0 0; font-size: 0.86rem; line-height: 1.75; color: var(--text-body); }
+
+	.studio-story {
+		grid-area: story;
+		align-self: stretch;
+		padding: 0.25rem 1.25rem;
+		border-left: 1px dashed color-mix(in srgb, var(--studio-accent) 25%, transparent);
+	}
+
+	.studio-story > span {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-size: 0.72rem;
+		font-weight: 750;
+		letter-spacing: 0.06em;
+		color: var(--studio-accent);
+	}
+
+	.studio-story p {
+		margin: 0;
+		font-size: 0.8rem;
+		line-height: 1.8;
+		color: var(--text-body);
+	}
+
+	.studio-traits {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem;
+		margin-top: 0.8rem;
+	}
+
+	.studio-traits small {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.32rem 0.6rem;
+		border: 1px solid color-mix(in srgb, var(--studio-accent) 20%, transparent);
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--studio-accent) 8%, transparent);
+		font-size: 0.62rem;
+		color: var(--text-body);
+	}
+
+	.studio-traits small::before {
+		content: "";
+		width: 0.32rem;
+		height: 0.32rem;
+		border-radius: 50%;
+		background: var(--studio-accent);
+		box-shadow: 0 0 0 0.18rem color-mix(in srgb, var(--studio-accent) 12%, transparent);
+	}
+
+	.studio-stats {
+		grid-area: stats;
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		padding-top: 1.15rem;
+		border-top: 1px dashed color-mix(in srgb, var(--studio-accent) 22%, transparent);
+	}
+
+	.studio-stats div {
+		display: flex;
+		align-items: baseline;
+		gap: 0.45rem;
+		padding: 0 1rem;
+		border-right: 1px solid color-mix(in srgb, var(--studio-accent) 15%, transparent);
+	}
+
+	.studio-stats div:first-child { padding-left: 0; }
+	.studio-stats div:last-child { border-right: 0; }
+	.studio-stats strong { font-size: 1.35rem; color: var(--studio-accent); }
+	.studio-stats span { font-size: 0.68rem; color: var(--text-muted); }
+
+	.studio-works {
+		min-width: 0;
+		padding: 1.55rem 1.7rem 1.7rem;
+		border-top: 1px solid color-mix(in srgb, var(--studio-accent) 12%, transparent);
+	}
+	.works-heading { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1rem; }
+	.works-heading span { display: flex; align-items: center; gap: 0.45rem; font-size: 0.86rem; font-weight: 750; }
+	.works-heading span::after { content: "♡"; color: var(--studio-accent); font-size: 0.9rem; transform: rotate(8deg); }
+	.works-heading small { font: 700 0.58rem/1 monospace; letter-spacing: 0.13em; color: var(--text-muted); }
+
+	.works-grid {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.85rem;
+	}
+
+	.work-card {
+		flex: 0 0 calc((100% - 2.55rem) / 4);
+		min-width: 0;
+		overflow: hidden;
+		border: 1px solid color-mix(in srgb, var(--studio-accent) 14%, var(--glass-border));
+		border-radius: 1rem;
+		background: color-mix(in srgb, var(--glass-card) 96%, var(--studio-accent) 4%);
+		transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+	}
+
+	.work-card:hover {
+		transform: translateY(-0.25rem);
+		border-color: color-mix(in srgb, var(--studio-accent) 40%, transparent);
+		box-shadow: 0 0.8rem 1.4rem color-mix(in srgb, var(--studio-accent) 13%, transparent);
+	}
+
+	.work-cover { position: relative; aspect-ratio: 3 / 4.15; overflow: hidden; background: color-mix(in srgb, var(--studio-accent) 8%, var(--glass-card)); }
+	.work-cover::before {
+		content: "✦";
+		position: absolute;
+		right: 0.52rem;
+		bottom: 0.52rem;
+		z-index: 2;
+		display: grid;
+		place-items: center;
+		width: 1.45rem;
+		height: 1.45rem;
+		border: 1px solid rgb(255 255 255 / 0.55);
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--studio-accent) 70%, transparent);
+		box-shadow: 0 0.2rem 0.65rem rgb(0 0 0 / 0.14);
+		color: white;
+		font-size: 0.62rem;
+		backdrop-filter: blur(6px);
+	}
+	.work-card:nth-child(4n + 2) .work-cover::before { content: "♡"; }
+	.work-card:nth-child(4n + 3) .work-cover::before { content: "♪"; }
+	.work-card:nth-child(4n + 4) .work-cover::before { content: "·ᴗ·"; font-size: 0.52rem; }
+	.work-cover::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 -2.8rem 2.5rem -2.3rem rgb(0 0 0 / 0.35); pointer-events: none; }
+	.work-cover img { width: 100%; height: 100%; object-fit: cover; transition: transform 350ms ease; }
+	.work-card:hover img { transform: scale(1.035); }
+	.cover-fallback { display: grid; place-items: center; height: 100%; font-size: 0.72rem; color: var(--text-muted); }
+
+	.favorite-ribbon,
+	.article-ribbon {
+		position: absolute;
+		z-index: 1;
+		top: 0.6rem;
+		padding: 0.28rem 0.52rem;
+		border-radius: 999px;
+		font-size: 0.58rem;
+		font-weight: 750;
+		letter-spacing: 0.04em;
+		backdrop-filter: blur(8px);
+	}
+
+	.favorite-ribbon { left: 0.55rem; background: color-mix(in srgb, var(--studio-accent) 82%, white); color: white; }
+	.article-ribbon { right: 0.55rem; background: rgb(255 255 255 / 0.84); color: #b34f78; }
+
+	.work-info { padding: 0.7rem 0.72rem 0.75rem; }
+	.work-info h3 {
+		display: -webkit-box;
+		overflow: hidden;
+		min-height: 2.55em;
+		margin: 0;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		font-size: 0.76rem;
+		line-height: 1.4;
+	}
+
+	.work-meta { display: flex; align-items: center; justify-content: space-between; gap: 0.3rem; margin-top: 0.52rem; color: var(--text-muted); }
+	.work-meta span { overflow: hidden; font-size: 0.62rem; white-space: nowrap; text-overflow: ellipsis; }
+	.work-meta b { color: #e9a448; }
+	.work-meta i { font-style: normal; color: var(--studio-accent); transition: transform 180ms ease; }
+	.work-card:hover .work-meta i { transform: translate(0.1rem, -0.1rem); }
+
+	.studios-empty {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 2rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 25%, transparent);
+		border-radius: 1.3rem;
+		background: var(--glass-card);
+	}
+	.studios-empty > span { display: grid; place-items: center; width: 2.8rem; height: 2.8rem; border-radius: 50%; background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); font-weight: 800; }
+	.studios-empty strong { display: block; margin-bottom: 0.25rem; }
+	.studios-empty p { margin: 0; color: var(--text-muted); font-size: 0.8rem; }
+
+	:global(.dark) .article-ribbon { background: rgb(35 31 34 / 0.84); color: #f2a0be; }
+	:global(.dark) .studio-charm,
+	:global(.dark) .studio-logo::after { background: color-mix(in srgb, var(--glass-card) 92%, var(--studio-accent) 8%); }
+
+	@media (max-width: 1100px) {
+		.studios-hero { grid-template-columns: 1fr; align-items: start; }
+		.studios-summary { width: fit-content; }
+		.studio-intro {
+			grid-template-columns: 5.5rem minmax(0, 1fr);
+			grid-template-areas:
+				"logo identity"
+				"story story"
+				"stats stats";
+			align-items: start;
+		}
+		.studio-story { padding: 1rem 0 0; border-top: 1px dashed color-mix(in srgb, var(--studio-accent) 20%, transparent); border-left: 0; }
+		.work-card { flex-basis: calc((100% - 1.7rem) / 3); }
+	}
+
+	@media (max-width: 760px) {
+		.studios-page { padding: 0.7rem 0.45rem 1.5rem; }
+		.studios-hero { min-height: 0; padding: 2.35rem 1.35rem 1.5rem; border-radius: 1.35rem; }
+		.studios-hero::before { inset: 0.65rem; border-radius: 0.95rem; }
+		.studios-kicker { align-items: flex-start; flex-direction: column; gap: 0.4rem; }
+		.studios-hero h1 { font-size: 2.75rem; }
+		.studios-lead { font-size: 0.86rem; line-height: 1.75; }
+		.studios-summary { gap: 0.85rem; min-width: 0; width: 100%; padding: 0.9rem 1rem; }
+		.studios-summary div { flex: 1; }
+		.hero-ticket { right: 1.1rem; top: 1rem; }
+		.watched-note { grid-template-columns: auto 1fr; padding: 0.8rem; }
+		.watched-note a { grid-column: 2; justify-self: start; }
+		.studio-card { border-radius: 1.3rem; }
+		.studio-charm { right: 3.25rem; top: 0.35rem; padding-right: 0.5rem; }
+		.studio-charm span { display: none; }
+		.studio-intro {
+			grid-template-columns: 4.3rem minmax(0, 1fr);
+			gap: 1rem;
+			padding: 1.45rem 1.25rem 1.2rem;
+		}
+		.studio-logo { width: 4rem; height: 4rem; border-radius: 1rem; }
+		.studio-impression { margin: 0.9rem 0 1rem; }
+		.studio-story { padding-top: 0.85rem; }
+		.studio-story p { font-size: 0.75rem; line-height: 1.75; }
+		.studio-stats { gap: 0; padding-top: 0.9rem; }
+		.studio-stats div { display: grid; gap: 0.1rem; padding: 0 0.7rem; }
+		.studio-stats div:first-child { padding-left: 0; }
+		.studio-stats strong { font-size: 1.15rem; }
+		.studio-stats span { font-size: 0.58rem; }
+		.studio-works { padding: 1.1rem; }
+		.works-grid { gap: 0.7rem; }
+		.work-card { flex-basis: calc((100% - 0.7rem) / 2); }
+		.work-info { padding: 0.62rem; }
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.studio-card,
+		.studio-logo,
+		.work-card,
+		.work-cover img,
+		.work-meta i { transition: none; }
+	}
+</style>
