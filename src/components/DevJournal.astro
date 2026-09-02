@@ -10,6 +10,7 @@ const techGroups = [
 			{ name: "C 语言", mark: "C", tone: "blue", status: "已学习" },
 			{ name: "Java", mark: "J", tone: "coral", status: "已学习" },
 			{ name: "JavaScript", mark: "JS", tone: "tea", status: "已学习" },
+			{ name: "TypeScript", mark: "TS", tone: "blue", status: "已学习" },
 		],
 	},
 	{
@@ -19,6 +20,7 @@ const techGroups = [
 		items: [
 			{ name: "HTML5", mark: "H5", tone: "coral", status: "已学习" },
 			{ name: "CSS3", mark: "C3", tone: "blue", status: "已学习" },
+			{ name: "Vue 3", mark: "V3", tone: "green", status: "已学习" },
 		],
 	},
 	{
@@ -105,7 +107,7 @@ const projects = [
 
 		<div class="tech-grid">
 			{techGroups.map((group) => (
-				<article class:list={["tech-card", group.name === "工具与工程" && "tech-card-tools"]}>
+				<article class="tech-card">
 					<div class="tech-card-heading">
 						<div class="tech-card-icon"><Icon name={group.icon} /></div>
 						<h3>{group.name}</h3>
@@ -351,8 +353,7 @@ const projects = [
 	.tech-card-icon :global(svg) { width: 1.05rem; height: 1.05rem; }
 	.tech-card-heading h3 { margin: 0; color: color-mix(in srgb, var(--tea) 76%, black); font-size: 0.78rem; }
 	.tech-card-heading > span { color: color-mix(in srgb, var(--primary) 55%, transparent); font-size: 0.52rem; white-space: nowrap; }
-	.tech-list { display: flex; flex-direction: column; gap: 0.42rem; }
-	.tech-card-tools .tech-list { max-height: 7.4rem; overflow-y: auto; padding-right: 0.18rem; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--primary) 38%, transparent) transparent; }
+	.tech-list { display: flex; flex-direction: column; gap: 0.42rem; max-height: 7.4rem; overflow-y: auto; padding-right: 0.18rem; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--primary) 38%, transparent) transparent; }
 	.tech-item { display: grid; grid-template-columns: 1.8rem minmax(0, 1fr) auto; align-items: center; gap: 0.45rem; min-height: 2.05rem; padding: 0.28rem 0.38rem; border-radius: 0.7rem; background: color-mix(in srgb, var(--primary) 4%, transparent); }
 	.tech-mark { display: grid; place-items: center; width: 1.55rem; height: 1.55rem; border-radius: 0.5rem; color: white; font-size: 0.56rem; font-weight: 900; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.38); }
 	.tone-coral { background: #dc806f; }.tone-green { background: #72ad91; }.tone-purple { background: #8f7bb7; }.tone-blue { background: #6f9fc2; }.tone-pink { background: #d67d9b; }.tone-tea { background: #8e746a; }
