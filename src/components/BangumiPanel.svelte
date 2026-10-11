@@ -8,6 +8,11 @@
 	let nextBtn: HTMLButtonElement | null = null;
 	let pageIndicator: HTMLElement | null = null;
 	let paginationBar: HTMLElement | null = null;
+	let reviewSection: HTMLElement | null = null;
+	let reviewItems: NodeListOf<HTMLElement> | null = null;
+	let viewButtons: NodeListOf<HTMLButtonElement> | null = null;
+	let statusTabs: HTMLElement | null = null;
+	let currentView = "wall";
 
 	const DESKTOP_ITEMS_PER_PAGE = 9;
 	const MOBILE_ITEMS_PER_PAGE = 8;
@@ -24,18 +29,23 @@
 			return;
 		}
 
-		const filteredItems = Array.from(items).filter(
-			(item) => currentStatus === "all" || item.dataset.type === currentStatus,
+		const isReviews = currentView === "reviews";
+		if (grid) grid.hidden = isReviews;
+		if (reviewSection) reviewSection.hidden = !isReviews;
+		if (statusTabs) statusTabs.hidden = isReviews;
+		const activeItems = isReviews ? Array.from(reviewItems || []) : Array.from(items);
+		const filteredItems = activeItems.filter(
+			(item) => isReviews || currentStatus === "all" || item.dataset.type === currentStatus,
 		);
 
-		const itemsPerPage = mobileQuery?.matches ? MOBILE_ITEMS_PER_PAGE : DESKTOP_ITEMS_PER_PAGE;
+		const itemsPerPage = isReviews ? 6 : mobileQuery?.matches ? MOBILE_ITEMS_PER_PAGE : DESKTOP_ITEMS_PER_PAGE;
 		totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
 		currentPage = Math.min(Math.max(currentPage, 1), totalPages);
 
 		const start = (currentPage - 1) * itemsPerPage;
 		const end = start + itemsPerPage;
 
-		items.forEach((item) => {
+		activeItems.forEach((item) => {
 			item.hidden = true;
 		});
 		filteredItems.forEach((item, index) => {
@@ -48,6 +58,21 @@
 			pageIndicator.textContent = `${String(currentPage).padStart(2, "0")} / ${String(totalPages).padStart(2, "0")}`;
 		}
 		if (paginationBar) paginationBar.hidden = totalPages <= 1;
+	}
+
+	function handleViewClick(event: Event) {
+		currentView = (event.currentTarget as HTMLButtonElement).dataset.view || "wall";
+		currentPage = 1;
+		viewButtons?.forEach((button) => {
+			const active = button.dataset.view === currentView;
+			button.classList.toggle("bangumi-view-active", active);
+			button.setAttribute("aria-pressed", String(active));
+		});
+		const url = new URL(window.location.href);
+		if (currentView === "reviews") url.searchParams.set("view", "reviews");
+		else url.searchParams.delete("view");
+		window.history.replaceState(window.history.state, "", url);
+		render();
 	}
 
 	function handleTabClick(event: Event) {
@@ -69,14 +94,14 @@
 		if (currentPage <= 1) return;
 		currentPage--;
 		render();
-		grid?.scrollIntoView({ behavior: "smooth", block: "start" });
+		(currentView === "reviews" ? reviewSection : grid)?.scrollIntoView({ behavior: "smooth", block: "start" });
 	}
 
 	function handleNextClick() {
 		if (currentPage >= totalPages) return;
 		currentPage++;
 		render();
-		grid?.scrollIntoView({ behavior: "smooth", block: "start" });
+		(currentView === "reviews" ? reviewSection : grid)?.scrollIntoView({ behavior: "smooth", block: "start" });
 	}
 
 	function handleViewportChange() {
@@ -92,6 +117,10 @@
 		nextBtn = document.querySelector<HTMLButtonElement>("#btn-next");
 		pageIndicator = document.getElementById("page-indicator");
 		paginationBar = document.getElementById("bangumi-pagination");
+		reviewSection = document.getElementById("bangumi-reviews");
+		reviewItems = document.querySelectorAll<HTMLElement>(".bangumi-review-item");
+		viewButtons = document.querySelectorAll<HTMLButtonElement>("[data-view]");
+		statusTabs = document.getElementById("bangumi-tabs-container");
 		mobileQuery = window.matchMedia("(max-width: 640px)");
 
 		if (!grid) {
@@ -107,6 +136,15 @@
 			tab.addEventListener("click", handleTabClick);
 			eventListeners.push(() => tab.removeEventListener("click", handleTabClick));
 		});
+		viewButtons.forEach((button) => {
+			button.addEventListener("click", handleViewClick);
+			eventListeners.push(() => button.removeEventListener("click", handleViewClick));
+		});
+		if (new URLSearchParams(window.location.search).get("view") === "reviews") {
+			viewButtons.forEach((button) => {
+				if (button.dataset.view === "reviews") button.click();
+			});
+		}
 
 		prevBtn?.addEventListener("click", handlePrevClick);
 		if (prevBtn) eventListeners.push(() => prevBtn?.removeEventListener("click", handlePrevClick));
