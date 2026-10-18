@@ -21,6 +21,7 @@ declare global {
 		__fuwariTravelHookRegistered?: boolean;
 		__fuwariStatsGardenHookRegistered?: boolean;
 		__fuwariAboutHookRegistered?: boolean;
+		__fuwariAboutRailHookRegistered?: boolean;
 	}
 }
 

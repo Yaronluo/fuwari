@@ -1,274 +1,2010 @@
 ---
+import AboutMotion from "@components/AboutMotion.astro";
 import ImageWrapper from "@components/misc/ImageWrapper.astro";
+import { Icon } from "astro-icon/components";
+import { profileConfig } from "../config";
 import I18nKey from "../i18n/i18nKey";
 import { i18n } from "../i18n/translation";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
-import { profileConfig } from "../config";
-import { Icon } from "astro-icon/components";
 
-const qqLink = profileConfig.links.find((link) => link.name === "QQ")?.url || "#";
+const qqLink =
+	profileConfig.links.find((link) => link.name === "QQ")?.url || "#";
+const bilibiliLink =
+	profileConfig.links.find((link) => link.name === "Bilibili")?.url || "#";
+const githubLink =
+	profileConfig.links.find((link) => link.name === "GitHub")?.url || "#";
+const socials = profileConfig.links;
+
+interface InterestAside {
+	kind: "note" | "link";
+	text: string;
+	href?: string;
+	icon?: string;
+}
+
+interface Interest {
+	id: string;
+	icon: string;
+	tone: string;
+	kicker: string;
+	title: string;
+	text: string;
+	tags: string[];
+	aside: InterestAside;
+}
+
+const interests: Interest[] = [
+	{
+		id: "football",
+		icon: "fa6-solid:futbol",
+		tone: "#dd8b5c",
+		kicker: "FOOTBALL",
+		title: "足球 · 永不放弃",
+		text: "最喜欢 C 罗永不放弃的精神，也永远为皇家马德里的纯白而心动。",
+		tags: ["C 罗", "皇家马德里", "Hala Madrid"],
+		aside: { kind: "note", text: "世间五彩，我执纯白 ✦" },
+	},
+	{
+		id: "games",
+		icon: "fa6-solid:gamepad",
+		tone: "#6f93c9",
+		kicker: "GAME TIME",
+		title: "游戏 · 快乐开黑",
+		text: "LOLM、三角洲行动、CS2 都打，也喜欢星露谷物语、我的世界和恐怖游戏。",
+		tags: ["LOLM", "三角洲行动", "CS2", "星露谷物语", "我的世界"],
+		aside: { kind: "note", text: "✧(≖◡≖✿)" },
+	},
+	{
+		id: "anime",
+		icon: "fa6-solid:heart",
+		tone: "#dd7ba1",
+		kicker: "ANIME DAYS",
+		title: "番剧 · 纯爱万岁",
+		text: "最喜欢纯爱番——请让纯爱统治整个世界好叭！",
+		tags: ["纯爱番", "恋爱喜剧", "剧场版"],
+		aside: {
+			kind: "link",
+			text: "去看追番记录",
+			href: "/bangumi/",
+			icon: "fa6-solid:tv",
+		},
+	},
+	{
+		id: "music",
+		icon: "fa6-solid:music",
+		tone: "#8f7cc6",
+		kicker: "MY PLAYLIST",
+		title: "音乐 · 单曲循环",
+		text: "喜欢周杰伦、邓紫棋、许嵩、陶喆，还有许多会反复播放的旋律。",
+		tags: ["周杰伦", "邓紫棋", "许嵩", "陶喆"],
+		aside: {
+			kind: "link",
+			text: "去 QQ 音乐看看",
+			href: "https://c6.y.qq.com/base/fcgi-bin/u?__=YkxsLjK3HadO",
+			icon: "fa6-solid:compact-disc",
+		},
+	},
+];
+
+// Glyphs that fly out of the polaroid when the avatar is clicked.
+const burstGlyphs = ["⚽", "🎮", "♡", "♪", "✦", "🎬", "🎧"];
+const avatarMessages = [
+	"うんたん♪",
+	"今天也要开心 ✿",
+	"要不要一起踢球？⚽",
+	"开黑吗，缺你一个！🎮",
+	"纯爱统治世界！♡",
+	"正在单曲循环 ♫",
+];
 ---
 
 <MainGridLayout title={i18n(I18nKey.about)} description={i18n(I18nKey.about)}>
+	<script is:inline>
+		// Motion-capable browsers get the entrance choreography and the
+		// scroll reveals; a hard reload keeps the page still instead of
+		// replaying the entrance. `about-motion` is added here (before the
+		// markup paints) so revealed blocks never flash in place first, and
+		// `about-reveal-pending` keeps them hidden until the client script
+		// arms the observer — the timer below drops it again if that script
+		// never shows up, so nothing ever depends on JS to become visible.
+		(() => {
+			const root = document.documentElement;
+			const navEntry = performance.getEntriesByType("navigation")[0];
+			const initialPaint = document.readyState === "loading";
+			root.classList.add("about-motion");
+			if (initialPaint && navEntry && navEntry.type === "reload") {
+				root.classList.add("about-no-enter");
+			} else {
+				root.classList.remove("about-no-enter");
+			}
+			if (
+				window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+				!("IntersectionObserver" in window)
+			) {
+				return;
+			}
+			root.classList.add("about-reveal-pending");
+			// Generous on purpose: the observer only takes over once the client
+			// script has run, and a cold dev build can take a moment to serve it.
+			window.setTimeout(() => {
+				const page = document.querySelector(".about-page");
+				if (!page || page.dataset.revealArmed !== "true") {
+					root.classList.remove("about-reveal-pending");
+				}
+			}, 4000);
+		})();
+	</script>
+
 	<div class="about-page">
-		<section class="about-hero">
-			<span class="about-tape" aria-hidden="true"></span>
-			<span class="about-spark about-spark-one" aria-hidden="true">✦</span>
-			<span class="about-spark about-spark-two" aria-hidden="true">♡</span>
-			<div class="about-avatar-wrap">
-				<div class="about-avatar">
-					<ImageWrapper src={profileConfig.avatar || ""} alt="Yaron 的头像" class="h-full w-full object-cover" />
+		<!-- 01 · Masthead ------------------------------------------------ -->
+		<header class="about-masthead" id="about-masthead">
+			<div class="about-doodles" aria-hidden="true">
+				<span class="about-doodle about-doodle--note" style="--x: 3%; --y: 12%; --dur: 10.5s; --delay: -1.2s; --size: 1.5rem;">♫</span>
+				<span class="about-doodle about-doodle--spark" style="--x: 46%; --y: 6%; --dur: 8.4s; --delay: -3s; --size: 1.05rem;">✦</span>
+				<span class="about-doodle about-doodle--heart" style="--x: 88%; --y: 16%; --dur: 9.6s; --delay: -0.6s; --size: 1.35rem;">♡</span>
+				<span class="about-doodle about-doodle--star" style="--x: 94%; --y: 74%; --dur: 11.4s; --delay: -2.2s; --size: 1.15rem;">✧</span>
+				<span class="about-doodle about-doodle--bloom" style="--x: 12%; --y: 82%; --dur: 12.6s; --delay: -4.4s; --size: 1.25rem;">❀</span>
+				<span class="about-doodle about-doodle--tune" style="--x: 63%; --y: 88%; --dur: 9.2s; --delay: -1.8s; --size: 1rem;">♪</span>
+				<span class="about-doodle about-doodle--ribbon" style="--x: 34%; --y: 92%; --dur: 13.2s; --delay: -5.1s; --size: 1.1rem;">✿</span>
+				<span class="about-doodle about-doodle--chime" style="--x: 74%; --y: 32%; --dur: 10.8s; --delay: -3.6s; --size: 0.95rem;">♬</span>
+			</div>
+
+			<div class="about-polaroid" data-parallax="14" data-avatar-messages={JSON.stringify(avatarMessages)}>
+				<div class="about-photo about-polaroid-in">
+					<div class="about-photo-frame">
+						<ImageWrapper
+							src={profileConfig.avatar || ""}
+							alt="Yaron 的头像"
+							class="h-full w-full"
+							loading="eager"
+						/>
+						<span class="about-photo-gloss" aria-hidden="true"></span>
+					</div>
+					<span class="about-photo-mark" aria-hidden="true">♡ Yaron</span>
+					<button
+						type="button"
+						class="about-photo-hit"
+						id="about-avatar-button"
+						aria-label="点一下头像，会有一点小惊喜"
+					></button>
+					<span class="about-tape" aria-hidden="true"></span>
+					<span class="about-photo-spark about-photo-spark--one" aria-hidden="true">✦</span>
+					<span class="about-photo-spark about-photo-spark--two" aria-hidden="true">✧</span>
+					<span class="about-burst" aria-hidden="true">
+						{burstGlyphs.map((glyph) => <i class="about-burst-item">{glyph}</i>)}
+					</span>
 				</div>
-				<span>今日也在认真生活中</span>
+				<span class="about-photo-caption">
+					<span aria-hidden="true">✎</span> 今日也在认真生活中
+				</span>
+				<span class="about-bubble" aria-hidden="true">うんたん♪</span>
 			</div>
-			<div class="about-hero-copy">
-				<p class="about-eyebrow">ABOUT YARON <b>₍ᐢ.ˬ.ᐢ₎</b></p>
-				<h1>你好呀，我是 <em>Yaron</em></h1>
-				<p class="about-lead">都看到这里啦，那就不许再装作不认识我咯！<br />这里有生活、热爱，还有一点点可爱 ₍ᐢ.ˬ.ᐢ₎♡</p>
-				<div class="about-badges" aria-label="个人信息">
-					<span>📍 来自湖南</span><span>🏫 湖南工商大学</span><span>💻 计算机科学与技术</span>
-				</div>
-			</div>
-		</section>
 
-		<section class="about-diary">
-			<header class="about-section-title">
-				<div><span>MY FAVORITES</span><h2>我的兴趣小手账</h2></div>
-				<p>喜欢的事情，要认真记下来呀 (˶ᵔ ᵕ ᵔ˶)</p>
-			</header>
-			<div class="interest-list">
-				<article class="interest-row football">
-					<div class="interest-icon" aria-hidden="true"><Icon name="fa6-solid:futbol" /></div>
-					<div><span>FOOTBALL</span><h3>足球 · 永不放弃</h3><p>最喜欢 C 罗永不放弃的精神，也永远为皇家马德里的纯白而心动。</p></div>
-					<small>Hala Madrid!</small>
-				</article>
-				<article class="interest-row games">
-					<div class="interest-icon" aria-hidden="true"><Icon name="fa6-solid:gamepad" /></div>
-					<div><span>GAME TIME</span><h3>游戏 · 快乐开黑</h3><p>LOLM、三角洲行动、CS2，也喜欢星露谷物语、我的世界和恐怖游戏。</p></div>
-					<small>✧(≖◡≖✿)</small>
-				</article>
-				<article class="interest-row anime">
-					<div class="interest-icon" aria-hidden="true"><Icon name="fa6-solid:heart" /></div>
-					<div><span>ANIME DAYS</span><h3>番剧 · 纯爱万岁</h3><p>最喜欢纯爱番——请让纯爱统治整个世界好叭！</p></div>
-					<a href="/bangumi/">去看追番记录 <b>›</b></a>
-				</article>
-				<article class="interest-row music">
-					<div class="interest-icon" aria-hidden="true"><Icon name="fa6-solid:music" /></div>
-					<div><span>MY PLAYLIST</span><h3>音乐 · 单曲循环</h3><p>喜欢周杰伦、邓紫棋、许嵩、陶喆，还有许多会反复播放的旋律。</p></div>
-					<small>♪(´▽｀)</small>
-				</article>
-			</div>
-			<span class="diary-doodle" aria-hidden="true">⌁ 记录完毕！</span>
-		</section>
-
-		<div class="about-notes">
-			<section class="about-note dream-note">
-				<span class="note-pin" aria-hidden="true">♥</span><p>DREAM WISHLIST</p><h2>想把生活过得闪闪发光 ✦</h2>
-				<div>最大的梦想是赚很多很多的钱 💸<br />还有……遇见一位可爱的女朋友 /(ㄒoㄒ)/~~</div>
-			</section>
-			<section class="about-note hello-note">
-				<span class="note-pin" aria-hidden="true">✦</span><p>SAY HELLO</p><h2>欢迎来找我玩呀！</h2>
-				<div>想聊天或交流问题，都可以加我的 QQ。<br />尊重彼此，我们就能愉快地成为朋友 (｡•̀ᴗ-)✧</div>
-				<a href={qqLink} target="_blank" rel="noopener noreferrer">去加 QQ 好友 <span>→</span></a>
-			</section>
-		</div>
-
-		<details class="english-drawer">
-			<summary><span>🌷</span><div><b>English profile</b><small>英文自我介绍，点一下打开</small></div><i aria-hidden="true">⌄</i></summary>
-			<div class="english-copy-wrap">
-			<div class="english-copy-clip">
-			<div class="english-copy">
-				<h2>Hi, I'm Yaron!</h2>
-				<p>Since you've opened this little drawer, I guess you want to know me a little better, right? Hehe (●ˇ∀ˇ●)</p>
-				<p>Welcome to my little blog! I'm Yaron, from Hunan, and I'm currently a student at Hunan University of Technology and Business, majoring in Computer Science and Technology. ٩(๑^o^๑)۶</p>
-				<p>My hobbies are football, gaming, watching anime, and listening to music.</p>
-				<ul>
-					<li><b>Football:</b> My favorite player is Cristiano Ronaldo. I admire his never-give-up spirit and the way he always keeps a heart set on victory. My favorite club is Real Madrid — “Hala Madrid! In a world full of colors, I choose pure white!”</li>
-					<li><b>Games:</b> For competitive multiplayer games, I enjoy LOLM, Delta Force, and Counter-Strike 2. I also love Stardew Valley, Minecraft, and the occasional horror game ✧(≖◡≖✿)</li>
-					<li><b>Anime:</b> I'm a big fan of pure romance — let pure love rule the whole world, okay?! You can also visit my <a href="/bangumi/">Anime Tracker</a> to see what I've been watching.</li>
-					<li><b>Music:</b> I enjoy Jay Chou, G.E.M., Vae (Xu Song), David Tao, and many other artists. There are always a few songs quietly playing on repeat.</li>
+			<div class="about-intro" data-parallax="5">
+				<p class="about-eyebrow about-rise" style="--enter-delay: 60ms;">
+					ABOUT YARON <b>₍ᐢ.ˬ.ᐢ₎</b> <i>档案 · 01</i>
+				</p>
+				<h1 class="about-name about-rise" style="--enter-delay: 150ms;">
+					你好呀，我是 <em><span>Yaron</span></em>
+				</h1>
+				<p class="about-lead about-rise" style="--enter-delay: 250ms;">
+					都看到这里啦，那就不许再装作不认识我咯！<br />
+					这里有生活、热爱，还有一点点可爱 ₍ᐢ.ˬ.ᐢ₎♡
+				</p>
+				<ul class="about-meta about-rise" style="--enter-delay: 340ms;">
+					<li><Icon name="fa6-solid:location-dot" /><span>来自湖南</span></li>
+					<li><Icon name="fa6-solid:graduation-cap" /><span>湖南工商大学</span></li>
+					<li><Icon name="fa6-solid:laptop-code" /><span>计算机科学与技术</span></li>
 				</ul>
-				<p>My biggest dream is to <b>make lots and lots of money</b> 💸~ hehe. And... I also really hope to meet a cute girlfriend someday /(ㄒoㄒ)/~~</p>
-				<p>I still have a fair amount of free time these days. If you'd like to chat or ask me something, feel free to <a href={qqLink} target="_blank" rel="noopener noreferrer">add me on QQ</a>. I enjoy meeting all kinds of interesting people—as long as we always respect one another! (｡•̀ᴗ-)✧</p>
+				<ul class="about-socials about-rise" style="--enter-delay: 430ms;">
+					{socials.map((link) => (
+						<li>
+							<a
+								href={link.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								aria-label={link.name}
+							>
+								<span class="about-socials-icon" aria-hidden="true">
+									<Icon name={link.icon} />
+								</span>
+								<span class="about-socials-name">{link.name}</span>
+							</a>
+						</li>
+					))}
+				</ul>
 			</div>
+		</header>
+
+		<div class="about-rule" aria-hidden="true"><span>✦</span></div>
+
+		<!-- 02 · Favourites ---------------------------------------------- -->
+		<section class="about-favorites" aria-labelledby="about-favorites-title">
+			<header class="about-heading" data-reveal>
+				<span class="about-heading-index about-pop" aria-hidden="true" style="--enter-delay: 120ms;">01</span>
+				<div class="about-heading-copy">
+					<p>MY FAVORITES</p>
+					<h2 id="about-favorites-title">我的兴趣小手账</h2>
+				</div>
+				<p class="about-heading-note">喜欢的事情，要认真记下来呀 (˶ᵔ ᵕ ᵔ˶)</p>
+			</header>
+
+			<ol class="about-threads">
+				{interests.map((item, index) => (
+					<li
+						class="about-thread"
+						data-reveal
+						data-tilt
+						style={`--tone: ${item.tone}; --reveal-delay: ${index * 90}ms;`}
+					>
+						<span class="about-thread-node" aria-hidden="true">
+							<Icon name={item.icon} />
+						</span>
+						<div class="about-thread-body">
+							<p class="about-thread-kicker">
+								<b>{String(index + 1).padStart(2, "0")}</b>
+								{item.kicker}
+							</p>
+							<h3>{item.title}</h3>
+							<p class="about-thread-text">{item.text}</p>
+							<ul class="about-chips">
+								{item.tags.map((tag) => <li>{tag}</li>)}
+							</ul>
+						</div>
+						<div class="about-thread-aside">
+							{item.aside.kind === "link" ? (
+								<a href={item.aside.href} rel="noopener noreferrer">
+									<Icon name={item.aside.icon || "fa6-solid:arrow-up-right-from-square"} />
+									<span>{item.aside.text}</span>
+								</a>
+							) : (
+								<span class="about-thread-note">{item.aside.text}</span>
+							)}
+						</div>
+					</li>
+				))}
+			</ol>
+
+			<span class="about-signoff" data-reveal aria-hidden="true">❀ 记录完毕！</span>
+		</section>
+
+		<div class="about-rule" aria-hidden="true"><span>✦</span></div>
+
+		<!-- 03 · Wishes & hello ------------------------------------------ -->
+		<section class="about-outro" aria-label="梦想和联系方式">
+			<div class="about-outro-col about-outro-col--dream" data-reveal>
+				<p class="about-outro-kicker">
+					<Icon name="fa6-solid:wand-magic-sparkles" />
+					<span>DREAM WISHLIST</span>
+				</p>
+				<h2>想把生活过得闪闪发光 <b>✦</b></h2>
+				<p class="about-outro-text">
+					最大的梦想是<em>赚很多很多的钱</em> 💸，还有……
+				</p>
+				<ul class="about-wish">
+					<li>
+						<span class="about-wish-box" aria-hidden="true"></span>
+						<span>把想买的东西都买下来 💸</span>
+					</li>
+					<li>
+						<span class="about-wish-box" aria-hidden="true"></span>
+						<span>遇见一位可爱的女朋友 /(ㄒoㄒ)/~~</span>
+					</li>
+				</ul>
 			</div>
+
+			<span class="about-outro-rule" aria-hidden="true"></span>
+
+			<div class="about-outro-col about-outro-col--hello" data-reveal style="--reveal-delay: 130ms;">
+				<p class="about-outro-kicker">
+					<Icon name="fa6-solid:comment-dots" />
+					<span>SAY HELLO</span>
+				</p>
+				<h2>欢迎来找我玩呀！</h2>
+				<p class="about-outro-text">
+					想聊天或交流问题，都可以加我的 QQ。<br />
+					尊重彼此，我们就能愉快地成为朋友 (｡•̀ᴗ-)✧
+				</p>
+				<a class="about-cta" href={qqLink} target="_blank" rel="noopener noreferrer">
+					<span class="about-cta-label">去加 QQ 好友</span>
+					<i aria-hidden="true">→</i>
+					<span class="about-cta-shine" aria-hidden="true"></span>
+				</a>
+				<p class="about-outro-else">
+					也会在这里出没：
+					<a href={bilibiliLink} target="_blank" rel="noopener noreferrer">
+						<Icon name="fa6-brands:bilibili" /> Bilibili
+					</a>
+					·
+					<a href={githubLink} target="_blank" rel="noopener noreferrer">
+						<Icon name="fa6-brands:github" /> GitHub
+					</a>
+				</p>
+			</div>
+		</section>
+
+		<!-- 04 · English profile ----------------------------------------- -->
+		<details class="english-drawer" data-reveal>
+			<summary>
+				<span class="english-flower" aria-hidden="true">🌷</span>
+				<span class="english-title">
+					<b>English profile</b>
+					<small>英文自我介绍，点一下打开</small>
+				</span>
+				<i class="english-chevron" aria-hidden="true">
+					<Icon name="fa6-solid:chevron-down" />
+				</i>
+			</summary>
+			<div class="english-copy-wrap">
+				<div class="english-copy-clip">
+					<div class="english-copy">
+						<span class="english-watermark" aria-hidden="true">EN</span>
+						<h2>Hi, I'm Yaron!</h2>
+						<p>
+							Since you've opened this little drawer, I guess you want to know me a
+							little better, right? Hehe (●ˇ∀ˇ●)
+						</p>
+						<p>
+							Welcome to my little blog! I'm Yaron, from Hunan, and I'm currently a
+							student at Hunan University of Technology and Business, majoring in
+							Computer Science and Technology. ٩(๑^o^๑)۶
+						</p>
+						<p>My hobbies are football, gaming, watching anime, and listening to music.</p>
+						<ul>
+							<li>
+								<b>Football:</b> My favorite player is Cristiano Ronaldo. I admire his
+								never-give-up spirit and the way he always keeps a heart set on victory.
+								My favorite club is Real Madrid — “Hala Madrid! In a world full of
+								colors, I choose pure white!”
+							</li>
+							<li>
+								<b>Games:</b> For competitive multiplayer games, I enjoy LOLM, Delta
+								Force, and Counter-Strike 2. I also love Stardew Valley, Minecraft, and
+								the occasional horror game ✧(≖◡≖✿)
+							</li>
+							<li>
+								<b>Anime:</b> I'm a big fan of pure romance — let pure love rule the
+								whole world, okay?! You can also visit my{" "}
+								<a href="/bangumi/">Anime Tracker</a> to see what I've been watching.
+							</li>
+							<li>
+								<b>Music:</b> I enjoy Jay Chou, G.E.M., Vae (Xu Song), David Tao, and
+								many other artists. There are always a few songs quietly playing on
+								repeat.
+							</li>
+						</ul>
+						<p>
+							My biggest dream is to <b>make lots and lots of money</b> 💸~ hehe. And...
+							I also really hope to meet a cute girlfriend someday /(ㄒoㄒ)/~~
+						</p>
+						<p>
+							I still have a fair amount of free time these days. If you'd like to chat
+							or ask me something, feel free to{" "}
+							<a href={qqLink} target="_blank" rel="noopener noreferrer">
+								add me on QQ
+							</a>
+							. I enjoy meeting all kinds of interesting people—as long as we always
+							respect one another! (｡•̀ᴗ-)✧
+						</p>
+					</div>
+				</div>
 			</div>
 		</details>
 	</div>
+	<AboutMotion />
 </MainGridLayout>
 
-<script>
-	const setupEnglishDrawer = () => {
-		for (const drawer of document.querySelectorAll<HTMLDetailsElement>(".english-drawer")) {
-			if (drawer.dataset.animationReady === "true") continue;
-			drawer.dataset.animationReady = "true";
-			const summary = drawer.querySelector<HTMLElement>("summary");
-			const wrap = drawer.querySelector<HTMLElement>(".english-copy-wrap");
-			if (!summary || !wrap) continue;
-
-			summary.addEventListener("click", (event) => {
-				if (!drawer.open || drawer.classList.contains("is-closing")) return;
-				event.preventDefault();
-				if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-					drawer.open = false;
-					return;
-				}
-
-				drawer.classList.add("is-closing");
-				let finished = false;
-				const finish = () => {
-					if (finished) return;
-					finished = true;
-					drawer.open = false;
-					drawer.classList.remove("is-closing");
-				};
-				const onTransitionEnd = (transitionEvent: TransitionEvent) => {
-					if (transitionEvent.target !== wrap || transitionEvent.propertyName !== "grid-template-rows") return;
-					wrap.removeEventListener("transitionend", onTransitionEnd);
-					finish();
-				};
-				wrap.addEventListener("transitionend", onTransitionEnd);
-				window.setTimeout(finish, 460);
-			});
-		}
-	};
-
-	setupEnglishDrawer();
-	const setupAboutHooks = () => {
-		if (window.__fuwariAboutHookRegistered) return;
-		window.__fuwariAboutHookRegistered = true;
-		window.swup.hooks.on("page:view", setupEnglishDrawer);
-	};
-	if (window.swup) setupAboutHooks();
-	else document.addEventListener("swup:enable", setupAboutHooks, { once: true });
-</script>
 
 <style>
-	.about-page { display: grid; width: 100%; gap: 1rem; color: var(--text-color); }
-	.about-hero, .about-diary, .about-note, .english-drawer { border: 1px solid color-mix(in srgb, var(--primary) 15%, var(--glass-border)); background: linear-gradient(145deg, rgb(255 255 255 / 0.48), transparent 48%), color-mix(in srgb, var(--glass-card) 95%, var(--primary) 2%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.72), 0 1.2rem 3rem rgb(113 75 67 / 0.07); backdrop-filter: blur(18px) saturate(118%); }
-	.about-hero { position: relative; display: grid; grid-template-columns: 14rem minmax(0, 1fr); align-items: center; gap: 2.2rem; min-height: 19rem; padding: 2.2rem 3rem; overflow: hidden; border-radius: 2rem; }
-	.about-hero::before { position: absolute; top: -7rem; right: -4rem; width: 24rem; height: 24rem; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--primary) 16%, transparent), transparent 68%); content: ""; }
-	.about-tape { position: absolute; top: 0; left: 4rem; width: 5rem; height: 0.55rem; border-radius: 0 0 0.35rem 0.35rem; background: repeating-linear-gradient(120deg, rgb(255 255 255 / 0.25) 0 0.45rem, transparent 0.45rem 0.8rem), color-mix(in srgb, var(--primary) 42%, transparent); transform: rotate(-1.5deg); }
-	.about-spark { position: absolute; z-index: 2; color: color-mix(in srgb, var(--primary) 55%, transparent); pointer-events: none; }
-	.about-spark-one { top: 1.5rem; right: 2rem; font-size: 1.35rem; transform: rotate(10deg); }
-	.about-spark-two { right: 3.2rem; bottom: 1.3rem; font-size: 2rem; transform: rotate(-8deg); }
-	.about-avatar-wrap { position: relative; z-index: 2; display: grid; justify-items: center; gap: 0.65rem; }
-	.about-avatar { width: 11rem; height: 11rem; padding: 0.42rem; overflow: hidden; border: 1px solid color-mix(in srgb, var(--primary) 20%, white); border-radius: 50%; background: rgb(255 255 255 / 0.58); box-shadow: 0 1rem 2.4rem rgb(88 58 52 / 0.17), inset 0 0 0 0.22rem rgb(255 255 255 / 0.48); transform: rotate(-2deg); }
-	.about-avatar-wrap > span { padding: 0.35rem 0.65rem; border-radius: 999px; background: color-mix(in srgb, var(--primary) 9%, rgb(255 255 255 / 0.55)); color: color-mix(in srgb, var(--text-color) 46%, transparent); font-size: 0.68rem; }
-	.about-hero-copy { position: relative; z-index: 2; }
-	.about-eyebrow { margin: 0 0 0.55rem; color: var(--primary); font-size: 0.72rem; font-weight: 900; letter-spacing: 0.13em; }
-	.about-eyebrow b { margin-left: 0.4rem; letter-spacing: 0; }
-	.about-hero h1 { margin: 0; color: color-mix(in srgb, var(--text-color) 88%, #69493f); font-size: clamp(2rem, 4.5vw, 3.8rem); font-weight: 900; letter-spacing: -0.05em; line-height: 1.12; }
-	.about-hero h1 em { color: var(--primary); font-style: normal; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--primary) 18%, transparent); text-decoration-thickness: 0.45em; text-underline-offset: -0.28em; }
-	.about-lead { margin: 0.9rem 0 1.15rem; color: color-mix(in srgb, var(--text-color) 56%, transparent); font-size: 0.95rem; line-height: 1.75; }
-	.about-badges { display: flex; flex-wrap: wrap; gap: 0.48rem; }
-	.about-badges span { padding: 0.48rem 0.72rem; border: 1px solid color-mix(in srgb, var(--primary) 12%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--glass-card) 72%, transparent); color: color-mix(in srgb, var(--text-color) 58%, transparent); font-size: 0.7rem; }
-	.about-diary { position: relative; padding: 1.45rem 1.55rem 2rem; overflow: hidden; border-radius: 1.7rem; }
-	.about-diary::before { position: absolute; inset: 0; background: repeating-linear-gradient(180deg, transparent 0 4rem, color-mix(in srgb, var(--primary) 5%, transparent) 4rem 4.06rem); content: ""; pointer-events: none; }
-	.about-section-title { position: relative; z-index: 2; display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-	.about-section-title span { color: var(--primary); font-size: 0.6rem; font-weight: 900; letter-spacing: 0.12em; }
-	.about-section-title h2 { margin: 0.15rem 0 0; color: color-mix(in srgb, var(--text-color) 85%, #68493f); font-size: 1.45rem; font-weight: 900; }
-	.about-section-title p { margin: 0; color: color-mix(in srgb, var(--text-color) 36%, transparent); font-size: 0.68rem; }
-	.interest-list { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; }
-	.interest-row { position: relative; display: grid; grid-template-columns: 3rem minmax(0, 1fr); align-items: center; gap: 0.8rem; min-height: 8.1rem; padding: 1rem; border: 1px solid color-mix(in srgb, var(--primary) 11%, transparent); border-radius: 1.15rem; background: color-mix(in srgb, var(--glass-card) 72%, rgb(255 255 255 / 0.18)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.58); transition: transform 180ms ease, box-shadow 180ms ease; }
-	.interest-row:hover { transform: translateY(-0.2rem); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.66), 0 0.8rem 1.8rem rgb(104 67 58 / 0.08); }
-	.interest-icon { display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: 1rem; background: color-mix(in srgb, var(--primary) 9%, rgb(255 255 255 / 0.6)); font-size: 1.3rem; transform: rotate(-3deg); }
-	.interest-icon :global(svg) { width: 1.15rem; height: 1.15rem; color: var(--primary); }
-	.interest-row span { color: var(--primary); font-size: 0.55rem; font-weight: 900; letter-spacing: 0.11em; }
-	.interest-row h3 { margin: 0.15rem 0 0.3rem; color: color-mix(in srgb, var(--text-color) 82%, #68483f); font-size: 0.95rem; font-weight: 900; }
-	.interest-row p { margin: 0; color: color-mix(in srgb, var(--text-color) 48%, transparent); font-size: 0.7rem; line-height: 1.65; }
-	.interest-row small, .interest-row > a { position: absolute; right: 0.85rem; bottom: 0.7rem; color: color-mix(in srgb, var(--primary) 58%, transparent); font-size: 0.58rem; font-weight: 750; }
-	.interest-row > a { padding: 0.3rem 0.5rem; border-radius: 999px; background: color-mix(in srgb, var(--primary) 8%, transparent); transition: 160ms ease; }
-	.interest-row > a:hover { color: var(--primary); transform: translateX(0.12rem); }
-	.interest-row > a b { font-size: 0.85rem; }
-	.football { background-image: linear-gradient(135deg, rgb(255 236 225 / 0.22), transparent); }
-	.games { background-image: linear-gradient(135deg, rgb(223 237 255 / 0.18), transparent); }
-	.anime { background-image: linear-gradient(135deg, rgb(255 221 235 / 0.22), transparent); }
-	.music { background-image: linear-gradient(135deg, rgb(232 225 255 / 0.2), transparent); }
-	.diary-doodle { position: absolute; right: 1.2rem; bottom: 0.55rem; color: color-mix(in srgb, var(--primary) 36%, transparent); font-size: 0.58rem; transform: rotate(-2deg); }
-	.about-notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-	.about-note { position: relative; min-height: 11rem; padding: 1.35rem 1.5rem; overflow: hidden; border-radius: 1.55rem; }
-	.about-note::after { position: absolute; right: -2rem; bottom: -3rem; width: 10rem; height: 10rem; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--primary) 12%, transparent), transparent 68%); content: ""; }
-	.note-pin { position: absolute; top: 0; left: 2.3rem; display: grid; place-items: center; width: 2rem; height: 1.35rem; border-radius: 0 0 0.5rem 0.5rem; background: color-mix(in srgb, var(--primary) 22%, transparent); color: white; font-size: 0.6rem; }
-	.about-note > p { margin: 0.35rem 0 0.25rem; color: var(--primary); font-size: 0.58rem; font-weight: 900; letter-spacing: 0.11em; }
-	.about-note h2 { margin: 0; color: color-mix(in srgb, var(--text-color) 84%, #68483f); font-size: 1.18rem; font-weight: 900; }
-	.about-note > div { position: relative; z-index: 2; margin-top: 0.75rem; color: color-mix(in srgb, var(--text-color) 50%, transparent); font-size: 0.75rem; line-height: 1.75; }
-	.about-note > a { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 0.45rem; margin-top: 0.75rem; padding: 0.48rem 0.75rem; border: 1px solid color-mix(in srgb, var(--primary) 17%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--primary) 9%, var(--glass-card)); color: var(--primary); font-size: 0.68rem; font-weight: 850; transition: 160ms ease; }
-	.about-note > a:hover { box-shadow: 0 0.5rem 1rem color-mix(in srgb, var(--primary) 12%, transparent); transform: translateY(-1px); }
-	.hello-note { transform: rotate(0.3deg); }
-	.english-drawer { overflow: hidden; border-radius: 1.35rem; }
-	.english-drawer summary { display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.25rem; cursor: pointer; list-style: none; }
-	.english-drawer summary::-webkit-details-marker { display: none; }
-	.english-drawer summary > span { display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: 0.85rem; background: color-mix(in srgb, var(--primary) 9%, var(--glass-card)); }
-	.english-drawer summary div { display: grid; gap: 0.1rem; }
-	.english-drawer summary b { color: color-mix(in srgb, var(--text-color) 76%, #68483f); font-size: 0.85rem; }
-	.english-drawer summary small { color: color-mix(in srgb, var(--text-color) 38%, transparent); font-size: 0.62rem; }
-	.english-drawer summary i { margin-left: auto; color: var(--primary); font-size: 1rem; font-style: normal; transition: transform 180ms ease; }
-	.english-drawer[open]:not(.is-closing) summary i { transform: rotate(180deg); }
+	/* ------------------------------------------------------------------
+	   Shell
+	   ------------------------------------------------------------------ */
+	.about-page {
+		position: relative;
+		display: grid;
+		gap: clamp(1.8rem, 3.4vw, 3rem);
+		width: 100%;
+		color: var(--text-body);
+	}
+
+	/* Haired dashed rules that separate the chapters, with the dashes
+	   slowly marching so the page keeps breathing while it is read. */
+	.about-rule {
+		display: flex;
+		align-items: center;
+		gap: 0.9rem;
+		color: color-mix(in srgb, var(--primary) 44%, transparent);
+	}
+	.about-rule::before,
+	.about-rule::after {
+		flex: 1;
+		height: 1px;
+		background-image: linear-gradient(
+			90deg,
+			currentcolor 0 0.44rem,
+			transparent 0.44rem 1rem
+		);
+		background-size: 1rem 1px;
+		content: "";
+		animation: about-march-x 1.8s linear infinite;
+	}
+	.about-rule::before {
+		mask-image: linear-gradient(90deg, transparent, #000 42%);
+	}
+	.about-rule::after {
+		mask-image: linear-gradient(270deg, transparent, #000 42%);
+	}
+	.about-rule span {
+		font-size: 0.8rem;
+		animation: about-twinkle 3.6s ease-in-out infinite;
+	}
+
+	/* ------------------------------------------------------------------
+	   Masthead
+	   ------------------------------------------------------------------ */
+	.about-masthead {
+		position: relative;
+		isolation: isolate;
+		display: grid;
+		grid-template-columns: 13.5rem minmax(0, 1fr);
+		align-items: center;
+		gap: clamp(1.5rem, 3.6vw, 3.4rem);
+		padding: clamp(1.4rem, 3vw, 2.4rem) clamp(0.6rem, 2vw, 1.8rem)
+			clamp(1.6rem, 3vw, 2.6rem);
+	}
+	.about-masthead::before {
+		position: absolute;
+		inset: -6% -10% 0 -14%;
+		z-index: -2;
+		background: radial-gradient(
+			58% 66% at 16% 34%,
+			color-mix(in srgb, var(--primary) 15%, transparent),
+			transparent 66%
+		);
+		content: "";
+		animation: about-glow-breathe 11s ease-in-out infinite;
+	}
+	.about-masthead::after {
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		background-image: radial-gradient(
+			color-mix(in srgb, var(--primary) 26%, transparent) 1px,
+			transparent 1px
+		);
+		background-size: 1.15rem 1.15rem;
+		content: "";
+		mask-image: radial-gradient(120% 96% at 74% 26%, #000, transparent 72%);
+		opacity: 0.5;
+	}
+	/* Drifts up and dissolves while it leaves the viewport. Driven by the
+	   client script instead of a view() timeline: `main` is a scroll
+	   container here, which pins every view() progress at its end state. */
+	@media (prefers-reduced-motion: no-preference) {
+		:global(html.about-motion) .about-masthead {
+			opacity: calc(1 - var(--masthead-exit, 0) * 0.62);
+			translate: 0 calc(var(--masthead-exit, 0) * -1.6rem);
+		}
+	}
+
+	.about-doodles {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		pointer-events: none;
+	}
+	.about-doodle {
+		position: absolute;
+		left: var(--x);
+		top: var(--y);
+		color: color-mix(in srgb, var(--primary) 40%, transparent);
+		font-size: var(--size, 1.15rem);
+		animation: about-drift var(--dur, 9s) ease-in-out var(--delay, 0s) infinite;
+	}
+	.about-doodle--spark,
+	.about-doodle--star {
+		color: color-mix(in srgb, var(--mio-purple) 42%, var(--primary));
+	}
+	.about-doodle--heart {
+		animation:
+			about-drift var(--dur, 9s) ease-in-out var(--delay, 0s) infinite,
+			about-heart-beat 2.9s ease-in-out infinite;
+	}
+	.about-doodle--note,
+	.about-doodle--tune,
+	.about-doodle--chime {
+		color: color-mix(in srgb, var(--azusa-blue) 46%, var(--primary));
+	}
+
+	/* Polaroid ---------------------------------------------------------- */
+	.about-polaroid {
+		position: relative;
+		z-index: 3;
+		display: grid;
+		justify-items: center;
+		gap: 0.8rem;
+	}
+	.about-photo {
+		position: relative;
+		width: 12.4rem;
+		padding: 0.5rem 0.5rem 1.9rem;
+		border-radius: 1.05rem;
+		background: linear-gradient(158deg, #fffdf9, #f7e9e0);
+		box-shadow:
+			0 1.5rem 2.8rem rgb(88 58 52 / 0.2),
+			0 0.2rem 0.6rem rgb(88 58 52 / 0.08),
+			inset 0 0 0 1px rgb(255 255 255 / 0.72);
+		rotate: -2.6deg;
+		transition:
+			rotate 420ms cubic-bezier(0.2, 0.9, 0.28, 1.24),
+			translate 420ms cubic-bezier(0.2, 0.9, 0.28, 1.24),
+			box-shadow 320ms ease;
+		animation: about-bob 7.8s ease-in-out infinite;
+	}
+	.about-photo:hover,
+	.about-polaroid:focus-within .about-photo {
+		translate: 0 -0.4rem;
+		rotate: 0deg;
+		box-shadow:
+			0 2rem 3.4rem rgb(88 58 52 / 0.24),
+			inset 0 0 0 1px rgb(255 255 255 / 0.8);
+	}
+	.about-photo-frame {
+		position: relative;
+		height: 11.4rem;
+		overflow: hidden;
+		border-radius: 0.62rem;
+		background: color-mix(in srgb, var(--cream-soft) 60%, #fff);
+	}
+	.about-photo-gloss {
+		position: absolute;
+		inset: -30% -60%;
+		background: linear-gradient(
+			100deg,
+			transparent 38%,
+			rgb(255 255 255 / 0.55) 50%,
+			transparent 62%
+		);
+		translate: -130% 0;
+		animation: about-gloss 6.8s ease-in-out 1.4s infinite;
+		pointer-events: none;
+	}
+	.about-photo-hit {
+		position: absolute;
+		inset: 0;
+		border: 0;
+		border-radius: 1.05rem;
+		background: transparent;
+		cursor: pointer;
+	}
+	.about-photo-hit:focus-visible {
+		outline: 2px dashed color-mix(in srgb, var(--primary) 70%, transparent);
+		outline-offset: 0.22rem;
+	}
+	.about-photo-mark {
+		position: absolute;
+		right: 0;
+		bottom: 0.42rem;
+		left: 0;
+		color: color-mix(in srgb, var(--primary) 62%, var(--tea));
+		font-size: 0.66rem;
+		font-weight: 800;
+		letter-spacing: 0.02em;
+		text-align: center;
+	}
+	.about-tape {
+		position: absolute;
+		top: -0.7rem;
+		left: 50%;
+		width: 4.4rem;
+		height: 1.35rem;
+		border-radius: 0.18rem;
+		background: repeating-linear-gradient(
+				118deg,
+				rgb(255 255 255 / 0.34) 0 0.42rem,
+				transparent 0.42rem 0.78rem
+			),
+			color-mix(in srgb, var(--primary) 34%, rgb(255 255 255 / 0.36));
+		box-shadow: 0 0.3rem 0.7rem rgb(88 58 52 / 0.12);
+		translate: -50% 0;
+		rotate: -3deg;
+		animation: about-tape-sway 5.6s ease-in-out infinite;
+	}
+	.about-photo-spark {
+		position: absolute;
+		color: color-mix(in srgb, var(--primary) 62%, transparent);
+		font-size: 0.95rem;
+		pointer-events: none;
+	}
+	.about-photo-spark--one {
+		top: 0.35rem;
+		right: -1.15rem;
+		animation: about-twinkle 3.2s ease-in-out infinite;
+	}
+	.about-photo-spark--two {
+		bottom: 1.9rem;
+		left: -1.25rem;
+		font-size: 0.8rem;
+		animation: about-twinkle 4.1s ease-in-out 0.8s infinite;
+	}
+	.about-photo-caption {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.3rem 0.7rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 26%, transparent);
+		border-radius: 999px;
+		color: color-mix(in srgb, var(--text-muted) 96%, transparent);
+		font-size: 0.66rem;
+	}
+	.about-bubble {
+		position: absolute;
+		top: 0.62rem;
+		right: 0.66rem;
+		max-width: calc(100% - 1.32rem);
+		padding: 0.34rem 0.66rem;
+		border-radius: 0.9rem 0.9rem 0.9rem 0.24rem;
+		background: color-mix(in srgb, var(--glass-panel) 94%, transparent);
+		box-shadow: 0 0.5rem 1.2rem rgb(88 58 52 / 0.16);
+		color: color-mix(in srgb, var(--primary) 80%, var(--tea));
+		font-size: 0.62rem;
+		font-weight: 750;
+		line-height: 1.35;
+		opacity: 0;
+		pointer-events: none;
+		rotate: -1.6deg;
+		translate: 0.4rem 0.3rem;
+		transition:
+			opacity 260ms ease,
+			translate 320ms cubic-bezier(0.2, 0.9, 0.28, 1.3);
+	}
+	/* Little tail, pointing back down towards the avatar's face. */
+	.about-bubble::after {
+		position: absolute;
+		bottom: -0.2rem;
+		left: 0.66rem;
+		width: 0.48rem;
+		height: 0.48rem;
+		border-radius: 0 0 0.12rem 0;
+		background: inherit;
+		content: "";
+		rotate: 45deg;
+	}
+	.about-bubble.is-visible {
+		opacity: 1;
+		translate: 0 0;
+	}
+	.about-burst {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		pointer-events: none;
+	}
+	.about-burst-item {
+		position: absolute;
+		font-size: 0.95rem;
+		font-style: normal;
+		opacity: 0;
+	}
+	.about-burst.is-active .about-burst-item {
+		animation: about-burst-fly var(--bd, 1000ms) cubic-bezier(0.22, 0.68, 0.34, 1)
+			forwards;
+	}
+
+	/* Intro copy -------------------------------------------------------- */
+	.about-intro {
+		position: relative;
+		z-index: 2;
+		min-width: 0;
+	}
+	.about-eyebrow {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0 0 0.7rem;
+		color: var(--primary);
+		font-size: 0.68rem;
+		font-weight: 900;
+		letter-spacing: 0.16em;
+	}
+	.about-eyebrow b {
+		letter-spacing: 0;
+	}
+	.about-eyebrow i {
+		padding: 0.2rem 0.52rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 34%, transparent);
+		border-radius: 999px;
+		color: color-mix(in srgb, var(--primary) 74%, var(--tea));
+		font-size: 0.55rem;
+		font-style: normal;
+		font-weight: 850;
+		letter-spacing: 0.08em;
+	}
+	.about-name {
+		margin: 0;
+		color: color-mix(in srgb, var(--text-strong) 94%, #69493f);
+		font-size: clamp(2rem, 4.6vw, 3.7rem);
+		font-weight: 900;
+		letter-spacing: -0.05em;
+		line-height: 1.12;
+		text-wrap: balance;
+	}
+	.about-name em {
+		position: relative;
+		display: inline-block;
+		font-style: normal;
+	}
+	.about-name em::after {
+		position: absolute;
+		right: -0.1em;
+		bottom: 0.06em;
+		left: -0.06em;
+		z-index: -1;
+		height: 0.4em;
+		border-radius: 0.24rem;
+		background: color-mix(in srgb, var(--primary) 17%, transparent);
+		content: "";
+		transform: scaleX(0);
+		transform-origin: left center;
+		animation: about-swatch 900ms cubic-bezier(0.16, 1, 0.3, 1) 700ms
+			backwards;
+	}
+	.about-name em span {
+		background: linear-gradient(
+			100deg,
+			var(--primary) 8%,
+			color-mix(in srgb, var(--mio-purple) 78%, var(--primary)) 34%,
+			var(--primary) 62%
+		);
+		background-clip: text;
+		background-size: 240% 100%;
+		color: transparent;
+		-webkit-background-clip: text;
+		animation: about-name-shine 7.6s ease-in-out 1.1s infinite;
+	}
+	.about-lead {
+		margin: 0.95rem 0 0;
+		color: color-mix(in srgb, var(--text-body) 92%, transparent);
+		font-size: clamp(0.85rem, 1.1vw, 0.95rem);
+		line-height: 1.8;
+	}
+	.about-meta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.45rem 1rem;
+		margin: 1.2rem 0 0;
+		padding: 0;
+		list-style: none;
+	}
+	.about-meta li {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.36rem;
+		color: color-mix(in srgb, var(--text-body) 88%, transparent);
+		font-size: 0.76rem;
+	}
+	.about-meta li + li::before {
+		width: 0.26rem;
+		height: 0.26rem;
+		margin-right: 0.5rem;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--primary) 46%, transparent);
+		content: "";
+	}
+	.about-meta :global(svg) {
+		width: 0.85rem;
+		height: 0.85rem;
+		color: color-mix(in srgb, var(--primary) 84%, var(--tea));
+	}
+	.about-socials {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem 1.15rem;
+		margin: 1.35rem 0 0;
+		padding: 0;
+		list-style: none;
+	}
+	.about-socials a {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		color: color-mix(in srgb, var(--text-body) 86%, transparent);
+		font-size: 0.72rem;
+		font-weight: 700;
+		text-decoration: none;
+	}
+	.about-socials-icon {
+		display: grid;
+		place-items: center;
+		width: 1.9rem;
+		height: 1.9rem;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--glass-card) 78%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 12%, transparent);
+		transition:
+			translate 260ms cubic-bezier(0.2, 0.9, 0.28, 1.3),
+			rotate 260ms ease,
+			background 260ms ease;
+	}
+	.about-socials-icon :global(svg) {
+		width: 0.9rem;
+		height: 0.9rem;
+		color: color-mix(in srgb, var(--tea) 84%, transparent);
+		transition: color 220ms ease;
+	}
+	.about-socials-name {
+		position: relative;
+	}
+	.about-socials-name::after {
+		position: absolute;
+		right: 0;
+		bottom: -0.18rem;
+		left: 0;
+		height: 1px;
+		background: color-mix(in srgb, var(--primary) 62%, transparent);
+		content: "";
+		transform: scaleX(0);
+		transform-origin: left center;
+		transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.about-socials a:hover .about-socials-icon {
+		translate: 0 -0.18rem;
+		rotate: -6deg;
+		background: color-mix(in srgb, var(--primary) 14%, var(--glass-card));
+	}
+	.about-socials a:hover .about-socials-icon :global(svg) {
+		color: var(--primary);
+	}
+	.about-socials a:hover .about-socials-name::after {
+		transform: scaleX(1);
+	}
+
+	/* ------------------------------------------------------------------
+	   Chapter headings
+	   ------------------------------------------------------------------ */
+	.about-heading {
+		position: relative;
+		display: flex;
+		align-items: flex-end;
+		gap: 0.85rem;
+		padding: 0 0.35rem 0.75rem;
+	}
+	.about-heading::after {
+		position: absolute;
+		right: 0.35rem;
+		bottom: 0;
+		left: 0.35rem;
+		height: 1px;
+		background: linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--primary) 46%, transparent),
+			color-mix(in srgb, var(--mio-purple) 26%, transparent) 48%,
+			transparent 88%
+		);
+		content: "";
+		transform: scaleX(0);
+		transform-origin: left center;
+		animation: about-rule-in 900ms cubic-bezier(0.16, 1, 0.3, 1) 220ms forwards;
+	}
+	.about-heading-index {
+		display: grid;
+		place-items: center;
+		width: 2.4rem;
+		height: 2.4rem;
+		flex: none;
+		border: 1px dashed color-mix(in srgb, var(--primary) 32%, transparent);
+		border-radius: 0.78rem;
+		background: color-mix(in srgb, var(--primary) 8%, transparent);
+		color: color-mix(in srgb, var(--primary) 80%, var(--tea));
+		font-family: ui-monospace, "JetBrains Mono", monospace;
+		font-size: 0.68rem;
+		font-weight: 850;
+		transition: rotate 420ms cubic-bezier(0.2, 0.9, 0.28, 1.3);
+	}
+	.about-heading:hover .about-heading-index {
+		rotate: -9deg;
+	}
+	.about-heading-copy p {
+		margin: 0;
+		color: var(--primary);
+		font-size: 0.58rem;
+		font-weight: 900;
+		letter-spacing: 0.16em;
+	}
+	.about-heading-copy h2 {
+		margin: 0.22rem 0 0;
+		color: color-mix(in srgb, var(--text-strong) 92%, #68493f);
+		font-size: clamp(1.3rem, 2.4vw, 1.85rem);
+		font-weight: 900;
+		letter-spacing: -0.02em;
+	}
+	.about-heading-note {
+		margin: 0 0 0.25rem auto;
+		color: color-mix(in srgb, var(--text-muted) 96%, transparent);
+		font-size: 0.68rem;
+	}
+
+	/* ------------------------------------------------------------------
+	   Timeline
+	   ------------------------------------------------------------------ */
+	.about-favorites {
+		position: relative;
+	}
+	.about-threads {
+		position: relative;
+		display: grid;
+		margin: 0.2rem 0 0;
+		padding: 0;
+		list-style: none;
+	}
+	.about-threads::before,
+	.about-threads::after {
+		position: absolute;
+		top: 2.1rem;
+		bottom: 2.1rem;
+		left: 1.8rem;
+		width: 1px;
+		content: "";
+		translate: -50% 0;
+	}
+	.about-threads::before {
+		background-image: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--primary) 42%, transparent) 0 0.4rem,
+			transparent 0.4rem 0.86rem
+		);
+		background-size: 1px 0.86rem;
+		animation: about-march-y 2.2s linear infinite;
+	}
+	.about-threads::after {
+		width: 2px;
+		border-radius: 2px;
+		background: linear-gradient(
+			180deg,
+			var(--primary),
+			color-mix(in srgb, var(--mio-purple) 62%, var(--primary))
+		);
+		box-shadow: 0 0 0.85rem color-mix(in srgb, var(--primary) 42%, transparent);
+		transform: scaleY(var(--rail-progress, 0));
+		transform-origin: top center;
+		transition: transform 200ms linear;
+	}
+
+	.about-thread {
+		position: relative;
+		display: grid;
+		grid-template-columns: 3.6rem minmax(0, 1fr) minmax(0, 12rem);
+		align-items: start;
+		gap: 0 1.2rem;
+		padding: 1.15rem 0.9rem 1.15rem 0;
+		border-bottom: 1px dashed color-mix(in srgb, var(--text-muted) 26%, transparent);
+		transition: translate 320ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.about-thread:last-child {
+		border-bottom: 0;
+	}
+	.about-thread::before {
+		position: absolute;
+		inset: 0.25rem 0;
+		z-index: -1;
+		border-radius: 1.35rem;
+		background: radial-gradient(
+			16rem 9rem at var(--mx, 22%) var(--my, 50%),
+			color-mix(in srgb, var(--tone) 17%, transparent),
+			transparent 72%
+		);
+		content: "";
+		opacity: 0;
+		transition: opacity 280ms ease;
+	}
+	.about-thread::after {
+		position: absolute;
+		right: 0;
+		bottom: -1px;
+		left: 0;
+		height: 1px;
+		background: linear-gradient(
+			90deg,
+			var(--tone),
+			color-mix(in srgb, var(--primary) 50%, var(--tone)) 58%,
+			transparent
+		);
+		content: "";
+		transform: scaleX(0);
+		transform-origin: left center;
+		transition: transform 460ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.about-thread:hover {
+		translate: 0.34rem 0;
+	}
+	.about-thread:hover::before,
+	.about-thread:focus-within::before {
+		opacity: 1;
+	}
+	.about-thread:hover::after,
+	.about-thread:focus-within::after {
+		transform: scaleX(1);
+	}
+
+	.about-thread-node {
+		position: relative;
+		display: grid;
+		place-items: center;
+		justify-self: center;
+		width: 3.1rem;
+		height: 3.1rem;
+		border: 1px solid color-mix(in srgb, var(--tone) 26%, transparent);
+		border-radius: 1.05rem;
+		background: color-mix(in srgb, var(--tone) 11%, var(--glass-card));
+		box-shadow:
+			inset 0 1px 0 rgb(255 255 255 / 0.6),
+			0 0.5rem 1.1rem rgb(104 67 58 / 0.06);
+		rotate: -4deg;
+		transition:
+			rotate 420ms cubic-bezier(0.2, 0.9, 0.28, 1.4),
+			scale 420ms cubic-bezier(0.2, 0.9, 0.28, 1.4),
+			box-shadow 320ms ease;
+	}
+	.about-thread-node :global(svg) {
+		width: 1.2rem;
+		height: 1.2rem;
+		color: color-mix(in srgb, var(--tone) 78%, var(--tea));
+		transition: scale 420ms cubic-bezier(0.2, 0.9, 0.28, 1.4);
+	}
+	.about-thread:hover .about-thread-node,
+	.about-thread:focus-within .about-thread-node {
+		rotate: 4deg;
+		scale: 1.08;
+		box-shadow:
+			inset 0 1px 0 rgb(255 255 255 / 0.7),
+			0 0.9rem 1.8rem color-mix(in srgb, var(--tone) 26%, transparent);
+	}
+	.about-thread:hover .about-thread-node :global(svg) {
+		scale: 1.1;
+	}
+
+	.about-thread-body {
+		min-width: 0;
+		max-width: 40rem;
+	}
+	.about-thread-kicker {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		margin: 0.15rem 0 0;
+		color: color-mix(in srgb, var(--tone) 72%, var(--tea));
+		font-size: 0.56rem;
+		font-weight: 900;
+		letter-spacing: 0.15em;
+		transition: letter-spacing 360ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.about-thread-kicker b {
+		font-family: ui-monospace, "JetBrains Mono", monospace;
+		font-size: 0.6rem;
+		letter-spacing: 0.04em;
+		opacity: 0.55;
+	}
+	.about-thread:hover .about-thread-kicker {
+		letter-spacing: 0.2em;
+	}
+	.about-thread h3 {
+		margin: 0.3rem 0 0.35rem;
+		color: color-mix(in srgb, var(--text-strong) 90%, #68483f);
+		font-size: clamp(1rem, 1.5vw, 1.14rem);
+		font-weight: 900;
+		letter-spacing: -0.01em;
+	}
+	.about-thread-text {
+		margin: 0;
+		color: color-mix(in srgb, var(--text-body) 92%, transparent);
+		font-size: 0.78rem;
+		line-height: 1.8;
+	}
+	.about-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.32rem;
+		margin: 0.65rem 0 0;
+		padding: 0;
+		list-style: none;
+	}
+	.about-chips li {
+		padding: 0.2rem 0.55rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--tone) 12%, transparent);
+		color: color-mix(in srgb, var(--tone) 58%, var(--text-strong));
+		font-size: 0.62rem;
+		font-weight: 700;
+		transition:
+			translate 280ms cubic-bezier(0.2, 0.9, 0.28, 1.3),
+			background 240ms ease;
+	}
+	.about-thread:hover .about-chips li:nth-child(1) {
+		translate: 0 -0.16rem;
+	}
+	.about-thread:hover .about-chips li:nth-child(2) {
+		translate: 0 -0.16rem;
+		transition-delay: 40ms;
+	}
+	.about-thread:hover .about-chips li:nth-child(3) {
+		translate: 0 -0.16rem;
+		transition-delay: 80ms;
+	}
+	.about-thread:hover .about-chips li:nth-child(4) {
+		translate: 0 -0.16rem;
+		transition-delay: 120ms;
+	}
+	.about-thread:hover .about-chips li:nth-child(5) {
+		translate: 0 -0.16rem;
+		transition-delay: 160ms;
+	}
+	.about-chips li:hover {
+		background: color-mix(in srgb, var(--tone) 22%, transparent);
+	}
+
+	.about-thread-aside {
+		justify-self: end;
+		max-width: 12rem;
+		padding-top: 0.2rem;
+		text-align: right;
+	}
+	.about-thread-note {
+		display: inline-block;
+		color: color-mix(in srgb, var(--tone) 62%, var(--text-muted));
+		font-size: 0.68rem;
+		rotate: -1.6deg;
+		transition:
+			scale 420ms cubic-bezier(0.2, 0.9, 0.28, 1.4),
+			color 260ms ease;
+	}
+	.about-thread:hover .about-thread-note {
+		scale: 1.06;
+		color: color-mix(in srgb, var(--tone) 82%, var(--tea));
+	}
+	.about-thread-aside a {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.34rem 0.62rem;
+		border: 1px dashed color-mix(in srgb, var(--tone) 34%, transparent);
+		border-radius: 999px;
+		color: color-mix(in srgb, var(--tone) 70%, var(--tea));
+		font-size: 0.64rem;
+		font-weight: 800;
+		text-decoration: none;
+		transition:
+			background 240ms ease,
+			translate 260ms cubic-bezier(0.2, 0.9, 0.28, 1.3),
+			border-color 240ms ease;
+	}
+	.about-thread-aside a :global(svg) {
+		width: 0.72rem;
+		height: 0.72rem;
+	}
+	.about-thread-aside a:hover {
+		translate: 0 -0.12rem;
+		border-color: color-mix(in srgb, var(--tone) 60%, transparent);
+		background: color-mix(in srgb, var(--tone) 12%, transparent);
+	}
+
+	.about-signoff {
+		display: block;
+		justify-self: end;
+		margin-top: 0.4rem;
+		color: color-mix(in srgb, var(--primary) 48%, transparent);
+		font-size: 0.66rem;
+		rotate: -1.6deg;
+		animation: about-wiggle 6.4s ease-in-out infinite;
+	}
+
+	/* ------------------------------------------------------------------
+	   Wishes & hello
+	   ------------------------------------------------------------------ */
+	.about-outro {
+		position: relative;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		gap: clamp(1.6rem, 4vw, 3.4rem);
+	}
+	.about-outro-rule {
+		position: absolute;
+		top: 0.4rem;
+		bottom: 0.4rem;
+		left: 50%;
+		width: 1px;
+		background-image: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--primary) 34%, transparent) 0 0.42rem,
+			transparent 0.42rem 0.92rem
+		);
+		background-size: 1px 0.92rem;
+		animation: about-march-y 2.6s linear infinite;
+	}
+	.about-outro-col {
+		position: relative;
+		min-width: 0;
+	}
+	.about-outro-kicker {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		margin: 0;
+		color: var(--primary);
+		font-size: 0.58rem;
+		font-weight: 900;
+		letter-spacing: 0.15em;
+	}
+	.about-outro-kicker :global(svg) {
+		width: 0.85rem;
+		height: 0.85rem;
+	}
+	.about-outro-col h2 {
+		margin: 0.5rem 0 0;
+		color: color-mix(in srgb, var(--text-strong) 92%, #68483f);
+		font-size: clamp(1.25rem, 2.3vw, 1.7rem);
+		font-weight: 900;
+		letter-spacing: -0.02em;
+	}
+	.about-outro-col h2 b {
+		display: inline-block;
+		color: var(--primary);
+		animation: about-twinkle 3.8s ease-in-out infinite;
+	}
+	.about-outro-text {
+		margin: 0.8rem 0 0;
+		color: color-mix(in srgb, var(--text-body) 92%, transparent);
+		font-size: 0.8rem;
+		line-height: 1.85;
+	}
+	.about-outro-text em {
+		color: color-mix(in srgb, var(--primary) 82%, var(--tea));
+		font-style: normal;
+		font-weight: 850;
+	}
+	.about-wish {
+		display: grid;
+		gap: 0.55rem;
+		margin: 1.1rem 0 0;
+		padding: 0;
+		list-style: none;
+	}
+	.about-wish li {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		color: color-mix(in srgb, var(--text-body) 90%, transparent);
+		font-size: 0.78rem;
+		transition: translate 280ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.about-wish li:hover {
+		translate: 0.2rem 0;
+	}
+	.about-wish-box {
+		position: relative;
+		display: grid;
+		place-items: center;
+		width: 1.05rem;
+		height: 1.05rem;
+		flex: none;
+		border: 1px dashed color-mix(in srgb, var(--primary) 42%, transparent);
+		border-radius: 0.3rem;
+		color: var(--primary);
+		font-size: 0.6rem;
+		transition:
+			background 240ms ease,
+			rotate 320ms cubic-bezier(0.2, 0.9, 0.28, 1.4);
+	}
+	.about-wish li:hover .about-wish-box {
+		background: color-mix(in srgb, var(--primary) 14%, transparent);
+		rotate: -8deg;
+	}
+	.about-wish li:hover .about-wish-box::after {
+		content: "✓";
+		animation: about-pop-in 320ms cubic-bezier(0.2, 0.9, 0.28, 1.5);
+	}
+
+	.about-cta {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-top: 1.25rem;
+		padding: 0.72rem 1.15rem;
+		overflow: hidden;
+		border-radius: 999px;
+		background: linear-gradient(
+			118deg,
+			color-mix(in srgb, var(--primary) 94%, white),
+			color-mix(in srgb, var(--mio-purple) 52%, var(--primary))
+		);
+		box-shadow: 0 0.75rem 1.7rem color-mix(in srgb, var(--primary) 26%, transparent);
+		color: #fff;
+		font-size: 0.76rem;
+		font-weight: 850;
+		text-decoration: none;
+		transition:
+			translate 280ms cubic-bezier(0.16, 1, 0.3, 1),
+			box-shadow 280ms ease;
+	}
+	.about-cta-label {
+		position: relative;
+		z-index: 2;
+	}
+	.about-cta i {
+		position: relative;
+		z-index: 2;
+		font-style: normal;
+		transition: translate 260ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.about-cta-shine {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		background: linear-gradient(
+			100deg,
+			transparent 32%,
+			rgb(255 255 255 / 0.55) 50%,
+			transparent 68%
+		);
+		translate: -130% 0;
+	}
+	.about-cta::after {
+		position: absolute;
+		inset: -2px;
+		z-index: 0;
+		border: 1px solid color-mix(in srgb, var(--primary) 46%, transparent);
+		border-radius: 999px;
+		content: "";
+		animation: about-ripple 3.4s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+	}
+	.about-cta:hover {
+		translate: 0 -0.16rem;
+		box-shadow: 0 1rem 2rem color-mix(in srgb, var(--primary) 34%, transparent);
+	}
+	.about-cta:hover i {
+		translate: 0.28rem 0;
+	}
+	.about-cta:hover .about-cta-shine {
+		animation: about-cta-shine 900ms ease;
+	}
+	.about-cta:focus-visible {
+		outline: 2px dashed color-mix(in srgb, var(--primary) 70%, transparent);
+		outline-offset: 0.22rem;
+	}
+	.about-outro-else {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.3rem;
+		margin: 0.95rem 0 0;
+		color: color-mix(in srgb, var(--text-muted) 96%, transparent);
+		font-size: 0.68rem;
+	}
+	.about-outro-else a {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		color: color-mix(in srgb, var(--text-body) 88%, transparent);
+		font-weight: 750;
+		text-decoration: none;
+		transition: color 220ms ease;
+	}
+	.about-outro-else a :global(svg) {
+		width: 0.8rem;
+		height: 0.8rem;
+	}
+	.about-outro-else a:hover {
+		color: var(--primary);
+	}
+
+	/* ------------------------------------------------------------------
+	   English drawer
+	   ------------------------------------------------------------------ */
+	.english-drawer {
+		position: relative;
+	}
+	.english-drawer summary {
+		display: flex;
+		align-items: center;
+		gap: 0.8rem;
+		padding: 1.05rem 0.75rem;
+		border-top: 1px dashed color-mix(in srgb, var(--primary) 24%, transparent);
+		border-bottom: 1px dashed color-mix(in srgb, var(--primary) 24%, transparent);
+		cursor: pointer;
+		list-style: none;
+		transition: background 260ms ease;
+	}
+	.english-drawer summary::-webkit-details-marker {
+		display: none;
+	}
+	.english-drawer summary:hover {
+		background: color-mix(in srgb, var(--primary) 6%, transparent);
+	}
+	.english-flower {
+		display: grid;
+		place-items: center;
+		width: 2.5rem;
+		height: 2.5rem;
+		flex: none;
+		border-radius: 0.85rem;
+		background: color-mix(in srgb, var(--primary) 10%, transparent);
+		font-size: 1.05rem;
+		transition: rotate 380ms cubic-bezier(0.2, 0.9, 0.28, 1.4);
+	}
+	.english-drawer summary:hover .english-flower {
+		rotate: -10deg;
+	}
+	.english-title {
+		display: grid;
+		gap: 0.12rem;
+		min-width: 0;
+	}
+	.english-title b {
+		color: color-mix(in srgb, var(--text-strong) 88%, #68483f);
+		font-size: 0.86rem;
+	}
+	.english-title small {
+		color: color-mix(in srgb, var(--text-muted) 96%, transparent);
+		font-size: 0.64rem;
+	}
+	.english-chevron {
+		display: grid;
+		place-items: center;
+		width: 1.9rem;
+		height: 1.9rem;
+		margin-left: auto;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--primary) 10%, transparent);
+		color: var(--primary);
+		transition:
+			rotate 320ms cubic-bezier(0.2, 0.9, 0.28, 1.4),
+			background 240ms ease;
+	}
+	.english-chevron :global(svg) {
+		width: 0.85rem;
+		height: 0.85rem;
+	}
+	.english-drawer summary:hover .english-chevron {
+		background: color-mix(in srgb, var(--primary) 18%, transparent);
+	}
+	.english-drawer[open]:not(.is-closing) .english-chevron {
+		rotate: 180deg;
+	}
 	.english-copy-wrap,
 	.english-drawer:not([open]) > .english-copy-wrap {
 		display: grid;
 		grid-template-rows: 0fr;
 		opacity: 0;
-		transition: grid-template-rows 360ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease;
+		transition:
+			grid-template-rows 380ms cubic-bezier(0.22, 1, 0.36, 1),
+			opacity 220ms ease;
 	}
-	.english-drawer[open]:not(.is-closing) > .english-copy-wrap { grid-template-rows: 1fr; opacity: 1; }
-	.english-copy { margin: 0 1.25rem 1.25rem; padding: 1.15rem 1.3rem; border: 1px dashed color-mix(in srgb, var(--primary) 16%, transparent); border-radius: 1rem; background: color-mix(in srgb, var(--glass-card) 62%, transparent); }
-	.english-copy-clip { min-height: 0; overflow: hidden; }
-	.english-copy h2 { margin: 0 0 0.55rem; color: var(--primary); font-size: 1.1rem; }
-	.english-copy p, .english-copy li { color: color-mix(in srgb, var(--text-color) 53%, transparent); font-size: 0.75rem; line-height: 1.7; }
-	.english-copy ul { margin: 0.7rem 0; padding-left: 1.2rem; }
-	.english-copy a { color: var(--primary); font-weight: 800; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--primary) 30%, transparent); text-underline-offset: 0.16rem; }
-	:global(.dark) .about-hero, :global(.dark) .about-diary, :global(.dark) .about-note, :global(.dark) .english-drawer { border-color: color-mix(in srgb, var(--primary) 18%, rgb(255 255 255 / 0.08)); background: linear-gradient(145deg, rgb(255 255 255 / 0.035), transparent 48%), rgb(25 21 22 / 0.82); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1.2rem 3rem rgb(0 0 0 / 0.2); }
-	:global(.dark) .about-hero h1, :global(.dark) .about-section-title h2, :global(.dark) .interest-row h3, :global(.dark) .about-note h2, :global(.dark) .english-drawer summary b { color: rgb(247 239 235 / 0.9); }
-	:global(.dark) .interest-row, :global(.dark) .english-copy { border-color: rgb(255 255 255 / 0.07); background: rgb(20 17 18 / 0.58); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04); }
-	:global(.dark) .about-lead, :global(.dark) .interest-row p, :global(.dark) .about-note > div, :global(.dark) .english-copy p, :global(.dark) .english-copy li { color: rgb(247 239 235 / 0.55); }
-	:global(.dark) .about-lead,
-	:global(.dark) .about-avatar-wrap > span,
-	:global(.dark) .about-badges span,
-	:global(.dark) .about-section-title > p,
-	:global(.dark) .interest-row p,
-	:global(.dark) .interest-row small,
-	:global(.dark) .interest-row > a,
-	:global(.dark) .about-note > div,
-	:global(.dark) .english-drawer summary small,
-	:global(.dark) .english-copy p,
-	:global(.dark) .english-copy li { color: rgb(247 239 235 / 0.68); }
-	:global(.dark) .about-badges span,
-	:global(.dark) .about-avatar-wrap > span { border-color: rgb(255 255 255 / 0.08); background: rgb(255 255 255 / 0.06); }
-	:global(.dark) .interest-icon { border: 1px solid color-mix(in srgb, var(--primary) 24%, rgb(255 255 255 / 0.06)); background: color-mix(in srgb, var(--primary) 13%, rgb(255 255 255 / 0.035)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 0.5rem 1rem rgb(0 0 0 / 0.16); }
-	:global(.dark) .interest-icon :global(svg) { color: color-mix(in srgb, var(--primary) 88%, white); }
-	@media (max-width: 760px) {
-		.about-hero { grid-template-columns: 1fr; gap: 1rem; min-height: 0; padding: 1.6rem 1.15rem 1.35rem; text-align: center; border-radius: 1.55rem; }
-		.about-avatar { width: 8.5rem; height: 8.5rem; }
-		.about-hero h1 { font-size: 2rem; }
-		.about-lead { margin: 0.65rem 0 0.85rem; font-size: 0.8rem; }
-		.about-badges { justify-content: center; gap: 0.35rem; }
-		.about-badges span { padding: 0.4rem 0.58rem; font-size: 0.62rem; }
-		.about-diary { padding: 1.1rem 0.85rem 2.2rem; border-radius: 1.4rem; }
-		.about-section-title { display: block; margin-bottom: 0.75rem; }
-		.about-section-title h2 { font-size: 1.2rem; }
-		.about-section-title > p { margin-top: 0.3rem; }
-		.interest-list { grid-template-columns: 1fr; gap: 0.55rem; }
-		.interest-row { grid-template-columns: 2.55rem minmax(0, 1fr); min-height: 7.2rem; padding: 0.82rem; }
-		.interest-icon { width: 2.55rem; height: 2.55rem; border-radius: 0.82rem; font-size: 1.1rem; }
-		.interest-row h3 { font-size: 0.88rem; }
-		.interest-row p { padding-right: 0.2rem; font-size: 0.66rem; }
-		.interest-row > small,
-		.interest-row > a {
-			position: static;
+	.english-drawer[open]:not(.is-closing) > .english-copy-wrap {
+		grid-template-rows: 1fr;
+		opacity: 1;
+	}
+	.english-copy-clip {
+		min-height: 0;
+		overflow: hidden;
+	}
+	.english-copy {
+		position: relative;
+		max-width: 54rem;
+		margin: 0 auto;
+		padding: 1.4rem 0.75rem 0.6rem;
+	}
+	.english-watermark {
+		position: absolute;
+		top: -0.4rem;
+		right: 0.4rem;
+		color: color-mix(in srgb, var(--primary) 9%, transparent);
+		font-size: 5.4rem;
+		font-weight: 900;
+		letter-spacing: -0.06em;
+		line-height: 1;
+		pointer-events: none;
+	}
+	.english-copy h2 {
+		margin: 0 0 0.6rem;
+		color: var(--primary);
+		font-size: 1.15rem;
+		font-weight: 900;
+	}
+	.english-copy p,
+	.english-copy li {
+		position: relative;
+		color: color-mix(in srgb, var(--text-body) 90%, transparent);
+		font-size: 0.76rem;
+		line-height: 1.85;
+	}
+	.english-copy ul {
+		margin: 0.7rem 0;
+		padding-left: 1.15rem;
+	}
+	.english-copy li {
+		margin-bottom: 0.4rem;
+	}
+	.english-copy a {
+		color: var(--primary);
+		font-weight: 800;
+		text-decoration: underline;
+		text-decoration-color: color-mix(in srgb, var(--primary) 32%, transparent);
+		text-underline-offset: 0.16rem;
+	}
+	.english-drawer[open]:not(.is-closing) .english-copy > * {
+		animation: about-copy-in 620ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+	}
+	.english-drawer[open]:not(.is-closing) .english-copy > *:nth-child(2) {
+		animation-delay: 60ms;
+	}
+	.english-drawer[open]:not(.is-closing) .english-copy > *:nth-child(3) {
+		animation-delay: 120ms;
+	}
+	.english-drawer[open]:not(.is-closing) .english-copy > *:nth-child(4) {
+		animation-delay: 170ms;
+	}
+	.english-drawer[open]:not(.is-closing) .english-copy > *:nth-child(5) {
+		animation-delay: 220ms;
+	}
+	.english-drawer[open]:not(.is-closing) .english-copy > *:nth-child(n + 6) {
+		animation-delay: 270ms;
+	}
+
+	/* ------------------------------------------------------------------
+	   Reveal on scroll
+	   ------------------------------------------------------------------
+	   Two mechanisms, because a page entered through Swup never re-runs
+	   `about-reveal-pending` is set by the inline script in the head, before
+	   the markup paints, so a block never flashes in place and then fades
+	   out again; the client script arms the observer and hands out `is-in`.
+	   If that script never arrives, the timer in the head drops the class
+	   again — content is never left blank waiting for JavaScript.
+	   ------------------------------------------------------------------ */
+	:global(html.about-reveal-pending) .about-page [data-reveal]:not(.is-in) {
+		opacity: 0;
+		translate: 0 1.5rem;
+	}
+	.about-page [data-reveal].is-in {
+		animation: about-reveal 780ms cubic-bezier(0.16, 1, 0.3, 1)
+			var(--reveal-delay, 0ms) backwards;
+	}
+
+	/* ------------------------------------------------------------------
+	   Entrance choreography (first visit / Swup navigation)
+	   ------------------------------------------------------------------ */
+	.about-rise {
+		animation: about-rise 760ms cubic-bezier(0.16, 1, 0.3, 1)
+			var(--enter-delay, 0ms) backwards;
+	}
+	.about-pop {
+		animation: about-pop 640ms cubic-bezier(0.34, 1.42, 0.5, 1)
+			var(--enter-delay, 0ms) backwards;
+	}
+	.about-polaroid-in {
+		animation:
+			about-polaroid-in 980ms cubic-bezier(0.34, 1.32, 0.5, 1) 90ms backwards,
+			about-bob 7.8s ease-in-out 1.2s infinite;
+	}
+	:global(html.about-no-enter) .about-rise,
+	:global(html.about-no-enter) .about-pop,
+	:global(html.about-no-enter) .about-polaroid-in,
+	:global(html.about-no-enter) .about-name em::after {
+		animation: none !important;
+	}
+
+	/* ------------------------------------------------------------------
+	   Keyframes
+	   ------------------------------------------------------------------ */
+	@keyframes about-reveal {
+		from {
+			opacity: 0;
+			translate: 0 1.5rem;
+			filter: blur(0.4rem);
+		}
+		to {
+			opacity: 1;
+			translate: 0 0;
+			filter: blur(0);
+		}
+	}
+	@keyframes about-copy-in {
+		from {
+			opacity: 0;
+			translate: 0 0.7rem;
+		}
+		to {
+			opacity: 1;
+			translate: 0 0;
+		}
+	}
+	@keyframes about-rise {
+		0% {
+			opacity: 0;
+			translate: 0 1.1rem;
+			filter: blur(0.42rem);
+		}
+		60% {
+			opacity: 1;
+			filter: blur(0);
+		}
+		100% {
+			opacity: 1;
+			translate: 0 0;
+			filter: blur(0);
+		}
+	}
+	@keyframes about-pop {
+		0% {
+			opacity: 0;
+			scale: 0.78;
+			translate: 0 0.55rem;
+		}
+		62% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 1;
+			scale: 1;
+			translate: 0 0;
+		}
+	}
+	@keyframes about-pop-in {
+		0% {
+			opacity: 0;
+			scale: 0.4;
+		}
+		100% {
+			opacity: 1;
+			scale: 1;
+		}
+	}
+	@keyframes about-polaroid-in {
+		0% {
+			opacity: 0;
+			translate: 0 -1.5rem;
+			rotate: -8deg;
+			scale: 0.84;
+		}
+		58% {
+			opacity: 1;
+		}
+		78% {
+			rotate: 1.6deg;
+			scale: 1.015;
+		}
+		100% {
+			opacity: 1;
+			translate: 0 0;
+			rotate: 0deg;
+			scale: 1;
+		}
+	}
+	@keyframes about-bob {
+		0%,
+		100% {
+			translate: 0 0;
+		}
+		50% {
+			translate: 0 -0.42rem;
+		}
+	}
+	@keyframes about-tape-sway {
+		0%,
+		100% {
+			rotate: -3.4deg;
+		}
+		50% {
+			rotate: -1.2deg;
+		}
+	}
+	@keyframes about-drift {
+		0%,
+		100% {
+			translate: 0 0;
+			scale: 1;
+		}
+		50% {
+			translate: 0 -0.85rem;
+			scale: 1.07;
+		}
+	}
+	@keyframes about-twinkle {
+		0%,
+		100% {
+			opacity: 0.42;
+			scale: 0.9;
+		}
+		50% {
+			opacity: 1;
+			scale: 1.12;
+		}
+	}
+	@keyframes about-heart-beat {
+		0%,
+		100% {
+			scale: 1;
+		}
+		18% {
+			scale: 1.14;
+		}
+		36% {
+			scale: 1;
+		}
+		54% {
+			scale: 1.1;
+		}
+	}
+	@keyframes about-glow-breathe {
+		0%,
+		100% {
+			opacity: 0.78;
+			scale: 1;
+		}
+		50% {
+			opacity: 1;
+			scale: 1.07;
+		}
+	}
+	@keyframes about-gloss {
+		0%,
+		62% {
+			translate: -130% 0;
+		}
+		86%,
+		100% {
+			translate: 130% 0;
+		}
+	}
+	@keyframes about-name-shine {
+		0%,
+		100% {
+			background-position: 0% 50%;
+		}
+		50% {
+			background-position: 100% 50%;
+		}
+	}
+	@keyframes about-swatch {
+		from {
+			transform: scaleX(0);
+		}
+		to {
+			transform: scaleX(1);
+		}
+	}
+	@keyframes about-rule-in {
+		to {
+			transform: scaleX(1);
+		}
+	}
+	@keyframes about-march-x {
+		to {
+			background-position-x: 1rem;
+		}
+	}
+	@keyframes about-march-y {
+		to {
+			background-position-y: 0.86rem;
+		}
+	}
+	@keyframes about-wiggle {
+		0%,
+		100% {
+			rotate: -1.6deg;
+		}
+		50% {
+			rotate: 1.4deg;
+		}
+	}
+	@keyframes about-burst-fly {
+		0% {
+			opacity: 0;
+			translate: 0 0;
+			scale: 0.4;
+		}
+		18% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0;
+			translate: var(--bx, 0) var(--by, 0);
+			rotate: var(--br, 0deg);
+			scale: 1.05;
+		}
+	}
+	@keyframes about-cta-shine {
+		from {
+			translate: -130% 0;
+		}
+		to {
+			translate: 130% 0;
+		}
+	}
+	@keyframes about-ripple {
+		0% {
+			opacity: 0.7;
+			scale: 1;
+		}
+		70%,
+		100% {
+			opacity: 0;
+			scale: 1.12;
+		}
+	}
+	/* ------------------------------------------------------------------
+	   Dark mode & palettes
+	   ------------------------------------------------------------------ */
+	:global(.dark) .about-photo {
+		background: linear-gradient(158deg, #332a2c, #241d1f);
+		box-shadow:
+			0 1.5rem 2.8rem rgb(0 0 0 / 0.4),
+			inset 0 0 0 1px rgb(255 255 255 / 0.07);
+	}
+	:global(.dark) .about-photo-frame {
+		background: rgb(20 16 17);
+	}
+	:global(.dark) .about-photo-mark {
+		color: color-mix(in srgb, var(--primary) 72%, #fff);
+	}
+	:global(.dark) .about-tape {
+		background: repeating-linear-gradient(
+				118deg,
+				rgb(255 255 255 / 0.18) 0 0.42rem,
+				transparent 0.42rem 0.78rem
+			),
+			color-mix(in srgb, var(--primary) 52%, rgb(255 255 255 / 0.12));
+	}
+	:global(.dark) .about-name,
+	:global(.dark) .about-heading-copy h2,
+	:global(.dark) .about-thread h3,
+	:global(.dark) .about-outro-col h2,
+	:global(.dark) .english-title b {
+		color: rgb(247 239 235 / 0.92);
+	}
+	:global(.dark) .about-thread-node {
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+	}
+	:global(.dark) .about-heading-index,
+	:global(.dark) .english-flower,
+	:global(.dark) .english-chevron {
+		background: color-mix(in srgb, var(--primary) 14%, transparent);
+	}
+	:global(.dark) .about-socials-icon {
+		background: color-mix(in srgb, var(--primary) 12%, rgb(255 255 255 / 0.04));
+	}
+
+	/* ------------------------------------------------------------------
+	   Responsive
+	   ------------------------------------------------------------------ */
+	@media (max-width: 900px) {
+		.about-masthead {
+			grid-template-columns: 10.5rem minmax(0, 1fr);
+		}
+		.about-photo {
+			width: 10rem;
+			padding: 0.42rem 0.42rem 1.6rem;
+		}
+		.about-photo-frame {
+			height: 9.2rem;
+		}
+		.about-thread {
+			grid-template-columns: 3.2rem minmax(0, 1fr);
+			gap: 0 0.9rem;
+		}
+		.about-threads::before,
+		.about-threads::after {
+			left: 1.6rem;
+		}
+		.about-thread-node {
+			width: 2.8rem;
+			height: 2.8rem;
+			border-radius: 0.9rem;
+		}
+		.about-thread-aside {
 			grid-column: 2;
 			justify-self: start;
-			margin-top: 0.15rem;
+			max-width: none;
+			padding-top: 0.55rem;
+			text-align: left;
 		}
-		.interest-row > small { padding-left: 0.15rem; }
-		.interest-row > a { padding: 0.3rem 0.55rem; }
-		.diary-doodle { right: 1rem; bottom: 0.65rem; }
-		.about-notes { grid-template-columns: 1fr; gap: 0.75rem; }
-		.about-note { min-height: 0; padding: 1.15rem 1.1rem; border-radius: 1.3rem; }
-		.about-note h2 { font-size: 1.02rem; }
-		.english-drawer summary { padding: 0.85rem 1rem; }
-		.english-copy { margin: 0 0.85rem 0.85rem; padding: 0.9rem; }
+		.about-heading {
+			flex-wrap: wrap;
+		}
+		.about-heading-note {
+			margin: 0;
+			width: 100%;
+		}
+		.about-outro {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 1.8rem;
+		}
+		.about-outro-rule {
+			position: static;
+			width: auto;
+			height: 1px;
+			background-image: linear-gradient(
+				90deg,
+				color-mix(in srgb, var(--primary) 34%, transparent) 0 0.42rem,
+				transparent 0.42rem 0.92rem
+			);
+			background-size: 0.92rem 1px;
+			animation: about-march-x 2.6s linear infinite;
+		}
 	}
-	@media (prefers-reduced-motion: reduce) { .interest-row, .about-note > a, .english-drawer summary i, .english-copy-wrap { transition: none; } .interest-row:hover, .about-note > a:hover { transform: none; } }
+	@media (max-width: 720px) {
+		.about-masthead {
+			grid-template-columns: minmax(0, 1fr);
+			justify-items: center;
+			gap: 1.4rem;
+			padding: 1.4rem 0.4rem 1.6rem;
+			text-align: center;
+		}
+		.about-eyebrow,
+		.about-meta,
+		.about-socials {
+			justify-content: center;
+		}
+		.about-name {
+			font-size: clamp(1.85rem, 8vw, 2.4rem);
+		}
+		.about-bubble {
+			top: -0.7rem;
+			right: auto;
+			left: 50%;
+			translate: -50% 0.3rem;
+		}
+		.about-bubble.is-visible {
+			translate: -50% 0;
+		}
+		.about-doodle--note,
+		.about-doodle--bloom,
+		.about-doodle--ribbon {
+			display: none;
+		}
+		.about-thread {
+			padding: 1rem 0.5rem 1rem 0;
+		}
+		.about-outro-else {
+			font-size: 0.64rem;
+		}
+		.english-copy {
+			padding: 1.1rem 0.55rem 0.4rem;
+		}
+		.english-watermark {
+			font-size: 3.6rem;
+		}
+	}
+
+	/* ------------------------------------------------------------------
+	   Reduced motion
+	   ------------------------------------------------------------------ */
+	@media (prefers-reduced-motion: reduce) {
+		.about-page *,
+		.about-page *::before,
+		.about-page *::after {
+			animation: none !important;
+			transition: none !important;
+		}
+		:global(html.about-reveal-pending) .about-page [data-reveal]:not(.is-in),
+		.about-page [data-reveal]:not(.is-in) {
+			opacity: 1;
+			translate: none;
+		}
+		.about-heading::after {
+			transform: scaleX(1);
+		}
+		.about-threads::after {
+			transform: scaleY(1);
+		}
+		.about-thread:hover,
+		.about-wish li:hover {
+			translate: none;
+		}
+		.about-name em span {
+			background: none;
+			color: var(--primary);
+		}
+	}
 </style>

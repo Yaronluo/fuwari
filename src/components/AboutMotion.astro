@@ -1,0 +1,334 @@
+---
+// 关于页的客户端行为：滚动 reveal、时间轴进度、头像气泡、指针视差、English 抽屉。
+// 必须放在组件里：Astro 会把「页面级」脚本输出到 </body> 之后，swup 换页时不会被插入，
+// 而组件脚本内联在 body 中，直接访问与 swup 进入两条路径都能执行。
+---
+
+<script>
+	const aboutMotionReduced = () =>
+		window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+	/** Fades blocks in as they scroll into view, with a per-block stagger. */
+	const setupAboutReveal = () => {
+		const page = document.querySelector<HTMLElement>(".about-page");
+		if (!page || page.dataset.revealReady === "true") return;
+		page.dataset.revealReady = "true";
+
+		const targets = Array.from(
+			page.querySelectorAll<HTMLElement>("[data-reveal]"),
+		);
+
+		if (aboutMotionReduced() || !("IntersectionObserver" in window)) {
+			for (const target of targets) target.classList.add("is-in");
+			return;
+		}
+
+		// Arm the CSS hidden state only once the observer is definitely live,
+		// so a page that arrives without this script is never left blank.
+		// If the failsafe already dropped that hidden state, this script showed
+		// up too late to own the entrance — animating now would blink the blocks
+		// that are already on screen, so leave the page still instead.
+		if (!document.documentElement.classList.contains("about-reveal-pending")) {
+			return;
+		}
+		page.dataset.revealArmed = "true";
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (!entry.isIntersecting) continue;
+					entry.target.classList.add("is-in");
+					observer.unobserve(entry.target);
+				}
+			},
+			{ rootMargin: "0px 0px -8% 0px", threshold: 0.12 },
+		);
+		for (const target of targets) observer.observe(target);
+	};
+
+	/** The dashed rail of the timeline fills up while the list is read, and
+	 *  the masthead drifts away as it leaves the viewport. */
+	const setupAboutRail = () => {
+		let frame = 0;
+		const update = () => {
+			frame = 0;
+			const reduced = aboutMotionReduced();
+			const list = document.querySelector<HTMLElement>(".about-threads");
+			if (list) {
+				if (reduced) {
+					list.style.setProperty("--rail-progress", "1");
+				} else {
+					const rect = list.getBoundingClientRect();
+					// Empty while the list's head is still below the fold, full once
+					// its tail has scrolled past — so the line draws across the read.
+					const viewport = window.innerHeight * 0.72;
+					const passed = viewport - rect.top;
+					const progress = Math.min(
+						1,
+						Math.max(0, passed / Math.max(1, rect.height + viewport)),
+					);
+					list.style.setProperty("--rail-progress", progress.toFixed(3));
+				}
+			}
+			const masthead = document.getElementById("about-masthead");
+			if (masthead && !reduced) {
+				const rect = masthead.getBoundingClientRect();
+				const exit = Math.min(
+					1,
+					Math.max(0, -rect.top / Math.max(1, rect.height * 0.76)),
+				);
+				masthead.style.setProperty("--masthead-exit", exit.toFixed(3));
+			}
+		};
+		const onScroll = () => {
+			if (!frame) frame = window.requestAnimationFrame(update);
+		};
+
+		if (!window.__fuwariAboutRailHookRegistered) {
+			window.__fuwariAboutRailHookRegistered = true;
+			window.addEventListener("scroll", onScroll, { passive: true });
+			window.addEventListener("resize", onScroll, { passive: true });
+		}
+		// Re-seed the values on every visit: a Swup swap brings fresh elements.
+		onScroll();
+	};
+
+	/** Timers shared by the polaroid bubble, so swup re-entries never stack up. */
+	let aboutBubbleTimer = 0;
+	let aboutBubbleLoop = 0;
+
+	/** Clicking the polaroid throws seven glyphs and pops a bubble. */
+	const setupAboutAvatar = () => {
+		const button = document.getElementById("about-avatar-button");
+		const polaroid = button?.closest<HTMLElement>(".about-polaroid");
+		const bubble = polaroid?.querySelector<HTMLElement>(".about-bubble");
+		const burst = polaroid?.querySelector<HTMLElement>(".about-burst");
+		if (!button || !polaroid || !bubble || button.dataset.avatarBound === "true")
+			return;
+		button.dataset.avatarBound = "true";
+
+		let messages: string[] = [];
+		try {
+			messages = JSON.parse(polaroid.dataset.avatarMessages || "[]");
+		} catch {
+			messages = [];
+		}
+		const initial = messages.indexOf(bubble.textContent?.trim() ?? "");
+		let index = initial >= 0 ? initial : 0;
+
+		/** Swaps the line and pops the bubble back in. */
+		const say = (text: string) => {
+			bubble.textContent = text;
+			bubble.classList.remove("is-visible");
+			window.requestAnimationFrame(() => bubble.classList.add("is-visible"));
+		};
+
+		// The bubble greets you on arrival instead of waiting to be discovered…
+		window.clearTimeout(aboutBubbleTimer);
+		aboutBubbleTimer = window.setTimeout(
+			() => say(messages[index] ?? ""),
+			aboutMotionReduced() ? 0 : 900,
+		);
+
+		// …then keeps quietly changing its mind, unless motion is unwelcome.
+		window.clearInterval(aboutBubbleLoop);
+		if (messages.length > 1 && !aboutMotionReduced()) {
+			aboutBubbleLoop = window.setInterval(() => {
+				if (!bubble.isConnected) {
+					window.clearInterval(aboutBubbleLoop);
+					return;
+				}
+				if (document.hidden) return;
+				index = (index + 1) % messages.length;
+				say(messages[index]);
+			}, 9200);
+		}
+
+		const burstOut = () => {
+			if (!burst || aboutMotionReduced()) return;
+			const items = burst.querySelectorAll<HTMLElement>(".about-burst-item");
+			const size = polaroid.getBoundingClientRect().width || 208;
+			items.forEach((item, itemIndex) => {
+				const angle =
+					(Math.PI * 2 * itemIndex) / Math.max(1, items.length) -
+					Math.PI / 2 +
+					(Math.random() - 0.5) * 0.5;
+				const distance = size * (0.46 + Math.random() * 0.22);
+				item.style.setProperty("--bx", `${(Math.cos(angle) * distance).toFixed(1)}px`);
+				item.style.setProperty("--by", `${(Math.sin(angle) * distance).toFixed(1)}px`);
+				item.style.setProperty("--br", `${Math.round((Math.random() - 0.5) * 150)}deg`);
+				item.style.setProperty("--bd", `${980 + Math.round(Math.random() * 420)}ms`);
+			});
+			burst.classList.remove("is-active");
+			void burst.offsetWidth; // restart the animation from the top
+			burst.classList.add("is-active");
+			window.clearTimeout((burst as HTMLElement & { _timer?: number })._timer);
+			(burst as HTMLElement & { _timer?: number })._timer = window.setTimeout(
+				() => burst.classList.remove("is-active"),
+				1700,
+			);
+		};
+
+		button.addEventListener("click", () => {
+			index = messages.length ? (index + 1) % messages.length : index;
+			say(messages[index] ?? bubble.textContent ?? "");
+			burstOut();
+		});
+	};
+
+	/** The masthead follows the cursor: the polaroid leads, text and doodles lag. */
+	const setupAboutParallax = () => {
+		const page = document.querySelector<HTMLElement>(".about-page");
+		const masthead = document.getElementById("about-masthead");
+		if (!page || !masthead || page.dataset.parallaxBound === "true") return;
+		if (!window.matchMedia("(pointer: fine)").matches || aboutMotionReduced())
+			return;
+
+		const layers = Array.from(
+			masthead.querySelectorAll<HTMLElement>("[data-parallax]"),
+		);
+		const doodles = masthead.querySelector<HTMLElement>(".about-doodles");
+		if (!layers.length) return;
+		page.dataset.parallaxBound = "true";
+
+		let pointerX = 0;
+		let pointerY = 0;
+		let currentX = 0;
+		let currentY = 0;
+		let frame = 0;
+
+		const render = () => {
+			frame = 0;
+			currentX += (pointerX - currentX) * 0.12;
+			currentY += (pointerY - currentY) * 0.12;
+
+			for (const layer of layers) {
+				const depth = Number(layer.dataset.parallax || 6);
+				layer.style.translate = `${(currentX * depth).toFixed(2)}px ${(currentY * depth * 0.6).toFixed(2)}px`;
+			}
+			if (doodles) {
+				doodles.style.translate = `${(-currentX * 22).toFixed(2)}px ${(-currentY * 13).toFixed(2)}px`;
+			}
+
+			if (
+				Math.abs(pointerX - currentX) > 0.002 ||
+				Math.abs(pointerY - currentY) > 0.002
+			) {
+				frame = window.requestAnimationFrame(render);
+			}
+		};
+
+		const onPointerMove = (event: PointerEvent) => {
+			if (!masthead.isConnected) {
+				window.removeEventListener("pointermove", onPointerMove);
+				if (frame) window.cancelAnimationFrame(frame);
+				return;
+			}
+			const rect = masthead.getBoundingClientRect();
+			if (rect.bottom < -160 || rect.top > window.innerHeight + 160) return;
+
+			pointerX = Math.max(
+				-1,
+				Math.min(1, ((event.clientX - rect.left) / rect.width) * 2 - 1),
+			);
+			pointerY = Math.max(
+				-1,
+				Math.min(1, ((event.clientY - rect.top) / rect.height) * 2 - 1),
+			);
+			if (!frame) frame = window.requestAnimationFrame(render);
+		};
+
+		window.addEventListener("pointermove", onPointerMove, { passive: true });
+	};
+
+	/** Pointer spotlight inside a timeline row. */
+	const setupAboutTilt = () => {
+		const page = document.querySelector<HTMLElement>(".about-page");
+		if (!page || page.dataset.tiltBound === "true") return;
+		if (!window.matchMedia("(pointer: fine)").matches || aboutMotionReduced())
+			return;
+		page.dataset.tiltBound = "true";
+
+		for (const row of page.querySelectorAll<HTMLElement>("[data-tilt]")) {
+			row.addEventListener("pointermove", (event) => {
+				const rect = row.getBoundingClientRect();
+				if (!rect.width || !rect.height) return;
+				row.style.setProperty(
+					"--mx",
+					`${(((event.clientX - rect.left) / rect.width) * 100).toFixed(2)}%`,
+				);
+				row.style.setProperty(
+					"--my",
+					`${(((event.clientY - rect.top) / rect.height) * 100).toFixed(2)}%`,
+				);
+			});
+			row.addEventListener("pointerleave", () => {
+				row.style.removeProperty("--mx");
+				row.style.removeProperty("--my");
+			});
+		}
+	};
+
+	/** The English drawer keeps its smooth open/close, plus a staggered copy. */
+	const setupEnglishDrawer = () => {
+		for (const drawer of document.querySelectorAll<HTMLDetailsElement>(
+			".english-drawer",
+		)) {
+			if (drawer.dataset.animationReady === "true") continue;
+			drawer.dataset.animationReady = "true";
+			const summary = drawer.querySelector<HTMLElement>("summary");
+			const wrap = drawer.querySelector<HTMLElement>(".english-copy-wrap");
+			if (!summary || !wrap) continue;
+
+			summary.addEventListener("click", (event) => {
+				if (!drawer.open || drawer.classList.contains("is-closing")) return;
+				event.preventDefault();
+				if (aboutMotionReduced()) {
+					drawer.open = false;
+					return;
+				}
+
+				drawer.classList.add("is-closing");
+				let finished = false;
+				const finish = () => {
+					if (finished) return;
+					finished = true;
+					drawer.open = false;
+					drawer.classList.remove("is-closing");
+				};
+				const onTransitionEnd = (transitionEvent: TransitionEvent) => {
+					if (
+						transitionEvent.target !== wrap ||
+						transitionEvent.propertyName !== "grid-template-rows"
+					)
+						return;
+					wrap.removeEventListener("transitionend", onTransitionEnd);
+					finish();
+				};
+				wrap.addEventListener("transitionend", onTransitionEnd);
+				window.setTimeout(finish, 480);
+			});
+		}
+	};
+
+	const setupAbout = () => {
+		const page = document.querySelector<HTMLElement>(".about-page");
+		if (!page) return;
+		setupAboutReveal();
+		setupAboutRail();
+		setupAboutAvatar();
+		setupAboutParallax();
+		setupAboutTilt();
+		setupEnglishDrawer();
+	};
+
+	setupAbout();
+
+	const setupAboutHooks = () => {
+		if (window.__fuwariAboutHookRegistered) return;
+		window.__fuwariAboutHookRegistered = true;
+		window.swup.hooks.on("page:view", setupAbout);
+	};
+	if (window.swup) setupAboutHooks();
+	else document.addEventListener("swup:enable", setupAboutHooks, { once: true });
+</script>
