@@ -1284,13 +1284,27 @@ const padded = (value: number) => String(value).padStart(2, "0");
 	.collection-cover-sheen {
 		position: absolute;
 		inset: 0;
-		background: linear-gradient(104deg, transparent 34%, rgb(255 255 255 / 0.46) 48%, transparent 62%);
-		transform: translateX(-130%);
+		background: linear-gradient(
+			104deg,
+			transparent 26%,
+			rgb(255 255 255 / 0.18) 41%,
+			rgb(255 255 255 / 0.46) 50%,
+			rgb(255 255 255 / 0.18) 59%,
+			transparent 74%
+		);
+		/* 光带（26%–74% 那段）完全落在封面之外，静止时不可见 */
+		transform: translateX(-100%);
+		/* 离开时瞬时归位：此刻光带已在封面外，看不到回弹，下次悬停从头扫一遍 */
+		transition: transform 0s linear;
 		pointer-events: none;
 	}
 
 	.collection-card:hover .collection-cover-sheen {
-		transform: translateX(130%);
+		/* 行程刚好是 ±1 倍封面宽：光带越过封面的那一段占总时长约 3/4。
+		   2100ms 下光带中心横穿卡片约 0.86s、整条光带可见约 1.38s，
+		   慢到像掠过的光，不会像闪一下。 */
+		transform: translateX(100%);
+		transition: transform 2100ms cubic-bezier(0.4, 0.22, 0.6, 0.84) 120ms;
 	}
 
 	.collection-cover-tag {
