@@ -114,840 +114,967 @@ const filterItems = [
 	{ key: "all", label: "全部收藏", icon: "♡" },
 	{ key: "movie", label: "电影格", icon: "◉" },
 	{ key: "anime", label: "番剧格", icon: "✦" },
-	{ key: "music", label: "音乐格", icon: "♫" },
+	{ key: "music", label: "音乐格", icon: "♪" },
 ];
 
 const collectionGroups = [
-	{ key: "movie", label: "电影放映格", eyebrow: "CINEMA SHELF", icon: "🎞", note: "嘘——喜欢的电影藏在这里(˶ᵔ ᵕ ᵔ˶)" },
-	{ key: "anime", label: "番剧收藏格", eyebrow: "ANIME SHELF", icon: "✦", note: "下一集，也要一起看下去呀 (｡•̀ᴗ-)✧" },
-	{ key: "music", label: "唱片试听格", eyebrow: "RECORD SHELF", icon: "♫", note: "旋律会从柜子里悄悄响起来" },
+	{
+		key: "movie",
+		label: "电影放映格",
+		eyebrow: "CINEMA SHELF",
+		icon: "◉",
+		note: "嘘——喜欢的电影藏在这里(˶ᵔ ᵕ ᵔ˶)",
+	},
+	{
+		key: "anime",
+		label: "番剧收藏格",
+		eyebrow: "ANIME SHELF",
+		icon: "✦",
+		note: "下一集，也要一起看下去呀 (｡•̀ᴗ-)✧",
+	},
+	{
+		key: "music",
+		label: "唱片试听格",
+		eyebrow: "RECORD SHELF",
+		icon: "♪",
+		note: "旋律会从柜子里悄悄响起来",
+	},
 ];
+
+const countByCategory = (key: string) =>
+	collectionItems.filter((item) => item.category === key).length;
+
+const totalCount = collectionItems.length;
+
+const heroStats = [
+	{ value: totalCount, unit: "件", label: "全部收藏", icon: "♡" },
+	{ value: countByCategory("movie"), unit: "部", label: "电影", icon: "◉" },
+	{ value: countByCategory("anime"), unit: "部", label: "番剧", icon: "✦" },
+	{ value: countByCategory("music"), unit: "首", label: "音乐", icon: "♪" },
+];
+
+// Three real covers fanned out in the hero: a film, a series and a song.
+const heroDeck = [collectionItems[6], collectionItems[4], collectionItems[0]];
+
+const padded = (value: number) => String(value).padStart(2, "0");
 ---
 
 <collection-cabinet class="collection-cabinet">
 	<section class="cabinet-hero">
-		<span class="cabinet-hero-tape" aria-hidden="true"></span>
-		<div class="cabinet-hero-copy">
-			<div class="cabinet-eyebrow"><span>✦</span> MY LITTLE COLLECTION <span>♡</span></div>
-			<h1>小小收藏馆</h1>
-			<p>把喜欢的作品与旋律，放进不会落灰的小格子里。</p>
-			<div class="cabinet-summary" aria-label="收藏统计">
-				<span><strong>{collectionItems.length}</strong> 件收藏</span>
-				<i></i>
-				<span><strong>{collectionItems.filter((item) => item.category === "movie").length}</strong> 部电影</span>
-				<i></i>
-				<span><strong>{collectionItems.filter((item) => item.category === "anime").length}</strong> 部番剧</span>
-				<i></i>
-				<span><strong>{collectionItems.filter((item) => item.category === "music").length}</strong> 首音乐</span>
-			</div>
+		<div class="cabinet-hero-aura" aria-hidden="true">
+			<span class="hero-aura hero-aura-a"></span>
+			<span class="hero-aura hero-aura-b"></span>
+			<span class="hero-aura hero-aura-c"></span>
 		</div>
+		<span class="cabinet-hero-tape" aria-hidden="true"></span>
+
+		<div class="cabinet-hero-copy">
+			<p class="cabinet-eyebrow">
+				<span class="cabinet-eyebrow-mark" aria-hidden="true">✦</span>
+				<span class="cabinet-eyebrow-text">MY LITTLE COLLECTION</span>
+				<span class="cabinet-eyebrow-heart" aria-hidden="true">♡</span>
+			</p>
+			<h1 class="cabinet-title"><span>小小收藏馆</span></h1>
+			<p class="cabinet-hero-lead">
+				把喜欢的作品与旋律，放进不会落灰的小格子里。每一格都标好日期，
+				等很多年后再打开，还能听见当时的心情。
+			</p>
+
+			<ul class="cabinet-stats" data-count-scope aria-label="收藏统计">
+				{heroStats.map((stat, index) => (
+					<li class="cabinet-stat" style={`--stat-index: ${index};`}>
+						<span class="cabinet-stat-icon" aria-hidden="true">{stat.icon}</span>
+						<span class="cabinet-stat-value">
+							<strong data-count-to={stat.value}>{stat.value}</strong>
+							<em>{stat.unit}</em>
+						</span>
+						<span class="cabinet-stat-label">{stat.label}</span>
+					</li>
+				))}
+			</ul>
+		</div>
+
 		<div class="cabinet-hero-visual" aria-hidden="true">
-			<div class="mini-shelf">
-				<span class="mini-book mini-book-one"></span>
-				<span class="mini-book mini-book-two"></span>
-				<span class="mini-book mini-book-three"></span>
-				<span class="mini-record">♫</span>
+			<div class="hero-stage">
+				<span class="hero-vinyl"><i></i></span>
+				<div class="hero-deck">
+					{heroDeck.map((item, index) => (
+						<figure class="hero-deck-card" style={`--deck-index: ${index};`}>
+							<img src={item.image} alt="" loading="eager" decoding="async" />
+						</figure>
+					))}
+				</div>
 			</div>
-			<span class="hero-visual-star">✦</span>
-			<span class="hero-visual-heart">♡</span>
+			<span class="hero-doodle hero-doodle-star">✦</span>
+			<span class="hero-doodle hero-doodle-heart">♡</span>
+			<span class="hero-doodle hero-doodle-spark">✧</span>
 		</div>
 	</section>
 
-	<nav class="cabinet-filters" aria-label="收藏分类">
-		{filterItems.map((filter, index) => (
-			<button
-				type="button"
-				class:list={["cabinet-filter", { "is-active": index === 0 }]}
-				data-filter={filter.key}
-				aria-pressed={index === 0 ? "true" : "false"}
-			>
-				<span aria-hidden="true">{filter.icon}</span>{filter.label}
-			</button>
-		))}
-		<span class="cabinet-visible-count" aria-live="polite">{collectionItems.length} 件收藏</span>
+	<nav class="cabinet-filters" aria-label="收藏分类" data-reveal>
+		<div class="cabinet-filter-bar">
+			<span class="cabinet-filter-glider" aria-hidden="true"></span>
+			{filterItems.map((filter, index) => (
+				<button
+					type="button"
+					class:list={["cabinet-filter", { "is-active": index === 0 }]}
+					data-filter={filter.key}
+					aria-pressed={index === 0 ? "true" : "false"}
+				>
+					<span class="cabinet-filter-icon" aria-hidden="true">{filter.icon}</span>
+					<span class="cabinet-filter-label">{filter.label}</span>
+					<span class="cabinet-filter-count">
+						{filter.key === "all" ? totalCount : countByCategory(filter.key)}
+					</span>
+				</button>
+			))}
+		</div>
+		<p class="cabinet-visible-count" aria-live="polite">
+			<span class="cabinet-visible-dot" aria-hidden="true"></span>
+			共 <strong>{totalCount}</strong> 件收藏
+		</p>
 	</nav>
 
 	<section class="collection-showcase" aria-label="收藏内容">
-		{collectionGroups.map((group) => (
-			<section class="collection-shelf-group" data-collection-group={group.key}>
-				<header class="collection-shelf-header">
-					<div class="collection-shelf-icon" aria-hidden="true">{group.icon}</div>
-					<div>
-						<span>{group.eyebrow}</span>
-						<h2>{group.label}</h2>
+		{collectionGroups.map((group, groupIndex) => {
+			const groupItems = collectionItems.filter((item) => item.category === group.key);
+			return (
+				<section
+					class="collection-shelf-group"
+					data-collection-group={group.key}
+					data-reveal
+					aria-labelledby={`collection-shelf-${group.key}`}
+				>
+					<header class="collection-shelf-header">
+						<span class="collection-shelf-index" aria-hidden="true">{padded(groupIndex + 1)}</span>
+						<span class="collection-shelf-icon" aria-hidden="true">{group.icon}</span>
+						<div class="collection-shelf-titles">
+							<span class="collection-shelf-eyebrow">{group.eyebrow}</span>
+							<h2 id={`collection-shelf-${group.key}`}>{group.label}</h2>
+						</div>
+						<p class="collection-shelf-note">{group.note}</p>
+						<span class="collection-shelf-count">
+							<strong>{groupItems.length}</strong>
+							<em>件</em>
+						</span>
+					</header>
+
+					<div class="collection-grid">
+						{groupItems.map((item, itemIndex) => (
+							<div
+								class="collection-item"
+								data-category={item.category}
+								style={`--item-index: ${itemIndex};`}
+							>
+								<article class="collection-card">
+									<div class="collection-media">
+										<span class="collection-vinyl" aria-hidden="true"><i></i></span>
+										<div class="collection-cover">
+											<img
+												src={item.image}
+												alt={`${item.title}封面`}
+												loading={itemIndex < 2 ? "eager" : "lazy"}
+												decoding="async"
+											/>
+											<span class="collection-cover-shade" aria-hidden="true"></span>
+											<span class="collection-cover-sheen" aria-hidden="true"></span>
+											<span class="collection-cover-tag" aria-hidden="true">
+												{item.categoryLabel}
+											</span>
+											<span class="collection-cover-index" aria-hidden="true">
+												{padded(itemIndex + 1)}
+											</span>
+										</div>
+									</div>
+
+									<div class="collection-card-copy">
+										<p class="collection-card-original">{item.original}</p>
+										<h2>{item.title}</h2>
+										<span class="collection-card-rule" aria-hidden="true"></span>
+										<p class="collection-card-note">{item.note}</p>
+										<div class="collection-card-tags">
+											{item.tags.map((tag, tagIndex) => (
+												<span style={`--tag-index: ${tagIndex};`}>{tag}</span>
+											))}
+										</div>
+									</div>
+								</article>
+							</div>
+						))}
 					</div>
-					<p>{group.note}</p>
-					<i aria-hidden="true">{collectionItems.filter((item) => item.category === group.key).length}</i>
-				</header>
-				<div class="collection-grid">
-					{collectionItems.filter((item) => item.category === group.key).map((item) => {
-						const index = collectionItems.indexOf(item);
-						return (
-							<article class="collection-card" data-category={item.category} style={`--card-index: ${index};`}>
-								<span class="collection-card-tape" aria-hidden="true"></span>
-								<div class="collection-media">
-									<span class="collection-vinyl" aria-hidden="true"><i></i></span>
-									<div class="collection-cover">
-										<img src={item.image} alt={`${item.title}封面`} loading={index < 3 ? "eager" : "lazy"} decoding="async" />
-										<span class="collection-cover-shade" aria-hidden="true"></span>
-										<span class="collection-cover-sparkle" aria-hidden="true">✦</span>
-									</div>
-								</div>
-								<div class="collection-card-copy">
-									<p class="collection-card-original">{item.original}</p>
-									<h2>{item.title}</h2>
-									<p class="collection-card-note">{item.note}</p>
-									<div class="collection-card-tags">
-										{item.tags.map((tag) => <span>{tag}</span>)}
-									</div>
-								</div>
-								<span class="collection-card-doodle" aria-hidden="true">(˶ᵔ ᵕ ᵔ˶)</span>
-							</article>
-						);
-					})}
-				</div>
-				<div class="collection-shelf-board" aria-hidden="true"><span></span></div>
-			</section>
-		))}
+				</section>
+			);
+		})}
 	</section>
 
-	<section class="collection-next">
-		<div class="collection-next-icon" aria-hidden="true">🎁</div>
-		<div>
-			<span>NEXT FAVORITE</span>
+	<section class="collection-next" data-reveal>
+		<span class="collection-next-halo" aria-hidden="true"></span>
+		<span class="collection-next-slot" aria-hidden="true">+</span>
+		<div class="collection-next-copy">
+			<span class="collection-next-eyebrow">NEXT FAVORITE</span>
 			<h2>下一件喜欢的东西，会是什么呢？</h2>
 			<p>这里还留着空位，等新的动画、音乐和故事住进来。</p>
 		</div>
-		<span class="collection-next-sparkle" aria-hidden="true">✦</span>
+			<span class="collection-next-sparkle" aria-hidden="true">✦</span>
 	</section>
 </collection-cabinet>
 
 <script>
+	const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+	const prefersReducedMotion = () => window.matchMedia(MOTION_QUERY).matches;
+	const countFormatter = new Intl.NumberFormat("zh-CN");
+
+	function countUp(element: HTMLElement, target: number) {
+		if (prefersReducedMotion()) {
+			element.textContent = countFormatter.format(target);
+			return;
+		}
+
+		const duration = 900;
+		const started = performance.now();
+		element.textContent = "0";
+
+		const tick = (now: number) => {
+			const progress = Math.min(1, (now - started) / duration);
+			const eased = 1 - (1 - progress) ** 3;
+			element.textContent = countFormatter.format(Math.round(target * eased));
+			if (progress < 1) requestAnimationFrame(tick);
+			else element.textContent = countFormatter.format(target);
+		};
+		requestAnimationFrame(tick);
+	}
+
 	class CollectionCabinetElement extends HTMLElement {
+		#swapTimer = 0;
+
 		connectedCallback() {
 			if (this.dataset.ready === "true") return;
 			this.dataset.ready = "true";
 			this.dataset.activeFilter = "all";
+
 			const buttons = Array.from(this.querySelectorAll<HTMLButtonElement>("[data-filter]"));
-			const cards = Array.from(this.querySelectorAll<HTMLElement>("[data-category]"));
+			const items = Array.from(this.querySelectorAll<HTMLElement>(".collection-item"));
 			const groups = Array.from(this.querySelectorAll<HTMLElement>("[data-collection-group]"));
 			const count = this.querySelector<HTMLElement>(".cabinet-visible-count");
+			const bar = this.querySelector<HTMLElement>(".cabinet-filter-bar");
+			const glider = this.querySelector<HTMLElement>(".cabinet-filter-glider");
+
+			const placeGlider = (button: HTMLElement | undefined, animate = true) => {
+				if (!bar || !glider || !button) return;
+				if (!animate) glider.classList.add("is-instant");
+				const barRect = bar.getBoundingClientRect();
+				const buttonRect = button.getBoundingClientRect();
+				// clientLeft/clientTop 扣掉 1px 边框：绝对定位的滑块以 padding box 为基准
+				const offsetX = buttonRect.left - barRect.left - bar.clientLeft;
+				const offsetY = buttonRect.top - barRect.top - bar.clientTop;
+				glider.style.width = `${buttonRect.width}px`;
+				glider.style.height = `${buttonRect.height}px`;
+				glider.style.transform = `translate3d(${offsetX.toFixed(2)}px, ${offsetY.toFixed(2)}px, 0)`;
+				if (!animate) {
+					void glider.offsetWidth;
+					glider.classList.remove("is-instant");
+				}
+			};
+
+			const activeButton = () => buttons.find((button) => button.classList.contains("is-active"));
+
+			const applyFilter = (filter: string, animate = true) => {
+				this.dataset.activeFilter = filter;
+				let visible = 0;
+
+				for (const item of items) {
+					const show = filter === "all" || item.dataset.category === filter;
+					item.hidden = !show;
+					if (!show) continue;
+					item.style.setProperty("--swap-delay", `${visible * 55}ms`);
+					visible += 1;
+				}
+
+				for (const group of groups) {
+					group.hidden = filter !== "all" && group.dataset.collectionGroup !== filter;
+				}
+
+				if (count) {
+					count.innerHTML =
+						'<span class="cabinet-visible-dot" aria-hidden="true"></span>共 ' +
+						`<strong>${visible}</strong> 件收藏`;
+				}
+
+				if (!animate || prefersReducedMotion()) return;
+				this.classList.remove("is-swapping");
+				void this.offsetWidth;
+				this.classList.add("is-swapping");
+				window.clearTimeout(this.#swapTimer);
+				this.#swapTimer = window.setTimeout(() => {
+					this.classList.remove("is-swapping");
+				}, 1100);
+			};
 
 			for (const button of buttons) {
 				button.addEventListener("click", () => {
 					const filter = button.dataset.filter || "all";
-					this.dataset.activeFilter = filter;
 					for (const item of buttons) {
 						const active = item === button;
 						item.classList.toggle("is-active", active);
 						item.setAttribute("aria-pressed", String(active));
 					}
-					let visible = 0;
-					for (const card of cards) {
-						const show = filter === "all" || card.dataset.category === filter;
-						card.hidden = !show;
-						if (show) visible += 1;
-					}
-					for (const group of groups) {
-						group.hidden = filter !== "all" && group.dataset.collectionGroup !== filter;
-					}
-					if (count) count.textContent = `${visible} 件收藏`;
+					placeGlider(button);
+					applyFilter(filter);
 				});
 			}
+
+			this.#placeGliderOnLoad(placeGlider, activeButton);
+		}
+
+		#placeGliderOnLoad(
+			placeGlider: (button: HTMLElement | undefined, animate?: boolean) => void,
+			activeButton: () => HTMLElement | undefined,
+		) {
+			const sync = () => placeGlider(activeButton(), false);
+			requestAnimationFrame(sync);
+			document.fonts?.ready.then(sync).catch(() => {});
+			window.addEventListener("resize", () => placeGlider(activeButton(), false), { passive: true });
+
+			const attachSwupSync = () => {
+				if (window.swup?.hooks) window.swup.hooks.on("page:view", sync);
+			};
+			if (window.swup) attachSwupSync();
+			else document.addEventListener("swup:enable", attachSwupSync, { once: true });
 		}
 	}
 
 	if (!customElements.get("collection-cabinet")) {
 		customElements.define("collection-cabinet", CollectionCabinetElement);
 	}
+
+	function initCollectionMotion() {
+		const cabinet = document.querySelector<HTMLElement>(".collection-cabinet");
+		if (!cabinet || cabinet.dataset.motionReady === "true") return;
+		cabinet.dataset.motionReady = "true";
+
+		const reduced = prefersReducedMotion();
+		const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+		const revealTargets = Array.from(cabinet.querySelectorAll<HTMLElement>("[data-reveal]"));
+		const countScopes = Array.from(cabinet.querySelectorAll<HTMLElement>("[data-count-scope]"));
+
+		const runCounters = (scope: HTMLElement) => {
+			if (scope.dataset.counted === "true") return;
+			scope.dataset.counted = "true";
+			scope.querySelectorAll<HTMLElement>("[data-count-to]").forEach((node) => {
+				countUp(node, Number(node.dataset.countTo || 0));
+			});
+		};
+
+		try {
+			if (reduced || !("IntersectionObserver" in window)) {
+				revealTargets.forEach((element) => element.classList.add("is-in"));
+				countScopes.forEach(runCounters);
+			} else {
+				const observer = new IntersectionObserver(
+					(entries) => {
+						entries.forEach((entry) => {
+							if (!entry.isIntersecting) return;
+							const element = entry.target as HTMLElement;
+							element.classList.add("is-in");
+							if (element.hasAttribute("data-count-scope")) runCounters(element);
+							observer.unobserve(element);
+						});
+					},
+					{ rootMargin: "0px 0px -6% 0px", threshold: 0.12 },
+				);
+				revealTargets.forEach((element) => observer.observe(element));
+				countScopes.forEach((element) => observer.observe(element));
+			}
+		} catch (error) {
+			console.error(error);
+			revealTargets.forEach((element) => element.classList.add("is-in"));
+			countScopes.forEach(runCounters);
+		}
+
+		if (reduced || !finePointer) return;
+
+		// Pointer tilt on the cover deck, eye candy only.
+		const visual = cabinet.querySelector<HTMLElement>(".cabinet-hero-visual");
+		const deck = cabinet.querySelector<HTMLElement>(".hero-deck");
+		if (visual && deck) {
+			const reset = () => {
+				deck.style.removeProperty("--tilt-x");
+				deck.style.removeProperty("--tilt-y");
+				visual.classList.remove("is-pointing");
+			};
+			visual.addEventListener("pointermove", (event) => {
+				const rect = visual.getBoundingClientRect();
+				if (!rect.width || !rect.height) return;
+				const x = (event.clientX - rect.left) / rect.width - 0.5;
+				const y = (event.clientY - rect.top) / rect.height - 0.5;
+				deck.style.setProperty("--tilt-x", `${(-y * 12).toFixed(2)}deg`);
+				deck.style.setProperty("--tilt-y", `${(x * 16).toFixed(2)}deg`);
+				visual.classList.add("is-pointing");
+			});
+			visual.addEventListener("pointerleave", reset);
+		}
+	}
+
+	function setupCollectionMotionHooks() {
+		initCollectionMotion();
+		if (window.swup?.hooks) window.swup.hooks.on("page:view", initCollectionMotion);
+	}
+
+	if (window.swup) setupCollectionMotionHooks();
+	else document.addEventListener("swup:enable", setupCollectionMotionHooks, { once: true });
 </script>
 
 <style>
+	/* ==================================================================
+	   1. Shell
+	   ================================================================== */
 	.collection-cabinet {
 		display: block;
 		width: 100%;
 		color: var(--text-color);
 	}
 
-	.cabinet-hero,
-	.collection-card,
-	.collection-next {
-		border: 1px solid color-mix(in srgb, var(--primary) 15%, var(--glass-border));
-		background:
-			linear-gradient(145deg, rgb(255 255 255 / 0.48), transparent 48%),
-			color-mix(in srgb, var(--glass-card) 95%, var(--primary) 2%);
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.72), 0 1.2rem 3rem rgb(113 75 67 / 0.07);
-		backdrop-filter: blur(18px) saturate(118%);
-	}
-
+	/* ==================================================================
+	   2. Hero
+	   ================================================================== */
 	.cabinet-hero {
 		position: relative;
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 18rem;
+		grid-template-columns: minmax(0, 1.4fr) minmax(15rem, 0.75fr);
 		align-items: center;
-		min-height: 17rem;
-		padding: 2.3rem 2.6rem;
+		gap: 2rem;
+		padding: 2.6rem 2.75rem;
 		overflow: hidden;
-		border-radius: 2rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 15%, var(--glass-border));
+		border-radius: 1.9rem;
+		background:
+			linear-gradient(150deg, rgb(255 255 255 / 0.5), transparent 46%),
+			color-mix(in srgb, var(--glass-card) 95%, var(--primary) 2%);
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.74), 0 1.4rem 3.2rem rgb(113 75 67 / 0.075);
+		backdrop-filter: blur(18px) saturate(118%);
 	}
 
-	.cabinet-hero::before,
-	.cabinet-hero::after {
+	.cabinet-hero-aura {
 		position: absolute;
-		border-radius: 50%;
-		content: "";
+		inset: 0;
+		overflow: hidden;
 		pointer-events: none;
 	}
 
-	.cabinet-hero::before {
-		top: -5rem;
-		right: -2rem;
-		width: 18rem;
-		height: 18rem;
-		background: radial-gradient(circle, color-mix(in srgb, var(--primary) 18%, transparent), transparent 68%);
+	.hero-aura {
+		position: absolute;
+		border-radius: 50%;
+		filter: blur(6px);
 	}
 
-	.cabinet-hero::after {
-		bottom: -7rem;
-		left: 30%;
-		width: 17rem;
-		height: 17rem;
-		background: radial-gradient(circle, rgb(245 204 146 / 0.16), transparent 68%);
+	.hero-aura-a {
+		top: -7rem;
+		right: -4rem;
+		width: 22rem;
+		height: 22rem;
+		background: radial-gradient(circle, color-mix(in srgb, var(--primary) 22%, transparent), transparent 66%);
+	}
+
+	.hero-aura-b {
+		bottom: -9rem;
+		left: 24%;
+		width: 20rem;
+		height: 20rem;
+		background: radial-gradient(circle, color-mix(in srgb, var(--azusa-blue) 20%, transparent), transparent 68%);
+	}
+
+	.hero-aura-c {
+		top: 30%;
+		left: -6rem;
+		width: 16rem;
+		height: 16rem;
+		background: radial-gradient(circle, color-mix(in srgb, var(--mio-purple) 16%, transparent), transparent 70%);
 	}
 
 	.cabinet-hero-tape {
 		position: absolute;
+		z-index: 3;
 		top: 0;
-		left: 3.2rem;
-		width: 5rem;
-		height: 0.55rem;
-		border-radius: 0 0 0.3rem 0.3rem;
-		background: repeating-linear-gradient(120deg, rgb(255 255 255 / 0.22) 0 0.45rem, transparent 0.45rem 0.8rem), color-mix(in srgb, var(--primary) 45%, transparent);
-		transform: rotate(-1.5deg);
+		left: 4.2rem;
+		width: 5.4rem;
+		height: 0.58rem;
+		border-radius: 0 0 0.24rem 0.24rem;
+		background: linear-gradient(
+			96deg,
+			color-mix(in srgb, var(--primary) 30%, transparent),
+			color-mix(in srgb, var(--primary) 46%, transparent) 42%,
+			color-mix(in srgb, var(--primary) 26%, transparent)
+		);
+		box-shadow: 0 0.3rem 0.7rem color-mix(in srgb, var(--primary) 16%, transparent);
+		transform: rotate(-1.6deg);
 	}
 
 	.cabinet-hero-copy {
 		position: relative;
 		z-index: 2;
+		min-width: 0;
 	}
 
 	.cabinet-eyebrow {
 		display: flex;
 		align-items: center;
-		gap: 0.45rem;
-		margin-bottom: 0.55rem;
+		gap: 0.5rem;
+		margin: 0 0 0.7rem;
 		color: var(--primary);
 		font-size: 0.72rem;
 		font-weight: 900;
-		letter-spacing: 0.13em;
+		letter-spacing: 0.16em;
 	}
 
-	.cabinet-hero h1 {
+	.cabinet-eyebrow-text {
+		position: relative;
+	}
+
+	.cabinet-eyebrow-text::after {
+		position: absolute;
+		right: 0;
+		bottom: -0.28rem;
+		left: 0;
+		height: 0.16rem;
+		border-radius: 999px;
+		background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 20%, transparent));
+		content: "";
+		transform: scaleX(0);
+		transform-origin: left center;
+	}
+
+	.cabinet-eyebrow-mark,
+	.cabinet-eyebrow-heart {
+		font-size: 0.85rem;
+		line-height: 1;
+	}
+
+	.cabinet-eyebrow-heart {
+		color: color-mix(in srgb, var(--primary) 62%, transparent);
+	}
+
+	.cabinet-title {
 		margin: 0;
 		color: color-mix(in srgb, var(--text-color) 88%, #6f4b43);
-		font-size: clamp(2.2rem, 5vw, 4.25rem);
+		font-size: clamp(2.4rem, 4.4vw, 3.85rem);
 		font-weight: 900;
 		letter-spacing: -0.055em;
 		line-height: 1.08;
 	}
 
-	.cabinet-hero-copy > p {
-		margin: 0.9rem 0 1.25rem;
-		color: color-mix(in srgb, var(--text-color) 55%, transparent);
-		font-size: 1rem;
+	.cabinet-title > span {
+		position: relative;
+		display: inline-block;
 	}
 
-	.cabinet-summary {
+	.cabinet-title > span::after {
+		position: absolute;
+		right: 0.1em;
+		bottom: 0.02em;
+		left: 0.05em;
+		z-index: -1;
+		height: 0.3em;
+		border-radius: 0.2rem;
+		background: linear-gradient(
+			92deg,
+			color-mix(in srgb, var(--primary) 26%, transparent),
+			color-mix(in srgb, var(--primary) 9%, transparent)
+		);
+		content: "";
+		transform: scaleX(0);
+		transform-origin: left center;
+	}
+
+	.cabinet-hero-lead {
+		max-width: 34rem;
+		margin: 1rem 0 1.6rem;
+		color: color-mix(in srgb, var(--text-color) 56%, transparent);
+		font-size: 0.94rem;
+		line-height: 1.85;
+	}
+
+	.cabinet-stats {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 0.6rem;
+		max-width: 34rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.cabinet-stat {
+		position: relative;
 		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		color: color-mix(in srgb, var(--text-color) 55%, transparent);
-		font-size: 0.84rem;
+		flex-direction: column;
+		gap: 0.05rem;
+		padding: 0.62rem 0.72rem 0.68rem;
+		overflow: hidden;
+		border: 1px solid color-mix(in srgb, var(--primary) 13%, transparent);
+		border-radius: 1rem;
+		background: linear-gradient(
+			150deg,
+			color-mix(in srgb, var(--glass-card) 92%, white 14%),
+			color-mix(in srgb, var(--glass-card) 84%, transparent)
+		);
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6);
+		transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), border-color 320ms ease, box-shadow 320ms ease;
 	}
 
-	.cabinet-summary strong {
-		margin-right: 0.18rem;
+	.cabinet-stat:hover {
+		border-color: color-mix(in srgb, var(--primary) 28%, transparent);
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 0.6rem 1.3rem rgb(113 75 67 / 0.1);
+		transform: translateY(-0.18rem);
+	}
+
+	.cabinet-stat-icon {
+		position: absolute;
+		top: 0.5rem;
+		right: 0.6rem;
+		color: color-mix(in srgb, var(--primary) 34%, transparent);
+		font-size: 0.72rem;
+	}
+
+	.cabinet-stat-value {
+		display: flex;
+		align-items: baseline;
+		gap: 0.16rem;
 		color: var(--primary);
-		font-size: 1.35rem;
+	}
+
+	.cabinet-stat-value strong {
+		font-size: 1.5rem;
 		font-weight: 900;
+		letter-spacing: -0.03em;
+		line-height: 1.1;
+		font-variant-numeric: tabular-nums;
 	}
 
-	.cabinet-summary i {
-		width: 0.22rem;
-		height: 0.22rem;
-		border-radius: 50%;
-		background: color-mix(in srgb, var(--primary) 58%, transparent);
+	.cabinet-stat-value em {
+		font-size: 0.64rem;
+		font-style: normal;
+		font-weight: 800;
 	}
 
+	.cabinet-stat-label {
+		color: color-mix(in srgb, var(--text-color) 46%, transparent);
+		font-size: 0.66rem;
+		letter-spacing: 0.02em;
+	}
+
+	/* --- Hero cover deck --- */
 	.cabinet-hero-visual {
 		position: relative;
 		z-index: 2;
 		display: grid;
 		place-items: center;
-		min-height: 12rem;
+		perspective: 1100px;
 	}
 
-	.mini-shelf {
+	.hero-stage {
 		position: relative;
-		display: flex;
-		align-items: flex-end;
-		justify-content: center;
-		gap: 0.5rem;
-		width: 13rem;
-		height: 8.5rem;
-		padding: 1.5rem 1.4rem 1.3rem;
-		border: 1px solid color-mix(in srgb, var(--primary) 19%, transparent);
-		border-radius: 4.5rem 4.5rem 1.3rem 1.3rem;
-		background: linear-gradient(160deg, rgb(255 255 255 / 0.5), color-mix(in srgb, var(--primary) 8%, transparent));
-		box-shadow: inset 0 -0.6rem 0 color-mix(in srgb, #b98470 15%, transparent), 0 1rem 2rem rgb(119 78 66 / 0.11);
-		transform: rotate(1.5deg);
+		--deck-card-width: 10.4rem;
+		width: 17.4rem;
+		height: 16.6rem;
 	}
 
-	.mini-book {
-		display: block;
-		width: 1.65rem;
-		border-radius: 0.35rem 0.35rem 0.12rem 0.12rem;
-		box-shadow: inset -0.25rem 0 rgb(255 255 255 / 0.18);
-	}
-
-	.mini-book-one { height: 4.6rem; background: #e989a4; transform: rotate(-4deg); }
-	.mini-book-two { height: 5.4rem; background: #82b6ce; }
-	.mini-book-three { height: 4.2rem; background: #e6b565; transform: rotate(4deg); }
-
-	.mini-record {
-		display: grid;
-		place-items: center;
-		width: 3.8rem;
-		height: 3.8rem;
-		margin-left: 0.35rem;
-		border: 0.55rem solid #57423e;
-		border-radius: 50%;
-		background: color-mix(in srgb, var(--primary) 70%, white);
-		color: white;
-		font-size: 0.85rem;
-		box-shadow: 0 0.4rem 0.9rem rgb(88 56 50 / 0.18);
-	}
-
-	.hero-visual-star,
-	.hero-visual-heart {
-		position: absolute;
-		color: color-mix(in srgb, var(--primary) 55%, transparent);
-	}
-
-	.hero-visual-star { top: 0.1rem; right: 1rem; font-size: 1.4rem; transform: rotate(10deg); }
-	.hero-visual-heart { right: 0.2rem; bottom: 0.6rem; font-size: 1.8rem; transform: rotate(-9deg); }
-
-	.cabinet-filters {
-		display: flex;
-		align-items: center;
-		gap: 0.6rem;
-		margin: 1.25rem 0 1rem;
-		padding: 0 0.25rem;
-	}
-
-	.cabinet-filter {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.38rem;
-		padding: 0.58rem 0.9rem;
-		border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--glass-border));
-		border-radius: 999px;
-		background: color-mix(in srgb, var(--glass-card) 85%, transparent);
-		color: color-mix(in srgb, var(--text-color) 62%, transparent);
-		font-size: 0.82rem;
-		font-weight: 750;
-		transition: 180ms ease;
-	}
-
-	.cabinet-filter > span {
-		color: var(--primary);
-	}
-
-	.cabinet-filter:hover,
-	.cabinet-filter.is-active {
-		border-color: color-mix(in srgb, var(--primary) 32%, transparent);
-		background: color-mix(in srgb, var(--primary) 12%, var(--glass-card));
-		color: var(--primary);
-		box-shadow: 0 0.45rem 1rem color-mix(in srgb, var(--primary) 10%, transparent);
-		transform: translateY(-1px);
-	}
-
-	.cabinet-visible-count {
-		margin-left: auto;
-		color: color-mix(in srgb, var(--text-color) 38%, transparent);
-		font-size: 0.78rem;
-	}
-
-	.collection-grid {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 1rem;
-	}
-
-	.collection-cabinet[data-active-filter="music"] .collection-grid {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-
-	.collection-card {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
-		padding: 0.75rem 0.75rem 1rem;
-		overflow: hidden;
-		border-radius: 1.45rem;
-		transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
-	}
-
-	.collection-card:hover {
-		border-color: color-mix(in srgb, var(--primary) 28%, var(--glass-border));
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 1.3rem 2.8rem rgb(113 75 67 / 0.12);
-		transform: translateY(-0.3rem) rotate(calc((var(--card-index) - 2) * 0.04deg));
-	}
-
-	.collection-card[hidden] { display: none; }
-
-	.collection-card[data-category="music"] {
-		background:
-			radial-gradient(circle at 88% 14%, color-mix(in srgb, var(--primary) 11%, transparent), transparent 34%),
-			linear-gradient(145deg, rgb(255 255 255 / 0.5), transparent 48%),
-			color-mix(in srgb, var(--glass-card) 95%, #f6d9de 3%);
-	}
-
-	.collection-card-tape {
-		position: absolute;
-		z-index: 3;
-		top: 0;
-		left: 50%;
-		width: 3.8rem;
-		height: 0.4rem;
-		border-radius: 0 0 0.2rem 0.2rem;
-		background: color-mix(in srgb, var(--primary) 34%, transparent);
-		transform: translateX(-50%) rotate(-1deg);
-	}
-
-	.collection-card-number {
-		position: absolute;
-		z-index: 3;
-		top: 1rem;
-		left: 1rem;
-		display: grid;
-		place-items: center;
-		width: 2rem;
-		height: 2rem;
-		border-radius: 50%;
-		background: rgb(255 255 255 / 0.72);
-		color: var(--primary);
-		font-size: 0.68rem;
-		font-weight: 900;
-		box-shadow: 0 0.35rem 0.8rem rgb(95 61 54 / 0.1);
-		backdrop-filter: blur(8px);
-	}
-
-	.collection-media {
-		position: relative;
-		min-width: 0;
-	}
-
-	.collection-cover {
-		position: relative;
-		z-index: 1;
-		aspect-ratio: 4 / 5;
-		overflow: hidden;
-		border-radius: 1rem;
-		background: color-mix(in srgb, var(--primary) 9%, var(--glass-card));
-	}
-
-	.collection-vinyl {
-		display: none;
-	}
-
-	.collection-card[data-category="music"] .collection-media {
-		padding-right: 2.2rem;
-	}
-
-	.collection-card[data-category="music"] .collection-cover {
-		aspect-ratio: 1;
-		border-radius: 1.05rem;
-		box-shadow: 0 0.75rem 1.6rem rgb(78 48 48 / 0.16);
-	}
-
-	.collection-card[data-category="music"] .collection-vinyl {
+	.hero-vinyl {
 		position: absolute;
 		z-index: 0;
-		top: 50%;
-		right: 0.15rem;
+		right: -1.9rem;
+		bottom: -0.4rem;
 		display: block;
-		width: 62%;
-		aspect-ratio: 1;
-		border: 1px solid rgb(255 255 255 / 0.12);
+		width: 8.8rem;
+		height: 8.8rem;
 		border-radius: 50%;
 		background:
-			radial-gradient(circle, color-mix(in srgb, var(--primary) 76%, #f4b3c3) 0 10%, #f6d8df 10.5% 12%, #201b1d 12.5% 18%, transparent 18.5%),
-			repeating-radial-gradient(circle, #322a2d 0 2px, #171416 2px 4px);
-		box-shadow: 0 0.8rem 1.5rem rgb(43 30 33 / 0.24), inset 0 0 0 1px rgb(255 255 255 / 0.05);
-		transform: translateY(-50%);
-		transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+			radial-gradient(
+				circle,
+				color-mix(in srgb, var(--primary) 78%, #ffffff) 0 14%,
+				color-mix(in srgb, var(--primary) 26%, #f4d7e0) 14.5% 18%,
+				transparent 18.5%
+			),
+			repeating-radial-gradient(circle, #463a3e 0 1.5px, #241f21 1.5px 3px);
+		box-shadow: 0 1.1rem 2.1rem rgb(43 30 33 / 0.24), inset 0 0 0 1px rgb(255 255 255 / 0.08);
+		opacity: 0.96;
 	}
 
-	.collection-card[data-category="music"] .collection-vinyl::after {
+	.hero-vinyl > i {
 		position: absolute;
 		inset: 7%;
 		border: 1px dashed rgb(255 255 255 / 0.09);
 		border-radius: 50%;
-		content: "";
 	}
 
-	.collection-card[data-category="music"]:hover .collection-vinyl {
-		transform: translate(0.45rem, -50%) rotate(14deg);
-	}
-
-	.collection-card[data-category="music"] .collection-cover-label {
-		background: color-mix(in srgb, var(--primary) 68%, rgb(255 255 255 / 0.74));
-		color: white;
-	}
-
-	.collection-card[data-category="music"] .collection-card-original::before {
-		margin-right: 0.32rem;
-		content: "♫";
-	}
-
-	.collection-cabinet[data-active-filter="music"] .collection-card[data-category="music"] {
-		display: grid;
-		grid-template-columns: minmax(9.5rem, 0.82fr) minmax(0, 1fr);
-		align-items: center;
-		gap: 0.75rem;
-		padding: 0.9rem;
-	}
-
-	.collection-cabinet[data-active-filter="music"] .collection-card[data-category="music"] .collection-card-copy {
-		padding: 0.45rem 0.45rem 1.6rem;
-	}
-
-	.collection-cabinet[data-active-filter="music"] .collection-card[data-category="music"] .collection-card-note {
-		min-height: 0;
-	}
-
-	.collection-cover img {
+	.hero-deck {
 		position: absolute;
 		inset: 0;
+		z-index: 1;
+		transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+		transform-style: preserve-3d;
+		transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.hero-deck-card {
+		position: absolute;
+		top: 0.5rem;
+		left: 50%;
+		width: var(--deck-card-width);
+		margin: 0 0 0 calc(var(--deck-card-width) / -2);
+		aspect-ratio: 5 / 7;
+		overflow: hidden;
+		border: 0.34rem solid rgb(255 255 255 / 0.92);
+		border-radius: 0.85rem;
+		background: color-mix(in srgb, var(--glass-card) 70%, white);
+		box-shadow: 0 1.1rem 2.1rem rgb(88 56 50 / 0.2), 0 0 0 1px color-mix(in srgb, var(--primary) 12%, transparent);
+		transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 420ms ease;
+	}
+
+	.hero-deck-card img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		object-position: center;
-		transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), filter 220ms ease;
 	}
 
-	.collection-card:hover .collection-cover img {
-		transform: scale(1.035);
-		filter: saturate(1.05);
+	.hero-deck-card:nth-child(1) {
+		z-index: 1;
+		transform: translate3d(-4.5rem, 1.5rem, -3rem) rotate(-12deg) scale(0.9);
 	}
 
-	.collection-cover-shade {
+	.hero-deck-card:nth-child(2) {
+		z-index: 2;
+		transform: translate3d(4.6rem, 1.3rem, -2rem) rotate(11deg) scale(0.92);
+	}
+
+	.hero-deck-card:nth-child(3) {
+		z-index: 3;
+		transform: translate3d(0, 0, 0) rotate(-1.6deg);
+	}
+
+	.cabinet-hero-visual.is-pointing .hero-deck-card:nth-child(1),
+	.cabinet-hero-visual:hover .hero-deck-card:nth-child(1) {
+		transform: translate3d(-5.6rem, 1.7rem, -3rem) rotate(-15deg) scale(0.9);
+	}
+
+	.cabinet-hero-visual.is-pointing .hero-deck-card:nth-child(2),
+	.cabinet-hero-visual:hover .hero-deck-card:nth-child(2) {
+		transform: translate3d(5.7rem, 1.45rem, -2rem) rotate(14deg) scale(0.92);
+	}
+
+	.cabinet-hero-visual.is-pointing .hero-deck-card:nth-child(3),
+	.cabinet-hero-visual:hover .hero-deck-card:nth-child(3) {
+		transform: translate3d(0, -0.5rem, 0) rotate(0.4deg) scale(1.02);
+	}
+
+	.hero-doodle {
 		position: absolute;
-		inset: 0;
-		background:
-			linear-gradient(180deg, transparent 58%, rgb(48 32 34 / 0.2)),
-			linear-gradient(135deg, rgb(255 255 255 / 0.16), transparent 42%);
-		box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.2);
+		color: color-mix(in srgb, var(--primary) 52%, transparent);
+		line-height: 1;
+	}
+
+	.hero-doodle-star {
+		top: -0.4rem;
+		right: 1.6rem;
+		font-size: 1.35rem;
+	}
+
+	.hero-doodle-heart {
+		right: 0.4rem;
+		bottom: -0.2rem;
+		font-size: 1.7rem;
+		color: color-mix(in srgb, var(--primary) 40%, transparent);
+	}
+
+	.hero-doodle-spark {
+		bottom: 1.6rem;
+		left: -0.6rem;
+		font-size: 1rem;
+		color: color-mix(in srgb, var(--azusa-blue) 60%, transparent);
+	}
+
+	/* ==================================================================
+	   3. Filter bar
+	   ================================================================== */
+	.cabinet-filters {
+		display: flex;
+		align-items: center;
+		gap: 0.9rem;
+		margin: 1.5rem 0 1.15rem;
+	}
+
+	.cabinet-filter-bar {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.2rem;
+		padding: 0.34rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 13%, var(--glass-border));
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--glass-card) 88%, transparent);
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.62);
+		backdrop-filter: blur(14px);
+	}
+
+	.cabinet-filter-glider {
+		position: absolute;
+		top: 0;
+		left: 0;
+		height: 2.25rem;
+		border-radius: 999px;
+		background: linear-gradient(
+			140deg,
+			color-mix(in srgb, var(--primary) 20%, var(--glass-card)),
+			color-mix(in srgb, var(--primary) 9%, var(--glass-card))
+		);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 26%, transparent), 0 0.35rem 0.9rem
+			color-mix(in srgb, var(--primary) 14%, transparent);
+		transition: transform 460ms cubic-bezier(0.22, 1, 0.36, 1), width 460ms cubic-bezier(0.22, 1, 0.36, 1),
+			height 460ms cubic-bezier(0.22, 1, 0.36, 1);
 		pointer-events: none;
 	}
 
-	.collection-cover-label {
-		position: absolute;
-		z-index: 2;
-		right: 0.7rem;
-		bottom: 0.65rem;
-		padding: 0.28rem 0.58rem;
-		border: 1px solid rgb(255 255 255 / 0.45);
-		border-radius: 999px;
-		background: rgb(255 255 255 / 0.5);
-		color: rgb(88 64 62 / 0.7);
-		font-size: 0.65rem;
-		font-weight: 850;
-		backdrop-filter: blur(8px);
+	.cabinet-filter-glider.is-instant {
+		transition: none;
 	}
 
-	.collection-cover-sparkle {
-		position: absolute;
-		top: 0.8rem;
-		right: 0.9rem;
-		color: rgb(255 255 255 / 0.8);
-		font-size: 1.1rem;
-		transform: rotate(12deg);
-	}
-
-	.collection-card-copy { padding: 1rem 0.3rem 0.2rem; }
-
-	.collection-card-original {
-		margin: 0 0 0.25rem;
-		color: var(--primary);
-		font-size: 0.64rem;
-		font-weight: 850;
-		letter-spacing: 0.09em;
-		text-transform: uppercase;
-	}
-
-	.collection-card h2 {
-		margin: 0;
-		color: color-mix(in srgb, var(--text-color) 86%, #66473f);
-		font-size: 1.18rem;
-		font-weight: 900;
-		line-height: 1.3;
-	}
-
-	.collection-card-note {
-		min-height: 3.35rem;
-		margin: 0.6rem 0 0.75rem;
-		color: color-mix(in srgb, var(--text-color) 55%, transparent);
-		font-size: 0.79rem;
-		line-height: 1.65;
-	}
-
-	.collection-card-tags {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-		padding-right: 4.6rem;
-	}
-
-	.collection-card-tags span {
-		padding: 0.25rem 0.52rem;
-		border: 1px solid color-mix(in srgb, var(--primary) 13%, transparent);
-		border-radius: 999px;
-		background: color-mix(in srgb, var(--glass-card) 75%, transparent);
-		color: color-mix(in srgb, var(--text-color) 50%, transparent);
-		font-size: 0.62rem;
-	}
-
-	.collection-card-doodle {
-		position: absolute;
-		right: 1rem;
-		bottom: 1rem;
-		color: color-mix(in srgb, var(--primary) 34%, transparent);
-		font-size: 0.58rem;
-		transform: rotate(-3deg);
-	}
-
-	.collection-next {
+	.cabinet-filter {
 		position: relative;
-		display: flex;
+		z-index: 1;
+		display: inline-flex;
 		align-items: center;
-		gap: 1rem;
-		margin-top: 1rem;
-		padding: 1.2rem 1.4rem;
-		border-style: dashed;
-		border-radius: 1.4rem;
+		gap: 0.34rem;
+		padding: 0.52rem 0.85rem;
+		border: 0;
+		border-radius: 999px;
+		background: transparent;
+		color: color-mix(in srgb, var(--text-color) 58%, transparent);
+		font-size: 0.8rem;
+		font-weight: 750;
+		transition: color 220ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
 	}
 
-	.collection-next-icon {
-		display: grid;
-		flex: 0 0 auto;
-		place-items: center;
-		width: 3.2rem;
-		height: 3.2rem;
-		border-radius: 1rem;
-		background: color-mix(in srgb, var(--primary) 10%, var(--glass-card));
-		font-size: 1.45rem;
-		transform: rotate(-4deg);
+	.cabinet-filter-icon {
+		color: color-mix(in srgb, var(--primary) 72%, transparent);
+		font-size: 0.82rem;
+		transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
 	}
 
-	.collection-next span {
-		color: var(--primary);
+	.cabinet-filter-count {
+		min-width: 1.15rem;
+		padding: 0.02rem 0.28rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--text-color) 7%, transparent);
+		color: color-mix(in srgb, var(--text-color) 46%, transparent);
 		font-size: 0.62rem;
-		font-weight: 900;
-		letter-spacing: 0.1em;
+		font-weight: 800;
+		font-variant-numeric: tabular-nums;
+		text-align: center;
+		transition: background 220ms ease, color 220ms ease;
 	}
 
-	.collection-next h2 {
-		margin: 0.12rem 0 0.2rem;
-		color: color-mix(in srgb, var(--text-color) 82%, #684b44);
-		font-size: 1rem;
-		font-weight: 900;
+	.cabinet-filter:hover {
+		color: color-mix(in srgb, var(--text-color) 82%, transparent);
 	}
 
-	.collection-next p {
-		margin: 0;
-		color: color-mix(in srgb, var(--text-color) 44%, transparent);
-		font-size: 0.74rem;
+	.cabinet-filter:hover .cabinet-filter-icon {
+		transform: translateY(-0.12rem) rotate(8deg);
 	}
 
-	.collection-next-sparkle {
-		position: absolute;
-		top: 0.7rem;
-		right: 1rem;
-		font-size: 1.15rem !important;
-		transform: rotate(12deg);
-	}
-
-	:global(.dark) .cabinet-hero,
-	:global(.dark) .collection-card,
-	:global(.dark) .collection-next {
-		border-color: color-mix(in srgb, var(--primary) 22%, rgb(255 255 255 / 0.1));
-		background:
-			radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 35%),
-			linear-gradient(145deg, rgb(255 255 255 / 0.055), transparent 48%),
-			rgb(48 38 40 / 0.78);
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.075), 0 1.2rem 3rem rgb(0 0 0 / 0.18);
-	}
-
-	:global(.dark) .collection-card[data-category="music"] {
-		background:
-			radial-gradient(circle at 88% 14%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 34%),
-			linear-gradient(145deg, rgb(255 255 255 / 0.055), transparent 48%),
-			rgb(48 38 40 / 0.8);
-	}
-
-	:global(.dark) .cabinet-hero h1,
-	:global(.dark) .collection-card h2,
-	:global(.dark) .collection-next h2 { color: rgb(247 239 235 / 0.9); }
-
-	:global(.dark) .cabinet-hero-copy > p,
-	:global(.dark) .cabinet-summary,
-	:global(.dark) .collection-card-note,
-	:global(.dark) .collection-next p { color: rgb(247 239 235 / 0.55); }
-
-	:global(.dark) .cabinet-filter {
-		border-color: color-mix(in srgb, var(--primary) 15%, rgb(255 255 255 / 0.08));
-		background: rgb(47 37 39 / 0.72);
-		color: rgb(247 239 235 / 0.7);
-	}
-
-	:global(.dark) .cabinet-filter:hover,
-	:global(.dark) .cabinet-filter.is-active {
-		border-color: color-mix(in srgb, var(--primary) 32%, transparent);
-		background: color-mix(in srgb, rgb(51 39 42 / 0.9) 84%, var(--primary) 16%);
+	.cabinet-filter.is-active {
 		color: var(--primary);
 	}
 
-	:global(.dark) .collection-card-number,
-	:global(.dark) .collection-card-tags span {
-		border-color: color-mix(in srgb, var(--primary) 14%, rgb(255 255 255 / 0.08));
-		background: rgb(49 38 41 / 0.72);
-		color: rgb(247 239 235 / 0.7);
+	.cabinet-filter.is-active .cabinet-filter-count {
+		background: color-mix(in srgb, var(--primary) 18%, transparent);
+		color: var(--primary);
 	}
 
-	:global(.dark) .mini-shelf {
-		border-color: color-mix(in srgb, var(--primary) 22%, rgb(255 255 255 / 0.1));
-		background: linear-gradient(160deg, rgb(255 255 255 / 0.085), rgb(64 48 52 / 0.76));
-		box-shadow: inset 0 -0.6rem 0 rgb(178 112 101 / 0.16), 0 1rem 2rem rgb(0 0 0 / 0.2);
+	.cabinet-visible-count {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin: 0 0 0 auto;
+		padding: 0.3rem 0.7rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 22%, transparent);
+		border-radius: 999px;
+		color: color-mix(in srgb, var(--text-color) 44%, transparent);
+		font-size: 0.7rem;
 	}
 
-	@media (max-width: 900px) {
-		.cabinet-hero { grid-template-columns: minmax(0, 1fr) 14rem; }
-		.collection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-		.collection-cabinet[data-active-filter="music"] .collection-grid { grid-template-columns: 1fr; }
+	.cabinet-visible-count strong {
+		color: var(--primary);
+		font-size: 0.8rem;
+		font-weight: 900;
+		font-variant-numeric: tabular-nums;
 	}
 
-	@media (max-width: 640px) {
-		.cabinet-hero {
-			grid-template-columns: 1fr;
-			min-height: 0;
-			padding: 1.55rem 1.25rem 1.25rem;
-			border-radius: 1.55rem;
-		}
-
-		.cabinet-hero-copy { text-align: center; }
-		.cabinet-eyebrow,
-		.cabinet-summary { justify-content: center; }
-		.cabinet-hero h1 { font-size: 2.25rem; }
-		.cabinet-hero-copy > p { margin: 0.7rem auto 0.9rem; font-size: 0.84rem; line-height: 1.65; }
-		.cabinet-summary { gap: 0.48rem; font-size: 0.7rem; }
-		.cabinet-summary strong { font-size: 1.08rem; }
-		.cabinet-hero-visual { min-height: 8.3rem; margin-top: 0.5rem; }
-		.mini-shelf { width: 10.5rem; height: 6.7rem; padding: 1.1rem 1rem 1rem; }
-		.mini-book { width: 1.3rem; }
-		.mini-book-one { height: 3.4rem; }
-		.mini-book-two { height: 4.1rem; }
-		.mini-book-three { height: 3.1rem; }
-		.mini-record { width: 3rem; height: 3rem; border-width: 0.42rem; }
-
-		.cabinet-filters {
-			gap: 0.42rem;
-			overflow-x: auto;
-			padding: 0 0.05rem 0.2rem;
-			scrollbar-width: none;
-		}
-		.cabinet-filters::-webkit-scrollbar { display: none; }
-		.cabinet-filter { flex: 0 0 auto; padding: 0.5rem 0.72rem; font-size: 0.72rem; }
-		.cabinet-visible-count { display: none; }
-		.collection-grid { grid-template-columns: 1fr; gap: 0.8rem; }
-		.collection-card { border-radius: 1.25rem; }
-		.collection-cover { aspect-ratio: 5 / 6; }
-		.collection-card[data-category="music"] {
-			display: grid;
-			grid-template-columns: minmax(7.4rem, 0.8fr) minmax(0, 1fr);
-			align-items: center;
-			gap: 0.45rem;
-		}
-		.collection-card[data-category="music"] .collection-media { padding-right: 1.35rem; }
-		.collection-card[data-category="music"] .collection-cover { aspect-ratio: 1; }
-		.collection-cabinet[data-active-filter="music"] .collection-card[data-category="music"] {
-			display: grid;
-			grid-template-columns: minmax(7.4rem, 0.8fr) minmax(0, 1fr);
-			align-items: center;
-			gap: 0.45rem;
-			padding: 0.75rem 0.75rem 1rem;
-		}
-		.collection-cabinet[data-active-filter="music"] .collection-card[data-category="music"] .collection-media {
-			width: auto;
-		}
-		.collection-cabinet[data-active-filter="music"] .collection-card[data-category="music"] .collection-card-copy {
-			padding: 0.4rem 0.2rem 1.25rem;
-		}
-		.collection-card[data-category="music"] .collection-card-copy { padding: 0.4rem 0.2rem 1.25rem; }
-		.collection-card[data-category="music"] h2 { font-size: 1rem; }
-		.collection-card[data-category="music"] .collection-card-note {
-			display: -webkit-box;
-			overflow: hidden;
-			margin: 0.45rem 0 0.55rem;
-			font-size: 0.72rem;
-			-webkit-box-orient: vertical;
-			-webkit-line-clamp: 3;
-		}
-		.collection-card[data-category="music"] .collection-card-tags {
-			gap: 0.28rem;
-			padding-right: 0;
-		}
-		.collection-card[data-category="music"] .collection-card-tags span { padding: 0.2rem 0.4rem; font-size: 0.56rem; }
-		.collection-card-note { min-height: 0; }
-		.collection-next { align-items: flex-start; padding: 1rem; }
-		.collection-next-icon { width: 2.7rem; height: 2.7rem; border-radius: 0.85rem; font-size: 1.2rem; }
-		.collection-next h2 { padding-right: 1rem; font-size: 0.9rem; }
-		.collection-next p { line-height: 1.55; }
+	.cabinet-visible-dot {
+		width: 0.32rem;
+		height: 0.32rem;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--primary) 62%, transparent);
 	}
 
-	/* 展示柜：收藏按完整层板陈列，不再表现为普通卡片列表。 */
+	/* ==================================================================
+	   4. Shelves
+	   ================================================================== */
 	.collection-showcase {
 		display: grid;
-		gap: 1.15rem;
+		gap: 1.35rem;
 	}
 
 	.collection-shelf-group {
+		--shelf-accent: var(--primary);
 		position: relative;
-		padding: 1.15rem 1.15rem 2.15rem;
+		padding: 1.3rem 1.35rem 2rem;
 		overflow: hidden;
-		border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--glass-border));
-		border-radius: 1.7rem;
+		border: 1px solid color-mix(in srgb, var(--shelf-accent) 16%, var(--glass-border));
+		border-radius: 1.85rem;
 		background:
-			linear-gradient(90deg, rgb(255 255 255 / 0.3), transparent 9% 91%, rgb(255 255 255 / 0.23)),
-			linear-gradient(180deg, color-mix(in srgb, var(--glass-card) 92%, #f3d6cb 4%), color-mix(in srgb, var(--glass-card) 90%, #d6a78f 5%));
+			radial-gradient(115% 85% at 100% 0%, color-mix(in srgb, var(--shelf-accent) 10%, transparent), transparent 58%),
+			linear-gradient(
+				180deg,
+				color-mix(in srgb, var(--glass-card) 94%, white 10%),
+				color-mix(in srgb, var(--glass-card) 88%, var(--shelf-accent) 4%)
+			);
 		box-shadow:
-			inset 0 1px 0 rgb(255 255 255 / 0.76),
-			inset 1.1rem 0 1.4rem rgb(116 73 57 / 0.035),
-			inset -1.1rem 0 1.4rem rgb(116 73 57 / 0.035),
-			0 1.2rem 2.6rem rgb(113 75 67 / 0.07);
+			inset 0 1px 0 rgb(255 255 255 / 0.72),
+			0 1.3rem 2.8rem rgb(113 75 67 / 0.07);
 		backdrop-filter: blur(18px) saturate(115%);
 	}
 
-	.collection-shelf-group[hidden] { display: none; }
+	.collection-shelf-group[data-collection-group="movie"] {
+		--shelf-accent: oklch(0.66 0.13 calc(var(--hue) * 1deg));
+	}
 
-	.collection-shelf-group::before {
+	.collection-shelf-group[data-collection-group="anime"] {
+		--shelf-accent: oklch(0.66 0.11 calc(var(--hue) * 1deg + 200deg));
+	}
+
+	.collection-shelf-group[data-collection-group="music"] {
+		--shelf-accent: oklch(0.62 0.12 calc(var(--hue) * 1deg + 292deg));
+	}
+
+	.collection-shelf-group[hidden] {
+		display: none;
+	}
+
+	/* The wooden base of the cabinet. */
+	.collection-shelf-group::after {
 		position: absolute;
-		inset: 0.55rem 0.75rem auto;
-		height: 0.35rem;
-		border-radius: 999px;
-		background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.66), transparent);
+		right: 0;
+		bottom: 0;
+		left: 0;
+		height: 1.1rem;
+		border-top: 1px solid rgb(255 255 255 / 0.6);
+		background:
+			repeating-linear-gradient(100deg, transparent 0 2.4rem, rgb(116 73 57 / 0.04) 2.4rem 2.52rem),
+			linear-gradient(
+				180deg,
+				color-mix(in srgb, var(--shelf-accent) 14%, var(--glass-card)),
+				color-mix(in srgb, #b7836b 16%, var(--glass-card))
+			);
+		box-shadow: 0 -0.35rem 0.9rem rgb(76 48 42 / 0.07);
 		content: "";
 		pointer-events: none;
 	}
@@ -958,266 +1085,1124 @@ const collectionGroups = [
 		display: flex;
 		align-items: center;
 		gap: 0.72rem;
-		margin: 0 0 0.85rem;
-		padding: 0.15rem 0.35rem 0.75rem;
-		border-bottom: 1px dashed color-mix(in srgb, var(--primary) 17%, transparent);
+		margin: 0 0 1.05rem;
+		padding: 0.1rem 0.2rem 0.85rem;
+		border-bottom: 1px dashed color-mix(in srgb, var(--shelf-accent) 26%, transparent);
+	}
+
+	.collection-shelf-header::after {
+		position: absolute;
+		right: 0;
+		bottom: -1px;
+		left: 0;
+		height: 1px;
+		background: linear-gradient(
+			90deg,
+			var(--shelf-accent),
+			color-mix(in srgb, var(--shelf-accent) 20%, transparent) 45%,
+			transparent
+		);
+		content: "";
+		transform: scaleX(0);
+		transform-origin: left center;
+	}
+
+	.collection-shelf-index {
+		color: color-mix(in srgb, var(--shelf-accent) 34%, transparent);
+		font-size: 1.5rem;
+		font-weight: 900;
+		font-variant-numeric: tabular-nums;
+		letter-spacing: -0.05em;
+		line-height: 1;
 	}
 
 	.collection-shelf-icon {
 		display: grid;
+		flex: 0 0 auto;
 		place-items: center;
-		width: 2.5rem;
-		height: 2.5rem;
-		border: 1px solid color-mix(in srgb, var(--primary) 16%, transparent);
+		width: 2.45rem;
+		height: 2.45rem;
+		border: 1px solid color-mix(in srgb, var(--shelf-accent) 22%, transparent);
 		border-radius: 0.85rem;
-		background: color-mix(in srgb, var(--primary) 9%, rgb(255 255 255 / 0.54));
-		color: var(--primary);
-		font-size: 1rem;
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.72);
+		background: linear-gradient(
+			150deg,
+			color-mix(in srgb, var(--shelf-accent) 15%, rgb(255 255 255 / 0.5)),
+			color-mix(in srgb, var(--shelf-accent) 6%, rgb(255 255 255 / 0.34))
+		);
+		color: var(--shelf-accent);
+		font-size: 0.95rem;
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
 		transform: rotate(-2deg);
+		transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
 	}
 
-	.collection-shelf-header div:nth-child(2) { min-width: 0; }
+	.collection-shelf-group:hover .collection-shelf-icon {
+		transform: rotate(2deg) scale(1.05);
+	}
 
-	.collection-shelf-header span {
+	.collection-shelf-titles {
+		min-width: 0;
+	}
+
+	.collection-shelf-eyebrow {
 		display: block;
-		margin-bottom: 0.12rem;
-		color: var(--primary);
+		margin-bottom: 0.1rem;
+		color: color-mix(in srgb, var(--shelf-accent) 82%, transparent);
 		font-size: 0.56rem;
 		font-weight: 900;
-		letter-spacing: 0.12em;
+		letter-spacing: 0.16em;
 	}
 
-	.collection-shelf-header h2 {
+	.collection-shelf-titles h2 {
 		margin: 0;
 		color: color-mix(in srgb, var(--text-color) 86%, #68483f);
-		font-size: 1rem;
+		font-size: 1.05rem;
 		font-weight: 900;
+		letter-spacing: -0.01em;
 	}
 
-	.collection-shelf-header p {
+	.collection-shelf-note {
 		margin: 0 0 0 auto;
-		color: color-mix(in srgb, var(--text-color) 38%, transparent);
-		font-size: 0.68rem;
+		padding-left: 1rem;
+		color: color-mix(in srgb, var(--text-color) 40%, transparent);
+		font-size: 0.7rem;
 	}
 
-	.collection-shelf-header > i {
-		display: grid;
-		place-items: center;
-		width: 1.75rem;
-		height: 1.75rem;
-		border-radius: 50%;
-		background: color-mix(in srgb, var(--primary) 12%, var(--glass-card));
-		color: var(--primary);
-		font-size: 0.68rem;
-		font-style: normal;
+	.collection-shelf-count {
+		display: inline-flex;
+		flex: 0 0 auto;
+		align-items: baseline;
+		gap: 0.12rem;
+		padding: 0.22rem 0.62rem;
+		border: 1px solid color-mix(in srgb, var(--shelf-accent) 22%, transparent);
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--shelf-accent) 10%, transparent);
+		color: var(--shelf-accent);
+	}
+
+	.collection-shelf-count strong {
+		font-size: 0.86rem;
 		font-weight: 900;
+		font-variant-numeric: tabular-nums;
 	}
 
-	.collection-shelf-group .collection-grid,
-	.collection-cabinet[data-active-filter="music"] .collection-shelf-group .collection-grid {
+	.collection-shelf-count em {
+		font-size: 0.58rem;
+		font-style: normal;
+		font-weight: 800;
+	}
+
+	/* ==================================================================
+	   5. Items
+	   ================================================================== */
+	.collection-grid {
 		position: relative;
 		z-index: 2;
 		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 16rem));
-		justify-content: center;
-		gap: 0.9rem;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 0.95rem;
 	}
 
-	.collection-shelf-group[data-collection-group="movie"] .collection-grid,
-	.collection-shelf-group[data-collection-group="anime"] .collection-grid,
-	.collection-shelf-group[data-collection-group="music"] .collection-grid,
-	.collection-cabinet[data-active-filter="music"] .collection-shelf-group[data-collection-group="music"] .collection-grid {
-		grid-template-columns: repeat(4, minmax(0, 14.2rem));
+	.collection-item {
+		min-width: 0;
 	}
 
-	.collection-shelf-group .collection-card,
-	.collection-cabinet[data-active-filter="music"] .collection-card[data-category="music"] {
+	.collection-item[hidden] {
+		display: none;
+	}
+
+	.collection-card {
+		position: relative;
 		display: flex;
 		flex-direction: column;
-		align-items: stretch;
-		gap: 0;
-		padding: 0.35rem 0.35rem 0.7rem;
-		overflow: visible;
-		border: 0;
-		border-radius: 1rem;
+		height: 100%;
+		padding: 0.55rem 0.55rem 0.7rem;
+		border: 1px solid transparent;
+		border-radius: 1.35rem;
 		background: transparent;
-		box-shadow: none;
-		backdrop-filter: none;
+		transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), background 320ms ease, border-color 320ms ease,
+			box-shadow 420ms ease;
 	}
 
-	.collection-shelf-group .collection-card:hover {
-		background: color-mix(in srgb, var(--glass-card) 52%, transparent);
-		box-shadow: 0 0.9rem 1.8rem rgb(92 59 52 / 0.08);
-		transform: translateY(-0.35rem);
+	.collection-card:hover {
+		border-color: color-mix(in srgb, var(--shelf-accent) 20%, transparent);
+		background: linear-gradient(
+			160deg,
+			color-mix(in srgb, var(--glass-card) 78%, white 10%),
+			color-mix(in srgb, var(--glass-card) 62%, transparent)
+		);
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), 0 1.1rem 2.2rem rgb(92 59 52 / 0.11);
+		transform: translateY(-0.42rem);
 	}
 
-	.collection-shelf-group .collection-card-tape { display: none; }
-
-	.collection-shelf-group .collection-card-number {
-		top: 0.8rem;
-		left: 0.8rem;
-		width: 1.7rem;
-		height: 1.7rem;
-		font-size: 0.58rem;
-	}
-
-	.collection-shelf-group .collection-cover {
-		border: 0.32rem solid color-mix(in srgb, var(--glass-card) 82%, white 18%);
-		border-radius: 0.85rem;
-		box-shadow: 0 0.65rem 1.25rem rgb(78 48 48 / 0.13), 0 0 0 1px color-mix(in srgb, var(--primary) 10%, transparent);
-	}
-
-	.collection-shelf-group .collection-card-copy,
-	.collection-cabinet[data-active-filter="music"] .collection-card[data-category="music"] .collection-card-copy {
+	.collection-media {
 		position: relative;
-		margin: 0.55rem 0.12rem 0;
-		padding: 0.65rem 0.65rem 1.35rem;
-		border: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
-		border-radius: 0.75rem;
-		background: color-mix(in srgb, var(--glass-card) 73%, rgb(255 255 255 / 0.18));
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.58);
+		min-width: 0;
 	}
 
-	.collection-shelf-group .collection-card h2 { font-size: 0.95rem; }
-	.collection-shelf-group .collection-card-note {
-		display: -webkit-box;
-		min-height: 2.7rem;
+	.collection-cover {
+		position: relative;
+		z-index: 1;
+		aspect-ratio: 5 / 7;
 		overflow: hidden;
-		margin: 0.42rem 0 0.55rem;
-		font-size: 0.7rem;
+		border: 0.34rem solid color-mix(in srgb, var(--glass-card) 74%, white 26%);
+		border-radius: 0.95rem;
+		background: color-mix(in srgb, var(--shelf-accent) 10%, var(--glass-card));
+		box-shadow: 0 0.7rem 1.4rem rgb(78 48 48 / 0.14), 0 0 0 1px color-mix(in srgb, var(--shelf-accent) 12%, transparent);
+		transition: box-shadow 420ms ease;
+	}
+
+	.collection-card:hover .collection-cover {
+		box-shadow: 0 1.1rem 2rem rgb(78 48 48 / 0.2), 0 0 0 1px color-mix(in srgb, var(--shelf-accent) 26%, transparent);
+	}
+
+	.collection-cover img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: center;
+		transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1), filter 320ms ease;
+	}
+
+	.collection-card:hover .collection-cover img {
+		filter: saturate(1.06);
+		transform: scale(1.055);
+	}
+
+	.collection-cover-shade {
+		position: absolute;
+		inset: 0;
+		background:
+			linear-gradient(180deg, transparent 55%, rgb(48 32 34 / 0.26)),
+			linear-gradient(135deg, rgb(255 255 255 / 0.14), transparent 44%);
+		box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+		pointer-events: none;
+	}
+
+	.collection-cover-sheen {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(104deg, transparent 34%, rgb(255 255 255 / 0.46) 48%, transparent 62%);
+		transform: translateX(-130%);
+		pointer-events: none;
+	}
+
+	.collection-card:hover .collection-cover-sheen {
+		transform: translateX(130%);
+	}
+
+	.collection-cover-tag {
+		position: absolute;
+		z-index: 2;
+		left: 0.55rem;
+		bottom: 0.55rem;
+		padding: 0.2rem 0.5rem;
+		border: 1px solid rgb(255 255 255 / 0.42);
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--shelf-accent) 72%, rgb(255 255 255 / 0.4));
+		color: rgb(255 255 255 / 0.94);
+		font-size: 0.58rem;
+		font-weight: 850;
+		letter-spacing: 0.04em;
+		backdrop-filter: blur(8px);
+	}
+
+	.collection-cover-index {
+		position: absolute;
+		z-index: 2;
+		top: 0.5rem;
+		right: 0.5rem;
+		display: grid;
+		place-items: center;
+		min-width: 1.5rem;
+		height: 1.5rem;
+		padding: 0 0.28rem;
+		border-radius: 999px;
+		background: rgb(255 255 255 / 0.68);
+		color: color-mix(in srgb, var(--shelf-accent) 78%, #6b4b45);
+		font-size: 0.58rem;
+		font-weight: 900;
+		font-variant-numeric: tabular-nums;
+		box-shadow: 0 0.3rem 0.7rem rgb(95 61 54 / 0.14);
+		backdrop-filter: blur(8px);
+	}
+
+	.collection-card-copy {
+		display: flex;
+		flex: 1;
+		flex-direction: column;
+		margin-top: 0.6rem;
+		padding: 0.65rem 0.7rem 0.7rem;
+		border: 1px solid color-mix(in srgb, var(--shelf-accent) 11%, transparent);
+		border-radius: 0.95rem;
+		background: color-mix(in srgb, var(--glass-card) 74%, rgb(255 255 255 / 0.16));
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55);
+		transition: border-color 320ms ease, background 320ms ease;
+	}
+
+	.collection-card:hover .collection-card-copy {
+		border-color: color-mix(in srgb, var(--shelf-accent) 24%, transparent);
+		background: color-mix(in srgb, var(--glass-card) 82%, rgb(255 255 255 / 0.2));
+	}
+
+	.collection-card-original {
+		margin: 0 0 0.22rem;
+		overflow: hidden;
+		color: color-mix(in srgb, var(--shelf-accent) 86%, transparent);
+		font-size: 0.6rem;
+		font-weight: 850;
+		letter-spacing: 0.09em;
+		text-overflow: ellipsis;
+		text-transform: uppercase;
+		white-space: nowrap;
+	}
+
+	.collection-card h2 {
+		margin: 0;
+		color: color-mix(in srgb, var(--text-color) 88%, #66473f);
+		font-size: 1.02rem;
+		font-weight: 900;
+		letter-spacing: -0.01em;
+		line-height: 1.35;
+	}
+
+	.collection-card-rule {
+		display: block;
+		width: 1.6rem;
+		height: 0.14rem;
+		margin: 0.5rem 0 0.55rem;
+		border-radius: 999px;
+		background: linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--shelf-accent) 70%, transparent),
+			transparent
+		);
+		transition: width 460ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.collection-card:hover .collection-card-rule {
+		width: 2.8rem;
+	}
+
+	.collection-card-note {
+		display: -webkit-box;
+		min-height: 2.58rem;
+		margin: 0 0 0.7rem;
+		overflow: hidden;
+		color: color-mix(in srgb, var(--text-color) 54%, transparent);
+		font-size: 0.735rem;
+		line-height: 1.75;
 		-webkit-box-orient: vertical;
 		-webkit-line-clamp: 2;
 	}
 
-	.collection-shelf-group .collection-card-tags { gap: 0.28rem; padding-right: 0; }
-	.collection-shelf-group .collection-card-tags span { padding: 0.2rem 0.4rem; font-size: 0.54rem; }
-	.collection-shelf-group .collection-card-doodle { right: 1rem; bottom: 0.95rem; }
-
-	.collection-shelf-board {
-		position: absolute;
-		z-index: 1;
-		right: 0;
-		bottom: 0;
-		left: 0;
-		height: 1.25rem;
-		border-top: 1px solid rgb(255 255 255 / 0.58);
-		background:
-			repeating-linear-gradient(100deg, transparent 0 2rem, rgb(116 73 57 / 0.035) 2rem 2.1rem),
-			linear-gradient(180deg, color-mix(in srgb, #ddb9a4 32%, var(--glass-card)), color-mix(in srgb, #b7836b 20%, var(--glass-card)));
-		box-shadow: 0 -0.3rem 0.8rem rgb(76 48 42 / 0.08), inset 0 -0.18rem rgb(110 69 56 / 0.06);
+	.collection-card-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem;
+		margin-top: auto;
 	}
 
-	.collection-shelf-board span {
-		position: absolute;
-		right: 1.2rem;
-		bottom: 0.35rem;
-		width: 2.1rem;
-		height: 0.25rem;
+	.collection-card-tags span {
+		padding: 0.2rem 0.46rem;
+		border: 1px solid color-mix(in srgb, var(--shelf-accent) 14%, transparent);
 		border-radius: 999px;
-		background: color-mix(in srgb, var(--primary) 28%, transparent);
+		background: color-mix(in srgb, var(--glass-card) 76%, transparent);
+		color: color-mix(in srgb, var(--text-color) 48%, transparent);
+		font-size: 0.58rem;
+		transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), border-color 320ms ease, color 320ms ease;
 	}
 
-	:global(.dark) .collection-shelf-group {
-		border-color: color-mix(in srgb, var(--primary) 22%, rgb(255 255 255 / 0.08));
-		background:
-			radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--primary) 12%, transparent), transparent 32%),
-			linear-gradient(90deg, rgb(255 255 255 / 0.055), transparent 10% 90%, rgb(255 255 255 / 0.045)),
-			linear-gradient(180deg, rgb(68 52 56 / 0.96), rgb(50 39 43 / 0.97));
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.075), 0 1.2rem 2.6rem rgb(0 0 0 / 0.18);
-	}
-	:global(.dark) .collection-shelf-group::before {
-		background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--primary) 24%, rgb(255 255 255 / 0.12)), transparent);
+	.collection-card:hover .collection-card-tags span {
+		border-color: color-mix(in srgb, var(--shelf-accent) 30%, transparent);
+		color: color-mix(in srgb, var(--text-color) 68%, transparent);
+		transform: translateY(-0.12rem);
 	}
 
-	:global(.dark) .collection-shelf-header h2 { color: rgb(247 239 235 / 0.9); }
-	:global(.dark) .collection-shelf-header p { color: rgb(247 239 235 / 0.4); }
-	:global(.dark) .collection-shelf-icon {
-		border-color: color-mix(in srgb, var(--primary) 30%, rgb(255 255 255 / 0.1));
-		background:
-			linear-gradient(145deg, rgb(255 255 255 / 0.09), transparent 55%),
-			color-mix(in srgb, var(--primary) 18%, rgb(58 43 47 / 0.9));
-		color: color-mix(in srgb, var(--primary) 82%, white 18%);
-		box-shadow:
-			inset 0 1px 0 rgb(255 255 255 / 0.12),
-			0 0.45rem 1rem rgb(0 0 0 / 0.18),
-			0 0 0 1px color-mix(in srgb, var(--primary) 8%, transparent);
-	}
-	:global(.dark) .collection-shelf-group .collection-card,
-	:global(.dark) .collection-cabinet[data-active-filter="music"] .collection-card[data-category="music"] {
-		border: 1px solid color-mix(in srgb, var(--primary) 16%, rgb(255 255 255 / 0.07));
-		background:
-			linear-gradient(145deg, rgb(255 255 255 / 0.055), transparent 48%),
-			linear-gradient(180deg, rgb(75 56 61 / 0.9), rgb(55 42 46 / 0.94));
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 0.6rem 1.25rem rgb(0 0 0 / 0.12);
-	}
-	:global(.dark) .collection-shelf-group .collection-card-copy {
-		border-color: color-mix(in srgb, var(--primary) 18%, rgb(255 255 255 / 0.08));
-		background: linear-gradient(145deg, rgb(81 60 66 / 0.96), rgb(59 45 49 / 0.97));
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.065), 0 0.45rem 1rem rgb(0 0 0 / 0.08);
-	}
-	:global(.dark) .collection-shelf-group .collection-cover {
-		border-color: color-mix(in srgb, var(--primary) 16%, rgb(255 255 255 / 0.16));
-		box-shadow: 0 0.65rem 1.25rem rgb(0 0 0 / 0.22), 0 0 0 1px color-mix(in srgb, var(--primary) 15%, transparent);
-	}
-	:global(.dark) .collection-shelf-group .collection-card:hover {
-		background:
-			linear-gradient(145deg, color-mix(in srgb, var(--primary) 10%, rgb(255 255 255 / 0.055)), transparent 48%),
-			linear-gradient(180deg, rgb(79 59 65 / 0.94), rgb(59 45 50 / 0.96));
-		box-shadow: 0 0.9rem 1.8rem rgb(0 0 0 / 0.13);
-	}
-	:global(.dark) .collection-shelf-board {
-		border-top-color: rgb(255 255 255 / 0.06);
-		background: linear-gradient(180deg, rgb(79 57 52 / 0.94), rgb(53 41 42 / 0.97));
+	.collection-card:hover .collection-card-tags span:nth-child(2) {
+		transition-delay: 45ms;
 	}
 
-	@media (max-width: 900px) {
-		.collection-shelf-group[data-collection-group] .collection-grid,
-		.collection-cabinet[data-active-filter="music"] .collection-shelf-group[data-collection-group="music"] .collection-grid {
-			grid-template-columns: repeat(2, minmax(0, 15rem));
+	.collection-card:hover .collection-card-tags span:nth-child(3) {
+		transition-delay: 90ms;
+	}
+
+	/* --- Records --- */
+	.collection-vinyl {
+		display: none;
+	}
+
+	.collection-item[data-category="music"] .collection-media {
+		padding-right: 1.6rem;
+	}
+
+	.collection-item[data-category="music"] .collection-cover {
+		aspect-ratio: 1;
+	}
+
+	.collection-item[data-category="music"] .collection-vinyl {
+		position: absolute;
+		z-index: 0;
+		top: 50%;
+		right: 0;
+		display: block;
+		width: 72%;
+		aspect-ratio: 1;
+		border: 1px solid rgb(255 255 255 / 0.12);
+		border-radius: 50%;
+		background:
+			radial-gradient(
+				circle,
+				color-mix(in srgb, var(--shelf-accent) 76%, #f4b3c3) 0 17%,
+				#f6d8df 17.5% 19.5%,
+				#201b1d 20% 25%,
+				transparent 25.5%
+			),
+			repeating-radial-gradient(circle, #322a2d 0 2px, #171416 2px 4px);
+		box-shadow: 0 0.8rem 1.6rem rgb(43 30 33 / 0.24), inset 0 0 0 1px rgb(255 255 255 / 0.05);
+		transform: translateY(-50%) rotate(0deg);
+		transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.collection-item[data-category="music"] .collection-vinyl > i {
+		position: absolute;
+		inset: 7%;
+		border: 1px dashed rgb(255 255 255 / 0.09);
+		border-radius: 50%;
+	}
+
+	.collection-card:hover .collection-vinyl {
+		transform: translateY(-50%) rotate(22deg);
+	}
+
+	.collection-item[data-category="music"] .collection-card-original::before {
+		margin-right: 0.3rem;
+		content: "♪";
+	}
+
+	/* ==================================================================
+	   6. Next slot
+	   ================================================================== */
+	.collection-next {
+		position: relative;
+		display: flex;
+		align-items: center;
+		gap: 1.1rem;
+		margin-top: 1.15rem;
+		padding: 1.3rem 2.4rem 1.3rem 1.5rem;
+		overflow: hidden;
+		border: 1px dashed color-mix(in srgb, var(--primary) 30%, var(--glass-border));
+		border-radius: 1.6rem;
+		background:
+			linear-gradient(150deg, rgb(255 255 255 / 0.44), transparent 50%),
+			color-mix(in srgb, var(--glass-card) 92%, var(--primary) 2%);
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.66), 0 1.2rem 2.6rem rgb(113 75 67 / 0.06);
+		transition: border-color 320ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.collection-next:hover {
+		border-color: color-mix(in srgb, var(--primary) 48%, transparent);
+		transform: translateY(-0.24rem);
+	}
+
+	.collection-next-halo {
+		position: absolute;
+		top: -4rem;
+		right: -3rem;
+		width: 13rem;
+		height: 13rem;
+		border-radius: 50%;
+		background: radial-gradient(circle, color-mix(in srgb, var(--primary) 16%, transparent), transparent 68%);
+		pointer-events: none;
+	}
+
+	.collection-next-slot {
+		display: grid;
+		flex: 0 0 auto;
+		place-items: center;
+		width: 3.3rem;
+		height: 3.3rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 42%, transparent);
+		border-radius: 1.05rem;
+		background: color-mix(in srgb, var(--primary) 9%, var(--glass-card));
+		color: var(--primary);
+		font-size: 1.5rem;
+		font-weight: 300;
+		line-height: 1;
+		transition: transform 460ms cubic-bezier(0.22, 1, 0.36, 1), background 320ms ease;
+	}
+
+	.collection-next:hover .collection-next-slot {
+		background: color-mix(in srgb, var(--primary) 16%, var(--glass-card));
+		transform: rotate(90deg) scale(1.05);
+	}
+
+	.collection-next-copy {
+		position: relative;
+		z-index: 1;
+	}
+
+	.collection-next-eyebrow {
+		color: var(--primary);
+		font-size: 0.6rem;
+		font-weight: 900;
+		letter-spacing: 0.16em;
+	}
+
+	.collection-next h2 {
+		margin: 0.16rem 0 0.24rem;
+		color: color-mix(in srgb, var(--text-color) 82%, #684b44);
+		font-size: 1.02rem;
+		font-weight: 900;
+	}
+
+	.collection-next p {
+		margin: 0;
+		color: color-mix(in srgb, var(--text-color) 44%, transparent);
+		font-size: 0.74rem;
+		line-height: 1.7;
+	}
+
+	.collection-next-sparkle {
+		position: absolute;
+		top: 0.8rem;
+		right: 1.1rem;
+		color: color-mix(in srgb, var(--primary) 44%, transparent);
+		font-size: 1.1rem;
+	}
+
+	/* ==================================================================
+	   7. Motion
+	   ================================================================== */
+	@keyframes col-aura-drift {
+		0%,
+		100% {
+			transform: translate3d(0, 0, 0) scale(1);
+		}
+		50% {
+			transform: translate3d(-1.4rem, 1.1rem, 0) scale(1.09);
 		}
 	}
 
-	@media (max-width: 640px) {
-		.collection-showcase { gap: 0.9rem; }
-		.collection-shelf-group { padding: 0.9rem 0 1.8rem; border-radius: 1.35rem; }
-		.collection-shelf-header { margin: 0 0.8rem 0.65rem; padding: 0 0.1rem 0.65rem; }
-		.collection-shelf-header p { display: none; }
-		.collection-shelf-header > i { margin-left: auto; }
-		.collection-shelf-icon { width: 2.2rem; height: 2.2rem; border-radius: 0.72rem; }
-		.collection-shelf-group[data-collection-group] .collection-grid,
-		.collection-cabinet[data-active-filter="music"] .collection-shelf-group[data-collection-group="music"] .collection-grid {
-			display: flex;
-			justify-content: flex-start;
-			gap: 0.65rem;
-			overflow-x: auto;
-			padding: 0.15rem 0.8rem 0.45rem;
-			scroll-padding-inline: 0.8rem;
-			scroll-snap-type: x mandatory;
-			scrollbar-width: none;
+	@keyframes col-vinyl-spin {
+		to {
+			transform: rotate(360deg);
 		}
-		.collection-shelf-group .collection-grid::-webkit-scrollbar { display: none; }
-		.collection-shelf-group .collection-card,
-		.collection-cabinet[data-active-filter="music"] .collection-card[data-category="music"] {
-			display: flex;
-			flex: 0 0 min(70vw, 15.5rem);
-			padding: 0.3rem 0.3rem 0.65rem;
-			scroll-snap-align: start;
+	}
+
+	@keyframes col-stage-float {
+		0%,
+		100% {
+			transform: translate3d(0, 0, 0);
 		}
-		.collection-shelf-group .collection-card-copy,
-		.collection-cabinet[data-active-filter="music"] .collection-card[data-category="music"] .collection-card-copy {
-			margin-top: 0.45rem;
-			padding: 0.58rem 0.58rem 1.25rem;
+		50% {
+			transform: translate3d(0, -0.5rem, 0);
 		}
-		.collection-shelf-group .collection-card h2 { font-size: 0.9rem; }
-		.collection-shelf-group .collection-card-note { min-height: 2.3rem; font-size: 0.66rem; }
-		.collection-shelf-group .collection-card[data-category="music"] .collection-media { padding-right: 1.6rem; }
+	}
+
+	@keyframes col-rise-in {
+		from {
+			opacity: 0;
+			transform: translateY(1.05rem);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@keyframes col-title-rise {
+		from {
+			opacity: 0;
+			transform: translateY(0.85em) scale(0.985);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@keyframes col-mark-in {
+		from {
+			transform: scaleX(0);
+		}
+		to {
+			transform: scaleX(1);
+		}
+	}
+
+	@keyframes col-deck-in {
+		from {
+			opacity: 0;
+			transform: translate3d(0, 2.6rem, 0) rotate(16deg) scale(0.9);
+		}
+	}
+
+	@keyframes col-twinkle {
+		0%,
+		100% {
+			opacity: 0.45;
+			transform: scale(0.9) rotate(0deg);
+		}
+		50% {
+			opacity: 1;
+			transform: scale(1.12) rotate(12deg);
+		}
+	}
+
+	@keyframes col-item-in {
+		from {
+			opacity: 0;
+			transform: translateY(1.5rem) scale(0.965);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@keyframes col-card-swap {
+		from {
+			opacity: 0;
+			transform: translateY(0.9rem) scale(0.955);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@keyframes col-rule-in {
+		from {
+			transform: scaleX(0);
+		}
+		to {
+			transform: scaleX(1);
+		}
+	}
+
+	@keyframes col-sparkle-pulse {
+		0%,
+		100% {
+			opacity: 0.55;
+			transform: rotate(8deg) scale(0.95);
+		}
+		50% {
+			opacity: 1;
+			transform: rotate(14deg) scale(1.14);
+		}
+	}
+
+	@keyframes col-halo-breathe {
+		0%,
+		100% {
+			opacity: 0.5;
+			transform: scale(1);
+		}
+		50% {
+			opacity: 0.9;
+			transform: scale(1.12);
+		}
+	}
+
+	@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+		/* Ambient loops --------------------------------------------------- */
+		.hero-aura-a {
+			animation: col-aura-drift 17s ease-in-out infinite;
+		}
+		.hero-aura-b {
+			animation: col-aura-drift 21s ease-in-out -6s infinite reverse;
+		}
+		.hero-aura-c {
+			animation: col-aura-drift 25s ease-in-out -11s infinite;
+		}
+		.hero-vinyl {
+			animation: col-vinyl-spin 18s linear infinite;
+		}
+		.hero-stage {
+			animation: col-stage-float 7.5s ease-in-out infinite;
+		}
+		.hero-doodle-star {
+			animation: col-twinkle 3.4s ease-in-out infinite;
+		}
+		.hero-doodle-heart {
+			animation: col-twinkle 4.6s ease-in-out -1.2s infinite;
+		}
+		.hero-doodle-spark {
+			animation: col-twinkle 5.4s ease-in-out -2.6s infinite;
+		}
+		.collection-next-halo {
+			animation: col-halo-breathe 6.4s ease-in-out infinite;
+		}
+		.collection-next-sparkle {
+			animation: col-sparkle-pulse 3.8s ease-in-out infinite;
+		}
+
+		/* Hero entrance --------------------------------------------------- */
+		.cabinet-eyebrow {
+			animation: col-rise-in 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+		}
+		.cabinet-eyebrow-text::after {
+			animation: col-mark-in 560ms cubic-bezier(0.16, 1, 0.3, 1) 420ms forwards;
+		}
+		.cabinet-title > span {
+			animation: col-title-rise 820ms cubic-bezier(0.16, 1, 0.3, 1) 70ms both;
+		}
+		.cabinet-title > span::after {
+			animation: col-mark-in 680ms cubic-bezier(0.16, 1, 0.3, 1) 620ms forwards;
+		}
+		.cabinet-hero-lead {
+			animation: col-rise-in 700ms cubic-bezier(0.16, 1, 0.3, 1) 180ms both;
+		}
+		.cabinet-stat {
+			animation: col-rise-in 640ms cubic-bezier(0.16, 1, 0.3, 1) calc(260ms + var(--stat-index, 0) * 80ms) both;
+		}
+		.hero-deck-card {
+			animation: col-deck-in 880ms cubic-bezier(0.16, 1, 0.3, 1)
+				calc(240ms + var(--deck-index, 0) * 110ms) backwards;
+		}
+
+		/* Scroll reveal --------------------------------------------------- */
+		.collection-cabinet [data-reveal] {
+			transition: opacity 620ms cubic-bezier(0.16, 1, 0.3, 1), transform 620ms cubic-bezier(0.16, 1, 0.3, 1);
+		}
+		.collection-cabinet [data-reveal]:not(.is-in) {
+			opacity: 0;
+			transform: translateY(1.15rem);
+		}
+		.collection-cabinet [data-reveal].is-in {
+			opacity: 1;
+			transform: none;
+		}
+		.collection-shelf-group[data-reveal].is-in .collection-item {
+			animation: col-item-in 660ms cubic-bezier(0.16, 1, 0.3, 1)
+				calc(160ms + var(--item-index, 0) * 85ms) backwards;
+		}
+		.collection-shelf-group[data-reveal].is-in .collection-shelf-header::after {
+			animation: col-rule-in 900ms cubic-bezier(0.16, 1, 0.3, 1) 120ms forwards;
+		}
+
+		/* Filter swap ----------------------------------------------------- */
+		.collection-cabinet.is-swapping .collection-card {
+			animation: col-card-swap 560ms cubic-bezier(0.16, 1, 0.3, 1) var(--swap-delay, 0ms) backwards;
+		}
+	}
+
+	/* A hard refresh paints the finished page immediately. */
+	:global(html.is-page-reload) .cabinet-eyebrow,
+	:global(html.is-page-reload) .cabinet-title > span,
+	:global(html.is-page-reload) .cabinet-hero-lead,
+	:global(html.is-page-reload) .cabinet-stat,
+	:global(html.is-page-reload) .hero-deck-card {
+		animation: none !important;
+	}
+
+	:global(html.is-page-reload) .cabinet-eyebrow-text::after,
+	:global(html.is-page-reload) .cabinet-title > span::after {
+		animation: none !important;
+		transform: scaleX(1);
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.collection-card,
-		.cabinet-filter { transition: none; }
+		.cabinet-hero *,
+		.cabinet-hero *::before,
+		.cabinet-hero *::after,
+		.collection-showcase *,
+		.collection-next * {
+			animation: none !important;
+			transition: none !important;
+		}
+
+		.cabinet-stat:hover,
 		.collection-card:hover,
-		.cabinet-filter:hover { transform: none; }
+		.collection-next:hover,
+		.collection-card:hover .collection-cover img,
+		.collection-card:hover .collection-vinyl,
+		.collection-card:hover .collection-card-tags span,
+		.cabinet-hero-visual:hover .hero-deck-card {
+			transform: none;
+		}
+
+		.cabinet-hero-visual:hover .hero-deck-card:nth-child(1) {
+			transform: translate3d(-1.7rem, 0.7rem, -3rem) rotate(-11deg) scale(0.93);
+		}
+
+		.cabinet-hero-visual:hover .hero-deck-card:nth-child(2) {
+			transform: translate3d(1.8rem, 0.5rem, -2rem) rotate(9.5deg) scale(0.95);
+		}
+
+		.cabinet-hero-visual:hover .hero-deck-card:nth-child(3) {
+			transform: translate3d(0, -0.2rem, 0) rotate(-1.8deg);
+		}
+	}
+
+	/* ==================================================================
+	   8. Dark mode
+	   ================================================================== */
+	:global(.dark) .cabinet-hero,
+	:global(.dark) .collection-shelf-group,
+	:global(.dark) .collection-next {
+		border-color: color-mix(in srgb, var(--primary) 20%, rgb(255 255 255 / 0.09));
+		background:
+			radial-gradient(circle at 88% 10%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 38%),
+			linear-gradient(145deg, rgb(255 255 255 / 0.055), transparent 48%),
+			rgb(48 38 40 / 0.78);
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 1.3rem 3rem rgb(0 0 0 / 0.2);
+	}
+
+	:global(.dark) .collection-shelf-group::after {
+		border-top-color: rgb(255 255 255 / 0.07);
+		background: linear-gradient(180deg, rgb(80 58 56 / 0.94), rgb(52 41 42 / 0.97));
+	}
+
+	:global(.dark) .collection-shelf-group[data-collection-group="movie"] {
+		--shelf-accent: oklch(0.78 0.12 calc(var(--hue) * 1deg));
+	}
+
+	:global(.dark) .collection-shelf-group[data-collection-group="anime"] {
+		--shelf-accent: oklch(0.78 0.1 calc(var(--hue) * 1deg + 200deg));
+	}
+
+	:global(.dark) .collection-shelf-group[data-collection-group="music"] {
+		--shelf-accent: oklch(0.76 0.11 calc(var(--hue) * 1deg + 292deg));
+	}
+
+	:global(.dark) .cabinet-title,
+	:global(.dark) .collection-card h2,
+	:global(.dark) .collection-shelf-titles h2,
+	:global(.dark) .collection-next h2 {
+		color: rgb(247 239 235 / 0.92);
+	}
+
+	:global(.dark) .cabinet-hero-lead,
+	:global(.dark) .collection-card-note,
+	:global(.dark) .collection-shelf-note,
+	:global(.dark) .collection-next p,
+	:global(.dark) .cabinet-stat-label {
+		color: rgb(247 239 235 / 0.56);
+	}
+
+	:global(.dark) .cabinet-stat,
+	:global(.dark) .cabinet-filter-bar,
+	:global(.dark) .collection-card-copy,
+	:global(.dark) .collection-card-tags span {
+		border-color: color-mix(in srgb, var(--primary) 16%, rgb(255 255 255 / 0.08));
+		background: linear-gradient(145deg, rgb(81 60 66 / 0.9), rgb(59 45 49 / 0.94));
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+	}
+
+	:global(.dark) .collection-card:hover {
+		background: linear-gradient(145deg, rgb(86 63 69 / 0.92), rgb(62 47 52 / 0.95));
+		box-shadow: 0 1.1rem 2.2rem rgb(0 0 0 / 0.24);
+	}
+
+	:global(.dark) .collection-card:hover .collection-card-copy {
+		background: linear-gradient(145deg, rgb(88 64 71 / 0.95), rgb(64 48 54 / 0.96));
+	}
+
+	:global(.dark) .cabinet-filter {
+		color: rgb(247 239 235 / 0.62);
+	}
+
+	:global(.dark) .cabinet-filter:hover {
+		color: rgb(247 239 235 / 0.86);
+	}
+
+	:global(.dark) .cabinet-filter-count {
+		background: rgb(255 255 255 / 0.07);
+		color: rgb(247 239 235 / 0.6);
+	}
+
+	:global(.dark) .cabinet-filter.is-active {
+		color: color-mix(in srgb, var(--primary) 88%, white 12%);
+	}
+
+	:global(.dark) .cabinet-filter-glider {
+		background: linear-gradient(
+			140deg,
+			color-mix(in srgb, var(--primary) 26%, rgb(62 47 52 / 0.9)),
+			color-mix(in srgb, var(--primary) 12%, rgb(52 40 44 / 0.9))
+		);
+	}
+
+	:global(.dark) .collection-cover {
+		border-color: color-mix(in srgb, var(--shelf-accent) 20%, rgb(255 255 255 / 0.14));
+		box-shadow: 0 0.7rem 1.4rem rgb(0 0 0 / 0.26), 0 0 0 1px color-mix(in srgb, var(--shelf-accent) 18%, transparent);
+	}
+
+	:global(.dark) .collection-cover-tag {
+		border-color: rgb(255 255 255 / 0.22);
+	}
+
+	:global(.dark) .collection-cover-index {
+		background: rgb(38 30 33 / 0.72);
+		color: color-mix(in srgb, var(--shelf-accent) 84%, white 16%);
+	}
+
+	:global(.dark) .collection-card-original {
+		color: color-mix(in srgb, var(--shelf-accent) 90%, transparent);
+	}
+
+	:global(.dark) .collection-next-slot {
+		background: color-mix(in srgb, var(--primary) 14%, rgb(52 40 44 / 0.9));
+	}
+
+	/* ==================================================================
+	   9. Responsive
+	   ================================================================== */
+	@media (max-width: 1100px) {
+		.cabinet-hero {
+			grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.6fr);
+			gap: 1.4rem;
+			padding: 2.2rem 2rem;
+		}
+
+		.hero-stage {
+			--deck-card-width: 9.4rem;
+			width: 13rem;
+			height: 15rem;
+		}
+
+		.hero-vinyl {
+			width: 7.2rem;
+			height: 7.2rem;
+		}
+	}
+
+	@media (max-width: 900px) {
+		.collection-grid {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+
+		.cabinet-hero-lead {
+			font-size: 0.88rem;
+		}
+
+		.collection-shelf-note {
+			display: none;
+		}
+	}
+
+	@media (max-width: 720px) {
+		.cabinet-hero {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 1.1rem;
+			padding: 1.7rem 1.35rem 1.5rem;
+			border-radius: 1.55rem;
+		}
+
+		.cabinet-hero-copy {
+			text-align: center;
+		}
+
+		.cabinet-eyebrow,
+		.cabinet-hero-lead {
+			justify-content: center;
+			margin-right: auto;
+			margin-left: auto;
+		}
+
+		.cabinet-title {
+			font-size: 2.4rem;
+		}
+
+		.cabinet-stats {
+			gap: 0.45rem;
+		}
+
+		.cabinet-stat {
+			padding: 0.5rem 0.55rem 0.55rem;
+			border-radius: 0.85rem;
+		}
+
+		.cabinet-stat-value strong {
+			font-size: 1.24rem;
+		}
+
+		.cabinet-stat-label {
+			font-size: 0.6rem;
+		}
+
+		.cabinet-stat-icon {
+			display: none;
+		}
+
+		.cabinet-hero-visual {
+			margin-top: 0.7rem;
+		}
+
+		.hero-stage {
+			--deck-card-width: 8.2rem;
+			width: 11.4rem;
+			height: 12.6rem;
+		}
+
+		.hero-vinyl {
+			right: -0.8rem;
+			width: 6.1rem;
+			height: 6.1rem;
+		}
+
+		.cabinet-hero-tape {
+			left: 50%;
+			width: 4.6rem;
+			transform: translateX(-50%) rotate(-1.4deg);
+		}
+
+		.cabinet-filters {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.6rem;
+			margin: 1.1rem 0 0.85rem;
+		}
+
+		.cabinet-filter-bar {
+			gap: 0.1rem;
+			padding: 0.28rem;
+			overflow-x: auto;
+			scrollbar-width: none;
+		}
+
+		.cabinet-filter-bar::-webkit-scrollbar {
+			display: none;
+		}
+
+		.cabinet-filter-glider {
+			height: 1.8rem;
+		}
+
+		.cabinet-filter {
+			flex: 1 0 auto;
+			justify-content: center;
+			padding: 0.46rem 0.62rem;
+			font-size: 0.72rem;
+		}
+
+		.cabinet-filter-icon {
+			display: none;
+		}
+
+		.cabinet-visible-count {
+			align-self: center;
+			justify-content: center;
+			margin: 0;
+			padding: 0.3rem 0.85rem;
+			border-style: solid;
+			border-color: transparent;
+			background: color-mix(in srgb, var(--glass-card) 70%, transparent);
+		}
+
+		.collection-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 0.7rem;
+		}
+
+		.collection-shelf-group {
+			padding: 1.05rem 1rem 1.75rem;
+			border-radius: 1.5rem;
+		}
+
+		.collection-shelf-header {
+			gap: 0.5rem;
+			margin-bottom: 0.85rem;
+			padding-bottom: 0.7rem;
+		}
+
+		.collection-shelf-index {
+			display: none;
+		}
+
+		.collection-shelf-icon {
+			width: 2.1rem;
+			height: 2.1rem;
+			border-radius: 0.7rem;
+			font-size: 0.82rem;
+		}
+
+		.collection-shelf-titles h2 {
+			font-size: 0.95rem;
+		}
+
+		.collection-card {
+			padding: 0.4rem 0.4rem 0.55rem;
+			border-radius: 1.1rem;
+		}
+
+		.collection-card-copy {
+			margin-top: 0.45rem;
+			padding: 0.55rem 0.6rem 0.62rem;
+			border-radius: 0.8rem;
+		}
+
+		.collection-card h2 {
+			font-size: 0.9rem;
+		}
+
+		.collection-card-note {
+			min-height: 2.3rem;
+			font-size: 0.68rem;
+			-webkit-line-clamp: 2;
+		}
+
+		.collection-card-tags span {
+			padding: 0.16rem 0.4rem;
+			font-size: 0.54rem;
+		}
+
+		.collection-cover {
+			border-width: 0.26rem;
+			border-radius: 0.78rem;
+		}
+
+		.collection-cover-index {
+			min-width: 1.32rem;
+			height: 1.32rem;
+			font-size: 0.52rem;
+		}
+
+		.collection-cover-tag {
+			left: 0.4rem;
+			bottom: 0.4rem;
+			padding: 0.16rem 0.42rem;
+			font-size: 0.52rem;
+		}
+
+		.collection-item[data-category="music"] .collection-media {
+			padding-right: 1.15rem;
+		}
+
+		.collection-next {
+			align-items: flex-start;
+			gap: 0.85rem;
+			padding: 1.05rem 1.15rem;
+			border-radius: 1.35rem;
+		}
+
+		.collection-next-slot {
+			width: 2.7rem;
+			height: 2.7rem;
+			border-radius: 0.85rem;
+			font-size: 1.25rem;
+		}
+
+		.collection-next h2 {
+			font-size: 0.92rem;
+		}
+
+		.collection-next p {
+			font-size: 0.7rem;
+		}
+	}
+
+	@media (max-width: 420px) {
+		.collection-grid {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.collection-item[data-category="music"] .collection-media {
+			padding-right: 0;
+		}
 	}
 </style>
