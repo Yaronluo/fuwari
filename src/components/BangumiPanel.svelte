@@ -23,6 +23,14 @@
 
 	const eventListeners: Array<() => void> = [];
 
+	let revealObserver: IntersectionObserver | null = null;
+	const revealedItems = new WeakSet<HTMLElement>();
+	let toggleSyncFrame = 0;
+
+	function prefersReducedMotion() {
+		return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	}
+
 	function render() {
 		if (!items?.length) {
 			if (paginationBar) paginationBar.hidden = true;
@@ -58,6 +66,124 @@
 			pageIndicator.textContent = `${String(currentPage).padStart(2, "0")} / ${String(totalPages).padStart(2, "0")}`;
 		}
 		if (paginationBar) paginationBar.hidden = totalPages <= 1;
+
+		if (isReviews) {
+			prepareReviewReveal();
+			syncReviewToggles();
+		}
+	}
+
+	/** 短评卡片首次进入视口时逐张浮现，已经展示过的卡片不再重复播放 */
+	function prepareReviewReveal() {
+		if (!reviewSection || !reviewItems?.length) return;
+
+		if (prefersReducedMotion()) {
+			reviewSection.classList.remove("is-animated");
+			return;
+		}
+
+		reviewSection.classList.add("is-animated");
+
+		let visibleIndex = 0;
+		Array.from(reviewItems).forEach((item) => {
+			if (item.hidden) return;
+			const order = visibleIndex++;
+			if (revealedItems.has(item)) return;
+			item.style.setProperty("--review-delay", `${Math.min(order, 6) * 70}ms`);
+			if (!revealObserver) revealObserver = createRevealObserver();
+			revealObserver.observe(item);
+		});
+	}
+
+	function createRevealObserver() {
+		return new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (!entry.isIntersecting) return;
+					const item = entry.target as HTMLElement;
+					revealedItems.add(item);
+					item.classList.add("is-revealed");
+					revealObserver?.unobserve(item);
+				});
+			},
+			{ rootMargin: "0px 0px -6% 0px", threshold: 0.05 },
+		);
+	}
+
+	/** 依据真实渲染高度决定是否出现「展开全文」按钮，避免窄屏漏截或多截 */
+	function syncReviewToggles() {
+		if (!reviewItems?.length) return;
+
+		reviewItems.forEach((item) => {
+			if (item.hidden) return;
+			const text = item.querySelector<HTMLElement>(".bangumi-review-text");
+			const clip = item.querySelector<HTMLElement>(".bangumi-review-clip");
+			const copy = item.querySelector<HTMLElement>(".bangumi-review-copy");
+			const toggle = item.querySelector<HTMLButtonElement>(".bangumi-review-toggle");
+			if (!text || !clip || !copy || !toggle) return;
+
+			const limit = parseFloat(getComputedStyle(clip).fontSize || "15") * 7.8;
+			const overflows = copy.scrollHeight - limit > 2;
+			const expanded = !text.classList.contains("is-collapsed");
+			const label = toggle.querySelector<HTMLElement>(".bangumi-review-toggle-label");
+
+			if (overflows) {
+				toggle.hidden = false;
+				toggle.setAttribute("aria-expanded", String(expanded));
+				if (label) label.textContent = (expanded ? label.dataset.less : label.dataset.more) ?? "展开全文";
+			} else {
+				toggle.hidden = true;
+				text.classList.remove("is-collapsed");
+				clip.style.maxHeight = "";
+			}
+		});
+	}
+
+	function scheduleSyncReviewToggles() {
+		if (toggleSyncFrame) window.cancelAnimationFrame(toggleSyncFrame);
+		toggleSyncFrame = window.requestAnimationFrame(() => {
+			toggleSyncFrame = 0;
+			if (currentView === "reviews") syncReviewToggles();
+		});
+	}
+
+	function handleReviewClick(event: MouseEvent) {
+		const target = event.target as HTMLElement | null;
+		const toggle = target?.closest<HTMLButtonElement>(".bangumi-review-toggle");
+		if (!toggle) return;
+
+		const text = toggle.closest<HTMLElement>(".bangumi-review-text");
+		const clip = text?.querySelector<HTMLElement>(".bangumi-review-clip");
+		if (!text || !clip) return;
+
+		const label = toggle.querySelector<HTMLElement>(".bangumi-review-toggle-label");
+		const expanded = toggle.getAttribute("aria-expanded") === "true";
+
+		if (expanded) {
+			clip.style.maxHeight = `${clip.scrollHeight}px`;
+			void clip.offsetHeight;
+			text.classList.add("is-collapsed");
+			clip.style.maxHeight = "";
+			toggle.setAttribute("aria-expanded", "false");
+			if (label) label.textContent = label.dataset.more ?? "展开全文";
+		} else {
+			clip.style.maxHeight = `${clip.scrollHeight}px`;
+			text.classList.remove("is-collapsed");
+			toggle.setAttribute("aria-expanded", "true");
+			if (label) label.textContent = label.dataset.less ?? "收起全文";
+			window.setTimeout(() => {
+				if (toggle.getAttribute("aria-expanded") === "true") clip.style.maxHeight = "none";
+			}, 520);
+		}
+	}
+
+	function handleReviewPointerMove(event: PointerEvent) {
+		const item = (event.target as HTMLElement | null)?.closest<HTMLElement>(".bangumi-review-item");
+		if (!item || item.hidden) return;
+		const rect = item.getBoundingClientRect();
+		if (!rect.width || !rect.height) return;
+		item.style.setProperty("--review-x", `${(((event.clientX - rect.left) / rect.width) * 100).toFixed(2)}%`);
+		item.style.setProperty("--review-y", `${(((event.clientY - rect.top) / rect.height) * 100).toFixed(2)}%`);
 	}
 
 	function handleViewClick(event: Event) {
@@ -73,6 +199,7 @@
 		else url.searchParams.delete("view");
 		window.history.replaceState(window.history.state, "", url);
 		render();
+		if (currentView === "reviews") syncReviewToggles();
 	}
 
 	function handleTabClick(event: Event) {
@@ -155,13 +282,30 @@
 		mobileQuery.addEventListener("change", handleViewportChange);
 		eventListeners.push(() => mobileQuery?.removeEventListener("change", handleViewportChange));
 
+		if (reviewSection) {
+			reviewSection.addEventListener("click", handleReviewClick);
+			eventListeners.push(() => reviewSection?.removeEventListener("click", handleReviewClick));
+			reviewSection.addEventListener("pointermove", handleReviewPointerMove, { passive: true });
+			eventListeners.push(() => reviewSection?.removeEventListener("pointermove", handleReviewPointerMove));
+		}
+
+		window.addEventListener("resize", scheduleSyncReviewToggles);
+		eventListeners.push(() => window.removeEventListener("resize", scheduleSyncReviewToggles));
+
 		render();
+
+		document.fonts?.ready.then(() => {
+			if (currentView === "reviews") syncReviewToggles();
+		});
 
 		return () => {
 			eventListeners.forEach((cleanup) => {
 				cleanup();
 			});
 			eventListeners.length = 0;
+			revealObserver?.disconnect();
+			revealObserver = null;
+			if (toggleSyncFrame) window.cancelAnimationFrame(toggleSyncFrame);
 		};
 	});
 </script>
