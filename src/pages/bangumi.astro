@@ -127,17 +127,25 @@ const favoriteRating = ratingDistribution.reduce(
     (best, item) => (item.count > best.count ? item : best),
     ratingDistribution[0]
 );
-const heroFan = allCollections
+const topRated = allCollections
     .filter((item) => item.subject.images?.large || item.subject.images?.common)
-    .sort((a, b) => Number(b.subject.score || 0) - Number(a.subject.score || 0))
+    .sort((a, b) => {
+        const myRatingDiff = Number(b.rate || 0) - Number(a.rate || 0);
+        if (myRatingDiff !== 0) return myRatingDiff;
+        return Number(b.subject.score || 0) - Number(a.subject.score || 0);
+    })
     .slice(0, 3)
     .map((item) => {
         const rawImage = item.subject.images?.large || item.subject.images?.common || '';
         return {
             name: item.subject.name_cn || item.subject.name || 'Anime',
             image: `https://images.weserv.nl/?url=${rawImage}`,
+            rate: Number(item.rate || 0),
         };
     });
+// 中间那张压在最上层，所以把评分最高的一部放在中间位置
+const fanSlots = [topRated[1], topRated[0], topRated[2]];
+const heroFan = fanSlots.filter((poster): poster is (typeof topRated)[number] => Boolean(poster));
 const reviews = allCollections
     .filter((item) => item.type === 2 && item.comment?.trim())
     .sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
@@ -192,10 +200,11 @@ const reviewDate = (value?: string) => value
                     <span class="bangumi-fan-tape"></span>
                     {heroFan.map((poster, index) => (
                         <figure class={`bangumi-fan-card bangumi-fan-${index + 1}`}>
-                            <img src={poster.image} alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" />
+                            <img src={poster.image} alt="" title={poster.rate > 0 ? `${poster.name} · 我的评分 ${poster.rate}` : poster.name} loading="eager" decoding="async" referrerpolicy="no-referrer" />
+                            {poster.rate > 0 && <span class="bangumi-fan-rate">{poster.rate}</span>}
                         </figure>
                     ))}
-                    <span class="bangumi-fan-caption">评分最高 · TOP 3</span>
+                    <span class="bangumi-fan-caption">我的评分最高 · TOP 3</span>
                 </div>
             )}
         </header>
@@ -244,9 +253,13 @@ const reviewDate = (value?: string) => value
                             </div>
                             <div class="bangumi-rating-bars">
                                 {ratingDistribution.map((item, index) => (
-                                    <div class="bangumi-rating-column" style={`--rating-index: ${index}`} title={`${item.score} 分：${item.count} 部`}>
+                                    <div
+                                        class="bangumi-rating-column"
+                                        style={`--rating-index: ${index}; --rating-height: ${Math.min(86, Math.max(item.count > 0 ? 8 : 3, (item.count / maxRatingCount) * 100))}%`}
+                                        title={`${item.score} 分：${item.count} 部`}
+                                    >
                                         <span class="bangumi-rating-count">{item.count || ''}</span>
-                                        <span class="bangumi-rating-bar" style={`--rating-height: ${Math.max(item.count > 0 ? 8 : 2, (item.count / maxRatingCount) * 100)}%`}></span>
+                                        <span class="bangumi-rating-bar"></span>
                                         <span class="bangumi-rating-label">{item.score}</span>
                                     </div>
                                 ))}
@@ -951,6 +964,32 @@ const reviewDate = (value?: string) => value
         object-fit: cover;
     }
 
+    .bangumi-fan-rate {
+        position: absolute;
+        right: 0.4rem;
+        bottom: 0.4rem;
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.16rem;
+        padding: 0.1rem 0.34rem 0.12rem;
+        border-radius: 0.42rem;
+        color: #ffd79a;
+        background: color-mix(in srgb, #33232a 72%, transparent);
+        box-shadow: inset 0 0 0 1px rgba(255, 215, 154, 0.22);
+        font-size: 0.6rem;
+        font-weight: 900;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.2;
+        backdrop-filter: blur(6px);
+    }
+
+    .bangumi-fan-rate::before {
+        content: '★';
+        font-size: 0.5rem;
+        opacity: 0.9;
+    }
+
     .bangumi-fan-1 {
         --fan-rotate: -11deg;
         --fan-x: -5.4rem;
@@ -1232,7 +1271,7 @@ const reviewDate = (value?: string) => value
     }
 
     .bangumi-rating-count {
-        bottom: calc(var(--rating-height, 4%) + 0.28rem);
+        bottom: calc(var(--rating-height, 4%) + 0.24rem);
         color: var(--text-body, var(--text-strong));
         font-weight: 800;
         opacity: 0;
