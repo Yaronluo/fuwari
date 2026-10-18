@@ -2,6 +2,8 @@
 	import { onMount } from "svelte";
 
 	let grid: HTMLElement | null = null;
+	let wall: HTMLElement | null = null;
+	let wallCount: HTMLElement | null = null;
 	let items: NodeListOf<HTMLElement> | null = null;
 	let tabs: NodeListOf<HTMLButtonElement> | null = null;
 	let prevBtn: HTMLButtonElement | null = null;
@@ -14,7 +16,7 @@
 	let statusTabs: HTMLElement | null = null;
 	let currentView = "wall";
 
-	const DESKTOP_ITEMS_PER_PAGE = 9;
+	const DESKTOP_ITEMS_PER_PAGE = 12;
 	const MOBILE_ITEMS_PER_PAGE = 8;
 	let currentStatus = "all";
 	let currentPage = 1;
@@ -39,6 +41,7 @@
 
 		const isReviews = currentView === "reviews";
 		if (grid) grid.hidden = isReviews;
+		if (wall) wall.hidden = isReviews;
 		if (reviewSection) reviewSection.hidden = !isReviews;
 		if (statusTabs) statusTabs.hidden = isReviews;
 		const activeItems = isReviews ? Array.from(reviewItems || []) : Array.from(items);
@@ -70,7 +73,56 @@
 		if (isReviews) {
 			prepareReviewReveal();
 			syncReviewToggles();
+		} else {
+			if (wallCount) wallCount.textContent = String(filteredItems.length);
+			syncPosterImages();
+			prepareWallReveal();
 		}
+	}
+
+	/** 封面骨架屏与真实图片/失败占位之间的状态同步（含缓存命中的图片） */
+	function syncPosterImages() {
+		if (!items?.length) return;
+
+		Array.from(items).forEach((item) => {
+			if (item.hidden) return;
+			const img = item.querySelector<HTMLImageElement>(".bangumi-poster img");
+			const poster = img?.closest<HTMLElement>(".bangumi-poster");
+			if (!img || !poster || !img.complete) return;
+			poster.classList.add(img.naturalWidth > 0 ? "is-loaded" : "is-failed");
+		});
+	}
+
+	/** 番剧墙卡片进入视口时逐张上浮，配合 CSS 的错峰延迟形成波浪入场 */
+	function prepareWallReveal() {
+		if (!wall || !items?.length) return;
+
+		if (prefersReducedMotion()) {
+			wall.classList.remove("is-animated");
+			return;
+		}
+
+		wall.classList.add("is-animated");
+
+		let visibleIndex = 0;
+		Array.from(items).forEach((item) => {
+			if (item.hidden) return;
+			const order = visibleIndex++;
+			item.style.setProperty("--card-delay", `${Math.min(order, 11) * 52}ms`);
+			if (revealedItems.has(item)) return;
+			if (!revealObserver) revealObserver = createRevealObserver();
+			revealObserver.observe(item);
+		});
+	}
+
+	/** 翻页或切换筛选后重放一次入场动画 */
+	function resetWallReveal() {
+		if (!items?.length) return;
+
+		Array.from(items).forEach((item) => {
+			revealedItems.delete(item);
+			item.classList.remove("is-revealed");
+		});
 	}
 
 	/** 短评卡片首次进入视口时逐张浮现，已经展示过的卡片不再重复播放 */
@@ -186,6 +238,36 @@
 		item.style.setProperty("--review-y", `${(((event.clientY - rect.top) / rect.height) * 100).toFixed(2)}%`);
 	}
 
+	/** 番剧墙卡片跟随指针做轻微 3D 倾斜，指针离开后归位 */
+	function handleWallPointerMove(event: PointerEvent) {
+		if (event.pointerType === "touch") return;
+
+		const card = (event.target as HTMLElement | null)?.closest<HTMLElement>(".bangumi-card");
+		if (!card) return;
+
+		const rect = card.getBoundingClientRect();
+		if (!rect.width || !rect.height) return;
+
+		const ratioX = (event.clientX - rect.left) / rect.width - 0.5;
+		const ratioY = (event.clientY - rect.top) / rect.height - 0.5;
+		card.style.setProperty("--tilt-y", `${(ratioX * 7).toFixed(2)}deg`);
+		card.style.setProperty("--tilt-x", `${(-ratioY * 6).toFixed(2)}deg`);
+	}
+
+	function resetCardTilt(card: HTMLElement) {
+		card.style.removeProperty("--tilt-x");
+		card.style.removeProperty("--tilt-y");
+	}
+
+	function handleWallPointerOut(event: PointerEvent) {
+		const card = (event.target as HTMLElement | null)?.closest<HTMLElement>(".bangumi-card");
+		if (!card) return;
+
+		const next = event.relatedTarget as Node | null;
+		if (next && card.contains(next)) return;
+		resetCardTilt(card);
+	}
+
 	function handleViewClick(event: Event) {
 		currentView = (event.currentTarget as HTMLButtonElement).dataset.view || "wall";
 		currentPage = 1;
@@ -198,6 +280,7 @@
 		if (currentView === "reviews") url.searchParams.set("view", "reviews");
 		else url.searchParams.delete("view");
 		window.history.replaceState(window.history.state, "", url);
+		if (currentView === "wall") resetWallReveal();
 		render();
 		if (currentView === "reviews") syncReviewToggles();
 	}
@@ -206,6 +289,7 @@
 		const target = event.currentTarget as HTMLButtonElement;
 		currentStatus = target.dataset.status || "all";
 		currentPage = 1;
+		resetWallReveal();
 
 		tabs?.forEach((tab) => {
 			const isActive = tab === target;
@@ -220,6 +304,7 @@
 	function handlePrevClick() {
 		if (currentPage <= 1) return;
 		currentPage--;
+		resetWallReveal();
 		render();
 		(currentView === "reviews" ? reviewSection : grid)?.scrollIntoView({ behavior: "smooth", block: "start" });
 	}
@@ -227,17 +312,21 @@
 	function handleNextClick() {
 		if (currentPage >= totalPages) return;
 		currentPage++;
+		resetWallReveal();
 		render();
 		(currentView === "reviews" ? reviewSection : grid)?.scrollIntoView({ behavior: "smooth", block: "start" });
 	}
 
 	function handleViewportChange() {
 		currentPage = 1;
+		resetWallReveal();
 		render();
 	}
 
 	onMount(() => {
 		grid = document.getElementById("bangumi-grid");
+		wall = grid?.closest<HTMLElement>(".bangumi-wall") ?? document.querySelector<HTMLElement>(".bangumi-wall");
+		wallCount = document.getElementById("bangumi-wall-count");
 		items = document.querySelectorAll<HTMLElement>(".bangumi-item");
 		tabs = document.querySelectorAll<HTMLButtonElement>(".tab-btn");
 		prevBtn = document.querySelector<HTMLButtonElement>("#btn-prev");
@@ -289,9 +378,17 @@
 			eventListeners.push(() => reviewSection?.removeEventListener("pointermove", handleReviewPointerMove));
 		}
 
+		if (wall) {
+			wall.addEventListener("pointermove", handleWallPointerMove, { passive: true });
+			eventListeners.push(() => wall?.removeEventListener("pointermove", handleWallPointerMove));
+			wall.addEventListener("pointerout", handleWallPointerOut);
+			eventListeners.push(() => wall?.removeEventListener("pointerout", handleWallPointerOut));
+		}
+
 		window.addEventListener("resize", scheduleSyncReviewToggles);
 		eventListeners.push(() => window.removeEventListener("resize", scheduleSyncReviewToggles));
 
+		syncPosterImages();
 		render();
 
 		document.fonts?.ready.then(() => {
