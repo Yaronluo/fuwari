@@ -1301,10 +1301,10 @@ const padded = (value: number) => String(value).padStart(2, "0");
 
 	.collection-card:hover .collection-cover-sheen {
 		/* 行程刚好是 ±1 倍封面宽：光带越过封面的那一段占总时长约 3/4。
-		   2100ms 下光带中心横穿卡片约 0.86s、整条光带可见约 1.38s，
-		   慢到像掠过的光，不会像闪一下。 */
+		   1750ms + 这条曲线下，光带中心横穿卡片约 0.61s、整条光带可见约 1.02s，
+		   慢到像掠过的光，又不至于等它。 */
 		transform: translateX(100%);
-		transition: transform 2100ms cubic-bezier(0.4, 0.22, 0.6, 0.84) 120ms;
+		transition: transform 1750ms cubic-bezier(0.36, 0.18, 0.44, 0.9) 100ms;
 	}
 
 	.collection-cover-tag {
