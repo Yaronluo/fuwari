@@ -16,7 +16,7 @@
 	let statusTabs: HTMLElement | null = null;
 	let currentView = "wall";
 
-	const DESKTOP_ITEMS_PER_PAGE = 9;
+	const DESKTOP_ITEMS_PER_PAGE = 12;
 	const MOBILE_ITEMS_PER_PAGE = 8;
 	let currentStatus = "all";
 	let currentPage = 1;
@@ -108,7 +108,7 @@
 		Array.from(items).forEach((item) => {
 			if (item.hidden) return;
 			const order = visibleIndex++;
-			item.style.setProperty("--card-delay", `${Math.min(order, 8) * 62}ms`);
+			item.style.setProperty("--card-delay", `${Math.min(order, 11) * 52}ms`);
 			if (revealedItems.has(item)) return;
 			if (!revealObserver) revealObserver = createRevealObserver();
 			revealObserver.observe(item);
