@@ -47,6 +47,9 @@ export let categories: string[] = [];
 export let sortedPosts: Post[] = [];
 export let initialNow: string;
 
+/** 当前滚动到的时间轴条目，由滚动逻辑赋值，模板用 class:is-active 绑定 */
+let activeSlug: string | null = null;
+
 const ONE_DAY = 86_400_000;
 const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 const numberFormat = new Intl.NumberFormat("zh-CN");
@@ -433,9 +436,8 @@ onMount(() => {
 		}
 
 		if (best !== activeEntry) {
-			activeEntry?.classList.remove("is-active");
-			best?.classList.add("is-active");
 			activeEntry = best;
+			activeSlug = best?.dataset.slug ?? null;
 		}
 	};
 
@@ -724,7 +726,9 @@ onMount(() => {
 				往年今日 · {onThisDay.date.getFullYear()} 年的今天，你写下
 			</span>
 			<strong class="echo-title">「{onThisDay.title}」</strong>
-			<Icon icon="material-symbols:arrow-forward-rounded" class="echo-arrow" />
+			<span class="echo-arrow" aria-hidden="true">
+				<Icon icon="material-symbols:arrow-forward-rounded" />
+			</span>
 		</a>
 	{:else if latestPost}
 		<div class="echo-bar is-quiet">
@@ -797,9 +801,11 @@ onMount(() => {
 				<a
 					class="timeline-entry"
 					class:is-pinned={post.pinned}
+					class:is-active={post.slug === activeSlug}
 					href={postHref(post)}
 					aria-label={post.title}
 					data-rail="entry"
+					data-slug={post.slug}
 				>
 					<time datetime={toIsoDate(post.date)} title={formatFullDate(post.date)}>
 						<b>{formatMonthDay(post.date)}</b>
@@ -1582,6 +1588,8 @@ onMount(() => {
 	}
 
 	.echo-arrow {
+		display: grid;
+		place-items: center;
 		margin-left: auto;
 		color: var(--primary);
 		font-size: 1rem;
