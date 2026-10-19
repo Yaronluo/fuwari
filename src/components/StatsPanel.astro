@@ -9,102 +9,192 @@ interface Props {
 const { contentStats } = Astro.props;
 const formatNumber = new Intl.NumberFormat("zh-CN");
 const SITE_START_DATE = "2025-12-01";
+const SITE_START_LABEL = SITE_START_DATE.replace(/-/g, ".");
 const UMAMI_API_BASE = "https://cloud.umami.is/analytics/us";
 const UMAMI_SHARE_ID = "1Dc4PAeDKgLAox0M";
+// The calendar spans 26 weeks; the try-line chart reuses the tail of the same
+// daily series, so both sections share one set of day-bucket requests.
+const CALENDAR_WEEKS = 26;
+const RECENT_DAYS = 30;
 ---
 
-<section id="stats-garden" class="stats-garden" aria-labelledby="stats-title" data-stats-state="idle">
-	<div class="stats-decoration stats-decoration-heart" aria-hidden="true">♡</div>
-	<div class="stats-decoration stats-decoration-star" aria-hidden="true">✦</div>
-	<div class="stats-decoration stats-decoration-note" aria-hidden="true">♪</div>
+<section
+	id="stats-garden"
+	class="stats-garden"
+	data-stats-state="idle"
+	data-site-start={SITE_START_DATE}
+	aria-labelledby="stats-title"
+>
+	<div class="stats-ambient" aria-hidden="true">
+		<span class="stats-aurora stats-aurora--rose"></span>
+		<span class="stats-aurora stats-aurora--blue"></span>
+		<span class="stats-doodle" style="--x: 4%; --y: 16%; --dur: 11.5s; --delay: -2.4s; --size: 1.5rem;">♫</span>
+		<span class="stats-doodle" style="--x: 46%; --y: 5%; --dur: 9.2s; --delay: -3.1s; --size: 1rem;">✦</span>
+		<span class="stats-doodle" style="--x: 93%; --y: 12%; --dur: 10.4s; --delay: -1.2s; --size: 1.35rem;">♡</span>
+		<span class="stats-doodle" style="--x: 97%; --y: 62%; --dur: 12.8s; --delay: -4.6s; --size: 1.1rem;">✧</span>
+		<span class="stats-doodle" style="--x: 2%; --y: 78%; --dur: 13.4s; --delay: -5.2s; --size: 1.25rem;">❀</span>
+		<span class="stats-doodle" style="--x: 88%; --y: 92%; --dur: 10.9s; --delay: -3.8s; --size: 1.2rem;">♪</span>
+	</div>
 
-	<header class="stats-header">
-		<div>
-			<div class="stats-eyebrow">
+	<!-- 01 · 抬头 ------------------------------------------------------- -->
+	<header class="stats-hero" data-enter="1">
+		<div class="stats-hero-copy">
+			<p class="stats-eyebrow">
 				<Icon name="material-symbols:auto-awesome-rounded" />
 				<span>SITE DIARY</span>
-				<span aria-hidden="true">(｡•ᴗ•｡)ﾉ♡</span>
+				<span class="stats-eyebrow-face" aria-hidden="true">(｡•ᴗ•｡)ﾉ♡</span>
+			</p>
+			<h1 id="stats-title" class="stats-title">
+				今天也有人<span class="stats-title-mark">路过</span>这里
+			</h1>
+			<p class="stats-hero-sub">每一次访问，都是小站悄悄收藏的一枚脚印。</p>
+
+			<ul class="stats-hero-facts">
+				<li class="stats-fact">
+					<Icon name="material-symbols:edit-calendar-outline-rounded" />
+					<span>已营业</span><strong id="stats-running-days">···</strong><span>天</span>
+				</li>
+				<li class="stats-fact">
+					<Icon name="material-symbols:visibility-outline-rounded" />
+					<span>今日翻页</span><strong id="stats-today-views">···</strong><span>次</span>
+				</li>
+				<li class="stats-fact stats-fact--muted" id="stats-today-delta-fact">
+					<Icon name="material-symbols:history-rounded" />
+					<span id="stats-today-delta">正在对比昨天…</span>
+				</li>
+			</ul>
+
+			<div class="stats-slip">
+				<span class="stats-slip-pin" aria-hidden="true">✉</span>
+				<p class="stats-slip-text" id="stats-daily-note">正在翻开今天的小纸条…</p>
+				<button type="button" class="stats-slip-button" id="stats-daily-note-refresh">
+					再抽一张
+				</button>
 			</div>
-			<h1 id="stats-title">今天也有人路过这里</h1>
-			<p>每一次访问，都是小站悄悄收藏的一枚脚印。</p>
 		</div>
-		<div id="stats-sync-status" class="stats-sync-status" aria-live="polite">
-			<span class="stats-live-dot"></span>
-			<span>正在数脚印...</span>
+
+		<div class="stats-hero-side">
+			<div class="stats-ring" id="stats-ring" role="img" aria-label="愿意继续逛逛的访客占比">
+				<svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+					<circle class="stats-ring-track" cx="60" cy="60" r="50" pathLength="100"></circle>
+					<circle
+						class="stats-ring-value"
+						id="stats-ring-value"
+						cx="60"
+						cy="60"
+						r="50"
+						pathLength="100"
+						stroke-dasharray="100"
+						stroke-dashoffset="100"></circle>
+				</svg>
+				<span class="stats-ring-dot" aria-hidden="true"></span>
+				<div class="stats-ring-copy">
+					<strong id="stats-stay-rate">···</strong>
+					<small id="stats-stay-caption">愿意多逛逛</small>
+				</div>
+			</div>
+
+			<div id="stats-sync-status" class="stats-sync-status" aria-live="polite">
+				<span class="stats-live-dot"></span>
+				<span>正在数脚印...</span>
+			</div>
+			<p class="stats-stamp">SINCE {SITE_START_LABEL}</p>
 		</div>
 	</header>
 
-	<div class="stats-cards" aria-label="网站访问概览">
-		<article class="stats-card stats-card-pink">
-			<div class="stats-card-icon"><Icon name="material-symbols:group-outline-rounded" /></div>
-			<div class="stats-card-copy">
-				<span>来过的旅人</span>
-				<strong id="stats-visitors">···</strong>
-				<small>位朋友发现了这里</small>
-			</div>
-			<span class="stats-card-face" aria-hidden="true">(˶ᵔ ᵕ ᵔ˶)</span>
+	<!-- 02 · 四个数字 --------------------------------------------------- -->
+	<section class="stats-kpis" aria-label="网站访问概览">
+		<article class="stats-kpi stats-kpi--rose" data-reveal style="--reveal-delay: 0ms;">
+			<span class="stats-kpi-icon"><Icon name="material-symbols:group-outline-rounded" /></span>
+			<p class="stats-kpi-trend" data-kpi-trend="visitors"></p>
+			<h2 class="stats-kpi-label">来过的旅人</h2>
+			<p class="stats-kpi-value" id="stats-visitors">···</p>
+			<p class="stats-kpi-note">位朋友发现了这里</p>
+			<span class="stats-kpi-face" aria-hidden="true">(˶ᵔ ᵕ ᵔ˶)</span>
 		</article>
 
-		<article class="stats-card stats-card-peach">
-			<div class="stats-card-icon"><Icon name="material-symbols:visibility-outline-rounded" /></div>
-			<div class="stats-card-copy">
-				<span>留下的足迹</span>
-				<strong id="stats-pageviews">···</strong>
-				<small>次页面被轻轻翻开</small>
-			</div>
-			<span class="stats-card-face" aria-hidden="true">₍ᐢ. .ᐢ₎</span>
+		<article class="stats-kpi stats-kpi--peach" data-reveal style="--reveal-delay: 70ms;">
+			<span class="stats-kpi-icon"><Icon name="material-symbols:visibility-outline-rounded" /></span>
+			<p class="stats-kpi-trend" data-kpi-trend="pageviews"></p>
+			<h2 class="stats-kpi-label">留下的足迹</h2>
+			<p class="stats-kpi-value" id="stats-pageviews">···</p>
+			<p class="stats-kpi-note">次页面被轻轻翻开</p>
+			<span class="stats-kpi-face" aria-hidden="true">₍ᐢ. .ᐢ₎</span>
 		</article>
 
-		<article class="stats-card stats-card-purple">
-			<div class="stats-card-icon"><Icon name="material-symbols:favorite-outline-rounded" /></div>
-			<div class="stats-card-copy">
-				<span>相遇的次数</span>
-				<strong id="stats-visits">···</strong>
-				<small>次与小站再次碰面</small>
-			</div>
-			<span class="stats-card-face" aria-hidden="true">♡⸜(˶˃ ᵕ ˂˶)⸝</span>
+		<article class="stats-kpi stats-kpi--lilac" data-reveal style="--reveal-delay: 140ms;">
+			<span class="stats-kpi-icon"><Icon name="material-symbols:favorite-outline-rounded" /></span>
+			<p class="stats-kpi-trend" data-kpi-trend="visits"></p>
+			<h2 class="stats-kpi-label">相遇的次数</h2>
+			<p class="stats-kpi-value" id="stats-visits">···</p>
+			<p class="stats-kpi-note">次与小站再次碰面</p>
+			<span class="stats-kpi-face" aria-hidden="true">♡⸜(˶˃ ᵕ ˂˶)⸝</span>
 		</article>
 
-		<article class="stats-card stats-card-blue">
-			<div class="stats-card-icon"><Icon name="material-symbols:schedule-rounded" /></div>
-			<div class="stats-card-copy">
-				<span>平均停留</span>
-				<strong id="stats-duration">···</strong>
-				<small>慢慢看看，不着急走</small>
-			</div>
-			<span class="stats-card-face" aria-hidden="true">(づ˶•༝•˶)づ</span>
+		<article class="stats-kpi stats-kpi--sky" data-reveal style="--reveal-delay: 210ms;">
+			<span class="stats-kpi-icon"><Icon name="material-symbols:schedule-rounded" /></span>
+			<p class="stats-kpi-trend" data-kpi-trend="duration"></p>
+			<h2 class="stats-kpi-label">平均停留</h2>
+			<p class="stats-kpi-value" id="stats-duration">···</p>
+			<p class="stats-kpi-note">慢慢看看，不着急走</p>
+			<span class="stats-kpi-face" aria-hidden="true">(づ˶•༝•˶)づ</span>
 		</article>
-	</div>
+	</section>
 
-	<div class="stats-story-grid">
-		<section class="stats-chart-panel" aria-labelledby="stats-chart-title">
-			<div class="stats-section-heading">
+	<!-- 03 · 访问足迹 + 小站手账 ---------------------------------------- -->
+	<div class="stats-split">
+		<section class="stats-panel stats-panel--chart" data-reveal aria-labelledby="stats-chart-title">
+			<div class="stats-panel-head">
 				<div>
-					<span class="stats-section-kicker">VISIT FOOTPRINTS</span>
+					<p class="stats-kicker">VISIT FOOTPRINTS</p>
 					<h2 id="stats-chart-title">访问足迹</h2>
 				</div>
-				<div class="stats-chart-legend"><span></span> 每月浏览量</div>
+				<div class="stats-switch" role="group" aria-label="图表时间范围">
+					<button type="button" data-chart-range="recent" class="is-active" aria-pressed="true">最近 30 天</button>
+					<button type="button" data-chart-range="monthly" aria-pressed="false">按月</button>
+				</div>
 			</div>
-			<div id="stats-chart" class="stats-chart" aria-label="每月浏览量柱状图">
-				<div class="stats-chart-loading">正在把脚印画成小山丘... ✎﹏</div>
+
+			<div class="stats-chart-body">
+				<div class="stats-chart-frame">
+					<div class="stats-chart-yaxis" id="stats-chart-yaxis" aria-hidden="true"></div>
+					<div class="stats-chart-plot" id="stats-chart">
+						<div class="stats-chart-grid" id="stats-chart-grid" aria-hidden="true"></div>
+						<p class="stats-chart-empty" id="stats-chart-empty">正在把脚印画成小山丘... ✎﹏</p>
+						<div class="stats-chart-dots" id="stats-chart-dots" aria-hidden="true"></div>
+						<span class="stats-chart-cursor" id="stats-chart-cursor" hidden aria-hidden="true"><i></i></span>
+					</div>
+				</div>
+				<div class="stats-chart-xaxis" id="stats-chart-xaxis" aria-hidden="true"></div>
+				<div class="stats-chart-tooltip" id="stats-chart-tooltip" hidden></div>
 			</div>
-			<div class="stats-chart-footer">
-				<span id="stats-chart-summary">等待数据寄来一封信 ✉</span>
-				<span id="stats-updated-at"></span>
-			</div>
+
+			<div class="stats-chart-chips" id="stats-chart-chips"></div>
+			<p class="stats-chart-summary" id="stats-chart-summary">等待数据寄来一封信 ✉</p>
 		</section>
 
-		<aside class="stats-note-panel">
-			<div class="stats-note-tape" aria-hidden="true"></div>
-			<span class="stats-section-kicker">ABOUT THIS LITTLE SITE</span>
-			<h2>小站手账</h2>
-			<p class="stats-running-copy">已经认真营业 <strong id="stats-running-days">···</strong> 天啦！</p>
-			<div class="stats-content-list">
+		<aside class="stats-panel stats-panel--note" data-reveal style="--reveal-delay: 90ms;" aria-labelledby="stats-note-title">
+			<span class="stats-note-tape" aria-hidden="true"></span>
+			<p class="stats-kicker">ABOUT THIS LITTLE SITE</p>
+			<h2 id="stats-note-title">小站手账</h2>
+			<p class="stats-running-copy">已经认真营业 <strong id="stats-running-days-copy">···</strong> 天啦！</p>
+
+			<div class="stats-ledger">
 				<div><span>文章</span><strong>{formatNumber.format(contentStats.postCount)}</strong><small>篇</small></div>
 				<div><span>文字</span><strong>{formatNumber.format(contentStats.wordCount)}</strong><small>字</small></div>
 				<div><span>分类</span><strong>{formatNumber.format(contentStats.categoryCount)}</strong><small>个</small></div>
 				<div><span>标签</span><strong>{formatNumber.format(contentStats.tagCount)}</strong><small>枚</small></div>
 			</div>
+
+			<div class="stats-ledger stats-ledger--derived">
+				<div><span>人均翻页</span><strong id="stats-per-visitor">···</strong><small>页</small></div>
+				<div><span>平均每天</span><strong id="stats-per-day">···</strong><small>次</small></div>
+				<div><span>最热闹</span><strong id="stats-peak-day">···</strong><small>次</small></div>
+				<div><span>相遇总长</span><strong id="stats-total-time">···</strong><small></small></div>
+				<div class="is-text"><span>惯用语言</span><strong id="stats-top-language">···</strong><small></small></div>
+				<div class="is-text"><span>常见屏幕</span><strong id="stats-top-screen">···</strong><small></small></div>
+			</div>
+
 			<div class="stats-note-bottom">
 				<span id="stats-bounce-note">正在整理今日手账...</span>
 				<span aria-hidden="true">꒰ঌ(っ˘꒳˘ｃ)໒꒱</span>
@@ -112,125 +202,699 @@ const UMAMI_SHARE_ID = "1Dc4PAeDKgLAox0M";
 		</aside>
 	</div>
 
-	<div class="stats-insights-grid">
-		<section class="stats-insight-panel" aria-labelledby="stats-environment-title">
-			<div class="stats-section-heading stats-insight-heading">
-				<div>
-					<span class="stats-section-kicker">VISIT ENVIRONMENT</span>
-					<h2 id="stats-environment-title">访问环境</h2>
+	<!-- 04 · 小站心跳：每日热力 + 24 小时作息 ---------------------------- -->
+	<section class="stats-panel stats-panel--pulse" data-reveal aria-labelledby="stats-pulse-title">
+		<div class="stats-panel-head">
+			<div>
+				<p class="stats-kicker">VISIT PULSE</p>
+				<h2 id="stats-pulse-title">小站心跳</h2>
+			</div>
+			<p class="stats-panel-hint" id="stats-pulse-hint">正在把每天的脚印铺开来…</p>
+		</div>
+
+		<div class="stats-pulse-grid">
+			<div class="stats-heat">
+				<div class="stats-heat-months" id="stats-heat-months" aria-hidden="true"></div>
+				<div class="stats-heat-body">
+					<div class="stats-heat-weekdays" aria-hidden="true">
+						<span>一</span><span></span><span>三</span><span></span><span>五</span><span></span><span>日</span>
+					</div>
+					<div class="stats-heat-grid" id="stats-heat-grid"></div>
 				</div>
-				<span class="stats-insight-face" aria-hidden="true">⌨︎(｡•̀ᴗ-)✧</span>
+				<div class="stats-heat-foot">
+					<span class="stats-heat-streak" id="stats-heat-streak">正在数连续的日子…</span>
+					<span class="stats-heat-legend" aria-hidden="true">
+						<span>淡</span>
+						<i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i>
+						<span>浓</span>
+					</span>
+				</div>
 			</div>
-			<div class="stats-metric-tabs" data-metric-tabs="environment" aria-label="访问环境分类">
-				<button type="button" data-metric-type="browser" class="is-active">浏览器</button>
-				<button type="button" data-metric-type="os">系统</button>
-				<button type="button" data-metric-type="device">设备</button>
+
+			<div class="stats-rhythm">
+				<p class="stats-rhythm-title">一天的作息</p>
+				<div class="stats-rhythm-chart">
+					<div class="stats-rhythm-bars" id="stats-rhythm-bars"></div>
+					<div class="stats-rhythm-axis" aria-hidden="true">
+						<span>0</span><span>6</span><span>12</span><span>18</span><span>23</span>
+					</div>
+				</div>
+				<p class="stats-rhythm-note" id="stats-rhythm-note">正在读小站的作息表…</p>
 			</div>
-			<div id="stats-environment-list" class="stats-metric-list"><div class="stats-metric-loading">正在整理访问环境…</div></div>
+		</div>
+	</section>
+
+	<!-- 05 · 角落 / 环境 / 地区 ----------------------------------------- -->
+	<div class="stats-trio">
+		<section class="stats-panel stats-panel--paths" data-reveal aria-labelledby="stats-paths-title">
+			<div class="stats-panel-head">
+				<div>
+					<p class="stats-kicker">FAVOURITE CORNERS</p>
+					<h2 id="stats-paths-title">最受欢迎的角落</h2>
+				</div>
+				<span class="stats-panel-face" aria-hidden="true">⌂ ૮ ˶ᵔ ᵕ ᵔ˶ ა</span>
+			</div>
+			<div class="stats-paths-list" id="stats-paths-list">
+				<p class="stats-loading">正在清点被翻得最勤的页面…</p>
+			</div>
 		</section>
 
-		<section class="stats-insight-panel" aria-labelledby="stats-location-title">
-			<div class="stats-section-heading stats-insight-heading">
+		<section class="stats-panel stats-panel--env" data-reveal style="--reveal-delay: 80ms;" aria-labelledby="stats-env-title">
+			<div class="stats-panel-head">
 				<div>
-					<span class="stats-section-kicker">VISITOR MAP</span>
-					<h2 id="stats-location-title">地区足迹</h2>
+					<p class="stats-kicker">VISIT ENVIRONMENT</p>
+					<h2 id="stats-env-title">访问环境</h2>
 				</div>
-				<span class="stats-insight-face" aria-hidden="true">⌖ ૮ ˶ᵔ ᵕ ᵔ˶ ა</span>
+				<span class="stats-panel-face" aria-hidden="true">⌨︎(｡•̀ᴗ-)✧</span>
 			</div>
-			<div class="stats-metric-tabs" data-metric-tabs="location" aria-label="访问地区分类">
-				<button type="button" data-metric-type="country" class="is-active">国家</button>
-				<button type="button" data-metric-type="region">州 / 省</button>
-				<button type="button" data-metric-type="city">城市</button>
+			<div class="stats-tabs" data-metric-tabs="environment" aria-label="访问环境分类">
+				<button type="button" data-metric-type="browser" class="is-active" aria-pressed="true">浏览器</button>
+				<button type="button" data-metric-type="os" aria-pressed="false">系统</button>
+				<button type="button" data-metric-type="device" aria-pressed="false">设备</button>
 			</div>
-			<div id="stats-location-list" class="stats-metric-list"><div class="stats-metric-loading">正在把足迹放上地图…</div></div>
+			<div class="stats-donut-wrap">
+				<div class="stats-donut" id="stats-donut" role="img" aria-label="访问环境占比"></div>
+				<div class="stats-legend" id="stats-env-legend"></div>
+			</div>
+			<p class="stats-panel-note" id="stats-env-note"></p>
+		</section>
+
+		<section class="stats-panel stats-panel--geo" data-reveal style="--reveal-delay: 160ms;" aria-labelledby="stats-geo-title">
+			<div class="stats-panel-head">
+				<div>
+					<p class="stats-kicker">VISITOR MAP</p>
+					<h2 id="stats-geo-title">地区足迹</h2>
+				</div>
+				<span class="stats-panel-face" aria-hidden="true">⌖ ૮ ˶ᵔ ᵕ ᵔ˶ ა</span>
+			</div>
+			<div class="stats-tabs" data-metric-tabs="location" aria-label="访问地区分类">
+				<button type="button" data-metric-type="country" class="is-active" aria-pressed="true">国家</button>
+				<button type="button" data-metric-type="region" aria-pressed="false">州 / 省</button>
+				<button type="button" data-metric-type="city" aria-pressed="false">城市</button>
+			</div>
+			<div class="stats-metric-list" id="stats-location-list">
+				<p class="stats-loading">正在把足迹放上地图…</p>
+			</div>
+			<p class="stats-panel-note" id="stats-geo-note"></p>
 		</section>
 	</div>
 
 	<footer class="stats-footer-note">
 		<span aria-hidden="true">🌸</span>
 		<span>数字会增长，愿每一次相遇都仍然柔软。</span>
-		<span>Data by Umami</span>
+		<span class="stats-footer-meta"><span id="stats-updated-at">等待数据</span> · Data by Umami</span>
 	</footer>
 </section>
 
-<script is:inline define:vars={{ SITE_START_DATE, UMAMI_API_BASE, UMAMI_SHARE_ID }}>
+<script
+	is:inline
+	define:vars={{ SITE_START_DATE, UMAMI_API_BASE, UMAMI_SHARE_ID, CALENDAR_WEEKS, RECENT_DAYS, CONTENT_WORDS: contentStats.wordCount }}
+>
 	(() => {
+		const root = document.getElementById('stats-garden');
+		if (!root) return;
+		if (root.dataset.statsState === 'loading' || root.dataset.statsState === 'loaded') return;
+		root.dataset.statsState = 'loading';
+
+		// Swup re-runs this inline script on every visit, so a stale response
+		// must not paint into a page that has already been replaced.
+		const runId = (window.__statsGardenRunId || 0) + 1;
+		window.__statsGardenRunId = runId;
+		const isLive = () => window.__statsGardenRunId === runId && document.body.contains(root);
+
 		const numberFormat = new Intl.NumberFormat('zh-CN');
+		const TIME_ZONE = 'Asia/Hong_Kong';
+		const HKT_OFFSET_MS = 8 * 3600 * 1000;
+		const DAY_MS = 86400000;
+		const CALENDAR_DAYS = CALENDAR_WEEKS * 7;
+		const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
 
-		function setText(id, value) {
-			const element = document.getElementById(id);
-			if (element) element.textContent = value;
-		}
+		const $ = (id) => document.getElementById(id);
+		const setText = (id, value) => {
+			const node = $(id);
+			if (node) node.textContent = value;
+		};
+		const escapeHtml = (value) =>
+			String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+		const pad2 = (value) => String(value).padStart(2, '0');
 
-		function formatDuration(totalSeconds) {
+		/* ---------------- dates -------------------------------------------
+		   Umami answers with bucket stamps whose UTC fields already carry the
+		   requested timezone's wall clock, so every stamp is normalised to
+		   UTC midnight of that wall date and read back with UTC getters. */
+		const stampKey = (date) => `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(date.getUTCDate())}`;
+		const normalizeStamp = (value) => {
+			const parsed = new Date(value);
+			return new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+		};
+		const shiftDays = (date, days) => new Date(date.getTime() + days * DAY_MS);
+		// Noon in the report timezone: safely inside the intended local day.
+		const localNoonMs = (date) => date.getTime() - HKT_OFFSET_MS + 12 * 3600 * 1000;
+		const todayStamp = () => {
+			const parts = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' })
+				.format(new Date())
+				.split('-');
+			return new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+		};
+		const shortDate = (date) => `${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
+		const longDate = (date) => `${date.getUTCMonth() + 1}月${date.getUTCDate()}日 周${WEEKDAY_NAMES[date.getUTCDay()]}`;
+
+		const formatDuration = (totalSeconds) => {
 			const seconds = Math.max(0, Math.round(totalSeconds));
+			if (seconds < 60) return `${seconds}秒`;
 			const minutes = Math.floor(seconds / 60);
-			const remainingSeconds = seconds % 60;
-			if (minutes >= 60) {
-				const hours = Math.floor(minutes / 60);
-				return `${hours}时${minutes % 60}分`;
+			if (minutes < 60) return `${minutes}分${seconds % 60}秒`;
+			const hours = Math.floor(minutes / 60);
+			if (hours < 24) return `${hours}时${minutes % 60}分`;
+			return `${Math.floor(hours / 24)}天${hours % 24}时`;
+		};
+		// Chart ticks need to stay narrow: 4 500 -> "4.5k".
+		const compactNumber = (value) => {
+			const rounded = Math.round(Number(value) || 0);
+			if (Math.abs(rounded) < 1000) return numberFormat.format(rounded);
+			const scaled = rounded / 1000;
+			const digits = Math.abs(scaled) >= 100 || Number.isInteger(scaled) ? 0 : 1;
+			return `${scaled.toFixed(digits)}k`;
+		};
+
+		/* ---------------- motion helpers ---------------------------------- */
+		const countUp = (node, value, formatter) => {
+			if (!node) return;
+			const format = formatter || ((input) => numberFormat.format(Math.round(input)));
+			const target = Number.isFinite(value) ? value : 0;
+			if (reduceMotion) {
+				node.textContent = format(target);
+				return;
 			}
-			return `${minutes}分${remainingSeconds}秒`;
-		}
+			const duration = 1150;
+			const startedAt = performance.now();
+			const tick = (now) => {
+				const progress = Math.min(1, (now - startedAt) / duration);
+				const eased = 1 - (1 - progress) ** 3;
+				node.textContent = format(target * eased);
+				if (progress < 1) requestAnimationFrame(tick);
+			};
+			requestAnimationFrame(tick);
+		};
 
-		function renderChart(points) {
-			const chart = document.getElementById('stats-chart');
-			if (!chart) return;
-			chart.replaceChildren();
-
-			const values = points.map((point) => Number(point.y) || 0);
-			const maxValue = Math.max(...values, 1);
-			const fragment = document.createDocumentFragment();
-
-			points.forEach((point) => {
-				const value = Number(point.y) || 0;
-				const item = document.createElement('div');
-				item.className = 'stats-chart-item';
-				item.title = `${new Date(point.x).toLocaleDateString('zh-CN', { month: 'long', timeZone: 'Asia/Hong_Kong' })}：${numberFormat.format(value)} 次浏览`;
-
-				const valueLabel = document.createElement('span');
-				valueLabel.className = 'stats-chart-value';
-				valueLabel.textContent = numberFormat.format(value);
-
-				const track = document.createElement('span');
-				track.className = 'stats-chart-track';
-				const bar = document.createElement('span');
-				bar.className = 'stats-chart-bar';
-				bar.style.height = `${Math.max(8, (value / maxValue) * 100)}%`;
-				track.appendChild(bar);
-
-				const month = document.createElement('span');
-				month.className = 'stats-chart-month';
-				month.textContent = new Date(point.x).toLocaleDateString('zh-CN', { month: 'numeric', timeZone: 'Asia/Hong_Kong' }).replace('/', '月');
-
-				item.append(valueLabel, track, month);
-				fragment.appendChild(item);
+		const armReveals = () => {
+			const targets = Array.from(root.querySelectorAll('[data-reveal]'));
+			if (!targets.length) return;
+			if (reduceMotion || !('IntersectionObserver' in window)) {
+				targets.forEach((target) => target.classList.add('is-in'));
+				root.dataset.revealArmed = 'true';
+				document.documentElement.classList.remove('stats-reveal-pending');
+				return;
+			}
+			const observer = new IntersectionObserver(
+				(entries) => {
+					entries.forEach((entry) => {
+						if (!entry.isIntersecting) return;
+						entry.target.classList.add('is-in');
+						observer.unobserve(entry.target);
+					});
+				},
+				{ rootMargin: '0px 0px -6% 0px', threshold: 0.06 },
+			);
+			targets.forEach((target) => observer.observe(target));
+			root.dataset.revealArmed = 'true';
+			requestAnimationFrame(() => {
+				targets.forEach((target) => {
+					if (target.getBoundingClientRect().top < window.innerHeight * 0.94) target.classList.add('is-in');
+				});
+				document.documentElement.classList.remove('stats-reveal-pending');
 			});
+		};
 
-			chart.appendChild(fragment);
-		}
+		/* ---------------- fetch helpers ----------------------------------- */
+		const fetchJson = async (url, headers) => {
+			const response = await fetch(url, { headers });
+			if (!response.ok) throw new Error(`${response.status} ${url}`);
+			return response.json();
+		};
 
+		const settle = async (entries) => {
+			const keys = Object.keys(entries);
+			const results = await Promise.allSettled(keys.map((key) => entries[key]));
+			const output = {};
+			keys.forEach((key, index) => {
+				const result = results[index];
+				if (result.status === 'fulfilled') output[key] = result.value;
+				else {
+					output[key] = null;
+					console.warn(`[StatsGarden] ${key} failed`, result.reason);
+				}
+			});
+			return output;
+		};
+
+		/* ---------------- chart ------------------------------------------- */
+		const CHART_WIDTH = 1000;
+		const CHART_HEIGHT = 320;
+		const CHART_HEADROOM = 0.86;
+		const chartState = { series: { recent: [], monthly: [] }, mode: 'recent' };
+
+		const niceMax = (value) => {
+			if (value <= 5) return Math.max(1, Math.ceil(value));
+			const magnitude = 10 ** Math.floor(Math.log10(value));
+			const normalized = value / magnitude;
+			const step = normalized <= 1.2 ? 1.2 : normalized <= 2 ? 2 : normalized <= 2.5 ? 2.5 : normalized <= 5 ? 5 : 10;
+			return step * magnitude;
+		};
+
+		const buildLinePath = (points, curved) => {
+			if (!points.length) return '';
+			let path = `M ${points[0][0].toFixed(1)} ${points[0][1].toFixed(1)}`;
+			if (!curved || points.length < 3) {
+				for (let index = 1; index < points.length; index += 1) {
+					path += ` L ${points[index][0].toFixed(1)} ${points[index][1].toFixed(1)}`;
+				}
+				return path;
+			}
+			const clamp = (value) => Math.max(0, Math.min(CHART_HEIGHT, value));
+			for (let index = 0; index < points.length - 1; index += 1) {
+				const previous = points[index - 1] || points[index];
+				const current = points[index];
+				const next = points[index + 1];
+				const after = points[index + 2] || next;
+				const c1x = current[0] + (next[0] - previous[0]) / 5.2;
+				const c1y = clamp(current[1] + (next[1] - previous[1]) / 5.2);
+				const c2x = next[0] - (after[0] - current[0]) / 5.2;
+				const c2y = clamp(next[1] - (after[1] - current[1]) / 5.2);
+				path += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${next[0].toFixed(1)} ${next[1].toFixed(1)}`;
+			}
+			return path;
+		};
+
+		const renderChartChips = (series, values, mode) => {
+			const chips = $('stats-chart-chips');
+			if (!chips) return;
+			const total = values.reduce((sum, value) => sum + value, 0);
+			const peakValue = Math.max(...values);
+			const peakPoint = series[values.indexOf(peakValue)];
+			const average = total / (values.length || 1);
+			const items = [
+				{ label: mode === 'recent' ? '近 30 天' : '全部记录', value: `${numberFormat.format(total)} 次` },
+				{ label: mode === 'recent' ? '日均' : '月均', value: `${numberFormat.format(Math.round(average))} 次` },
+				{ label: '最高', value: `${numberFormat.format(peakValue)} 次`, hint: peakPoint ? peakPoint.tooltip : '' },
+			];
+			chips.innerHTML = items
+				.map(
+					(item) =>
+						`<span class="stats-chip"><span class="stats-chip-label">${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong>${
+							item.hint ? `<small>${escapeHtml(item.hint)}</small>` : ''
+						}</span>`,
+				)
+				.join('');
+		};
+
+		const renderChart = (mode) => {
+			const plot = $('stats-chart');
+			const series = chartState.series[mode] || [];
+			if (!plot) return;
+			const values = series.map((point) => point.value);
+
+			const dots = $('stats-chart-dots');
+			const cursor = $('stats-chart-cursor');
+			const tooltip = $('stats-chart-tooltip');
+			const grid = $('stats-chart-grid');
+			const axis = $('stats-chart-yaxis');
+			const xaxis = $('stats-chart-xaxis');
+			const empty = $('stats-chart-empty');
+			if (tooltip) tooltip.hidden = true;
+			if (cursor) cursor.hidden = true;
+			plot.onpointermove = null;
+			plot.onpointerleave = null;
+
+			if (!values.length || Math.max(...values) <= 0) {
+				plot.querySelectorAll('svg').forEach((node) => node.remove());
+				if (dots) dots.innerHTML = '';
+				if (grid) grid.innerHTML = '';
+				if (axis) axis.innerHTML = '';
+				if (xaxis) xaxis.innerHTML = '';
+				if (empty) {
+					empty.hidden = false;
+					empty.textContent = '这一段还没有脚印，等下次再来看看 (｡•́︿•̀｡)';
+				}
+				const chips = $('stats-chart-chips');
+				if (chips) chips.innerHTML = '';
+				return;
+			}
+			if (empty) empty.hidden = true;
+
+			const max = niceMax(Math.max(...values, 1));
+			const usable = CHART_HEIGHT * CHART_HEADROOM;
+			const stepX = values.length > 1 ? CHART_WIDTH / (values.length - 1) : 0;
+			const points = values.map((value, index) => [index * stepX, CHART_HEIGHT - (value / max) * usable]);
+			const curved = values.length <= 14;
+			const line = buildLinePath(points, curved);
+			const lastPoint = points[points.length - 1];
+			const area = `${line} L ${lastPoint[0].toFixed(1)} ${CHART_HEIGHT} L 0 ${CHART_HEIGHT} Z`;
+
+			plot.querySelectorAll('svg').forEach((node) => node.remove());
+			const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+			svg.setAttribute('class', 'stats-chart-svg');
+			svg.setAttribute('viewBox', `0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`);
+			svg.setAttribute('preserveAspectRatio', 'none');
+			svg.setAttribute('aria-hidden', 'true');
+			svg.setAttribute('focusable', 'false');
+			svg.innerHTML = `
+				<defs>
+					<linearGradient id="stats-chart-fill" x1="0" y1="0" x2="0" y2="1">
+						<stop offset="0%" style="stop-color: var(--primary); stop-opacity: 0.42"></stop>
+						<stop offset="52%" style="stop-color: var(--primary); stop-opacity: 0.16"></stop>
+						<stop offset="100%" style="stop-color: var(--primary); stop-opacity: 0"></stop>
+					</linearGradient>
+					<linearGradient id="stats-chart-stroke" x1="0" y1="0" x2="1" y2="0">
+						<stop offset="0%" style="stop-color: var(--tea)"></stop>
+						<stop offset="100%" style="stop-color: var(--primary)"></stop>
+					</linearGradient>
+				</defs>
+				<path class="stats-chart-area" d="${area}" fill="url(#stats-chart-fill)"></path>
+				<path class="stats-chart-line" d="${line}" fill="none" stroke="url(#stats-chart-stroke)" vector-effect="non-scaling-stroke"></path>
+			`;
+			const areaPath = svg.querySelector('.stats-chart-area');
+			const linePath = svg.querySelector('.stats-chart-line');
+			plot.insertBefore(svg, plot.firstChild);
+
+			const ticks = [0, 0.25, 0.5, 0.75, 1];
+			if (grid) {
+				grid.innerHTML = ticks.map((ratio) => `<span style="bottom: ${ratio * 100}%"></span>`).join('');
+			}
+			if (axis) {
+				axis.innerHTML = ticks
+					.slice()
+					.reverse()
+					.map((ratio) => `<span style="bottom: ${ratio * 100}%">${compactNumber(max * ratio)}</span>`)
+					.join('');
+			}
+			if (xaxis) {
+				const every = values.length <= 12 ? 1 : Math.ceil(values.length / 7);
+				xaxis.innerHTML = series
+					.map((point, index) => {
+						const show = index === 0 || index === series.length - 1 || index % every === 0;
+						return `<span>${show ? escapeHtml(point.label) : ''}</span>`;
+					})
+					.join('');
+			}
+			if (dots) {
+				dots.innerHTML =
+					values.length <= 14
+						? points
+								.map(
+									(point, index) =>
+										`<i style="left: ${(index / Math.max(1, values.length - 1)) * 100}%; top: ${(point[1] / CHART_HEIGHT) * 100}%; --d: ${index * 55}ms"></i>`,
+								)
+								.join('')
+						: '';
+			}
+
+			// Draw-on animation: the line traces itself, the area grows from the floor.
+			if (!reduceMotion && linePath && areaPath) {
+				const length = linePath.getTotalLength();
+				linePath.style.strokeDasharray = `${length}`;
+				linePath.style.strokeDashoffset = `${length}`;
+				linePath.getBoundingClientRect();
+				linePath.style.transition = 'stroke-dashoffset 1200ms cubic-bezier(0.22, 1, 0.36, 1)';
+				linePath.style.strokeDashoffset = '0';
+				requestAnimationFrame(() => areaPath.classList.add('is-in'));
+			} else if (areaPath) {
+				areaPath.classList.add('is-in');
+			}
+
+			renderChartChips(series, values, mode);
+
+			// Pointer read-out: snap to the nearest bucket, keep it in the panel.
+			const body = plot.closest('.stats-chart-body');
+			plot.onpointermove = (event) => {
+				if (!body) return;
+				const rect = plot.getBoundingClientRect();
+				if (!rect.width) return;
+				const ratio = (event.clientX - rect.left) / rect.width;
+				const index = Math.min(values.length - 1, Math.max(0, Math.round(ratio * (values.length - 1))));
+				const point = series[index];
+				if (cursor) {
+					cursor.hidden = false;
+					cursor.style.left = `${(index / Math.max(1, values.length - 1)) * 100}%`;
+					const dot = cursor.firstElementChild;
+					if (dot) dot.style.top = `${(points[index][1] / CHART_HEIGHT) * 100}%`;
+				}
+				if (tooltip) {
+					tooltip.hidden = false;
+					tooltip.innerHTML = `<strong>${escapeHtml(point.tooltip)}</strong><span>${numberFormat.format(point.value)} 次浏览</span>`;
+					const bodyRect = body.getBoundingClientRect();
+					const anchor = rect.left - bodyRect.left + (index / Math.max(1, values.length - 1)) * rect.width;
+					const half = tooltip.offsetWidth / 2;
+					tooltip.style.left = `${Math.max(half + 4, Math.min(bodyRect.width - half - 4, anchor))}px`;
+				}
+			};
+			plot.onpointerleave = () => {
+				if (tooltip) tooltip.hidden = true;
+				if (cursor) cursor.hidden = true;
+			};
+		};
+
+		const setupChartSwitch = () => {
+			const buttons = Array.from(root.querySelectorAll('[data-chart-range]'));
+			if (!buttons.length) return;
+			buttons.forEach((button) => {
+				button.addEventListener('click', () => {
+					const mode = button.dataset.chartRange;
+					if (!mode || mode === chartState.mode) return;
+					chartState.mode = mode;
+					buttons.forEach((other) => {
+						const active = other.dataset.chartRange === mode;
+						other.classList.toggle('is-active', active);
+						other.setAttribute('aria-pressed', String(active));
+					});
+					renderChart(mode);
+				});
+			});
+		};
+
+		/* ---------------- calendar heat map -------------------------------- */
+		const renderCalendar = (dailyMap) => {
+			const grid = $('stats-heat-grid');
+			if (!grid) return;
+			const end = todayStamp();
+			const start = shiftDays(end, -(CALENDAR_DAYS - 1));
+			const leading = (start.getUTCDay() + 6) % 7; // Monday-first columns
+			const gridStart = shiftDays(start, -leading);
+
+			const active = [];
+			dailyMap.forEach((value) => {
+				if (value > 0) active.push(value);
+			});
+			active.sort((a, b) => a - b);
+			const quantile = (ratio) => (active.length ? active[Math.min(active.length - 1, Math.floor(ratio * active.length))] : Number.POSITIVE_INFINITY);
+			const thresholds = [quantile(0.3), quantile(0.6), quantile(0.85)];
+			const levelOf = (value) => {
+				if (value <= 0) return 0;
+				if (value <= thresholds[0]) return 1;
+				if (value <= thresholds[1]) return 2;
+				if (value <= thresholds[2]) return 3;
+				return 4;
+			};
+
+			const cells = [];
+			const months = [];
+			let week = 0;
+			let lastMonth = -1;
+			for (let cursor = gridStart; cursor <= end; cursor = shiftDays(cursor, 7)) {
+				const daysInMonth = shiftDays(cursor, 6).getUTCMonth() === cursor.getUTCMonth();
+				if (cursor.getUTCMonth() !== lastMonth && (daysInMonth || week === 0)) {
+					months.push({ week, label: `${cursor.getUTCMonth() + 1}月` });
+					lastMonth = cursor.getUTCMonth();
+				}
+				for (let day = 0; day < 7; day += 1) {
+					const date = shiftDays(cursor, day);
+					if (date > end || date < start) {
+						cells.push('<i class="stats-heat-cell is-blank"></i>');
+						continue;
+					}
+					const value = dailyMap.get(stampKey(date)) || 0;
+					const hint = value > 0 ? `${numberFormat.format(value)} 次浏览` : '没有访客';
+					const delay = week * 14 + day * 6;
+					cells.push(
+						`<i class="stats-heat-cell" data-level="${levelOf(value)}" style="--d: ${delay}ms" title="${escapeHtml(
+							`${longDate(date)} · ${hint}`,
+						)}"></i>`,
+					);
+				}
+				week += 1;
+			}
+			grid.style.setProperty('--stats-heat-weeks', String(week));
+			grid.setAttribute('role', 'img');
+			grid.setAttribute('aria-label', `近 ${CALENDAR_WEEKS} 周每天的浏览量热力图，颜色越深表示当天来的朋友越多`);
+			grid.innerHTML = cells.join('');
+
+			const monthsNode = $('stats-heat-months');
+			if (monthsNode) {
+				monthsNode.style.setProperty('--stats-heat-weeks', String(week));
+				monthsNode.innerHTML = months.map((month) => `<span style="grid-column: ${month.week + 1}">${month.label}</span>`).join('');
+			}
+
+			// Streaks run backwards from today so "连续" always means "right now".
+			let current = 0;
+			for (let offset = 0; offset < CALENDAR_DAYS; offset += 1) {
+				const value = dailyMap.get(stampKey(shiftDays(end, -offset))) || 0;
+				if (value > 0) current += 1;
+				else if (offset > 0 || value === 0) break;
+			}
+			if (current === 0) {
+				const yesterday = dailyMap.get(stampKey(shiftDays(end, -1))) || 0;
+				if (yesterday > 0) current = 1;
+			}
+			let longest = 0;
+			let running = 0;
+			for (let offset = CALENDAR_DAYS - 1; offset >= 0; offset -= 1) {
+				const value = dailyMap.get(stampKey(shiftDays(end, -offset))) || 0;
+				running = value > 0 ? running + 1 : 0;
+				if (running > longest) longest = running;
+			}
+			// No point repeating "连续 70 天" twice when the run we are living in *is* the record.
+			const streakTail =
+				longest > current
+					? `最长连续 ${numberFormat.format(longest)} 天`
+					: `最长连续也就是现在这 ${numberFormat.format(current)} 天`;
+			const streakLead = current > 0 ? `连续 ${numberFormat.format(current)} 天有人路过 · ` : '';
+			setText(
+				'stats-heat-streak',
+				`${streakLead}一共 ${numberFormat.format(active.length)} 天留下了脚印 · ${streakTail}`,
+			);
+		};
+
+		/* ---------------- 24h rhythm --------------------------------------- */
+		const renderRhythm = (hourly) => {
+			const bars = $('stats-rhythm-bars');
+			if (!bars) return;
+			const totals = new Array(24).fill(0);
+			hourly.forEach((point) => {
+				const hour = new Date(point.x).getUTCHours();
+				if (hour >= 0 && hour < 24) totals[hour] += Number(point.y) || 0;
+			});
+			const grand = totals.reduce((sum, value) => sum + value, 0);
+			if (!grand) {
+				bars.innerHTML = '';
+				setText('stats-rhythm-note', '这段时间的作息表还空着 (｡•́︿•̀｡)');
+				return;
+			}
+			const max = Math.max(...totals, 1);
+			bars.innerHTML = totals
+				.map(
+					(value, hour) =>
+						`<i style="--h: ${Math.max(3, Math.round((value / max) * 100))}%; --d: ${hour * 38}ms" title="${pad2(hour)}:00 – ${pad2(
+							(hour + 1) % 24,
+						)}:00 · ${numberFormat.format(value)} 次浏览"></i>`,
+				)
+				.join('');
+			const peak = totals.indexOf(max);
+			const night = totals.slice(23).concat(totals.slice(0, 6)).reduce((sum, value) => sum + value, 0);
+			setText(
+				'stats-rhythm-note',
+				`最热闹的时段是 ${pad2(peak)}:00 前后，深夜（23–5 点）占了 ${Math.round((night / grand) * 100)}%。`,
+			);
+		};
+
+		/* ---------------- labels ------------------------------------------- */
 		const metricNames = {
-			browser: { chrome: 'Chrome', 'edge-chromium': 'Edge', crios: 'Chrome（iOS）', firefox: 'Firefox', ios: 'iOS 浏览器', 'edge-ios': 'Edge（iOS）', opera: 'Opera' },
-			os: { 'windows 10': 'Windows 10 / 11', 'android os': 'Android', 'mac os': 'macOS' },
+			browser: {
+				chrome: 'Chrome',
+				'edge-chromium': 'Edge',
+				crios: 'Chrome（iOS）',
+				firefox: 'Firefox',
+				ios: 'iOS 浏览器',
+				'edge-ios': 'Edge（iOS）',
+				opera: 'Opera',
+				safari: 'Safari',
+				'mobile safari': 'Safari（iOS）',
+			},
+			os: { 'windows 10': 'Windows 10 / 11', 'android os': 'Android', 'mac os': 'macOS', ios: 'iOS', linux: 'Linux' },
 			device: { laptop: '笔记本电脑', desktop: '台式电脑', mobile: '手机', tablet: '平板设备' },
+			language: {
+				zh: '简体中文',
+				'zh-cn': '简体中文',
+				'zh-hans': '简体中文',
+				'zh-tw': '繁體中文',
+				'zh-hk': '繁體中文',
+				'zh-hant': '繁體中文',
+				en: '英语',
+				'en-us': '英语',
+				'en-gb': '英语',
+				ja: '日语',
+				ko: '韩语',
+				fr: '法语',
+				de: '德语',
+				ru: '俄语',
+				es: '西班牙语',
+			},
 		};
 		const regionNames = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames(['zh-CN'], { type: 'region' }) : null;
 		const subdivisionNames = {
-			CN: { BJ: '北京市', SH: '上海市', TJ: '天津市', CQ: '重庆市', GD: '广东省', HN: '湖南省', HB: '湖北省', ZJ: '浙江省', JS: '江苏省', FJ: '福建省', SC: '四川省', SD: '山东省', HA: '河南省', HE: '河北省', AH: '安徽省', JX: '江西省', GX: '广西壮族自治区', HI: '海南省', YN: '云南省', XZ: '西藏自治区', SN: '陕西省' },
-			US: { CA: '加利福尼亚州', TX: '得克萨斯州', UT: '犹他州', NY: '纽约州', WA: '华盛顿州', OR: '俄勒冈州', FL: '佛罗里达州', IL: '伊利诺伊州', VA: '弗吉尼亚州', IA: '爱荷华州' },
-			JP: { '01': '北海道', '13': '东京都', '14': '神奈川县', '23': '爱知县', '26': '京都府', '27': '大阪府', '28': '兵库县', '40': '福冈县', '47': '冲绳县' },
+			CN: {
+				BJ: '北京市',
+				SH: '上海市',
+				TJ: '天津市',
+				CQ: '重庆市',
+				GD: '广东省',
+				HN: '湖南省',
+				HB: '湖北省',
+				ZJ: '浙江省',
+				JS: '江苏省',
+				FJ: '福建省',
+				SC: '四川省',
+				SD: '山东省',
+				HA: '河南省',
+				HE: '河北省',
+				AH: '安徽省',
+				JX: '江西省',
+				GX: '广西壮族自治区',
+				HI: '海南省',
+				YN: '云南省',
+				XZ: '西藏自治区',
+				SN: '陕西省',
+			},
+			US: {
+				CA: '加利福尼亚州',
+				TX: '得克萨斯州',
+				UT: '犹他州',
+				NY: '纽约州',
+				WA: '华盛顿州',
+				OR: '俄勒冈州',
+				FL: '佛罗里达州',
+				IL: '伊利诺伊州',
+				VA: '弗吉尼亚州',
+				IA: '爱荷华州',
+			},
+			JP: {
+				'01': '北海道',
+				13: '东京都',
+				14: '神奈川县',
+				23: '爱知县',
+				26: '京都府',
+				27: '大阪府',
+				28: '兵库县',
+				40: '福冈县',
+				47: '冲绳县',
+			},
 		};
-		const flagFor = (code) => /^[A-Z]{2}$/.test(code || '') ? String.fromCodePoint(...code.split('').map((char) => 127397 + char.charCodeAt(0))) : '•';
+		// Windows and most desktop browsers still ship no colour flag glyphs, so the
+		// two-letter code is stamped into a tinted badge instead of relying on emoji.
+		const countryBadge = (code) => {
+			const normalized = String(code || '').toUpperCase();
+			return /^[A-Z]{2}$/.test(normalized) ? normalized : '··';
+		};
 		const countryLabel = (code) => {
-			try { return regionNames?.of(code) || code; } catch { return code; }
-		};
-
-		function metricLabel(item, type) {
-			const value = String(item.x || '未知');
-			if (type === 'country') {
-				return countryLabel(value);
+			try {
+				return regionNames?.of(code) || code;
+			} catch {
+				return code;
 			}
+		};
+		const metricLabel = (item, type) => {
+			const value = String(item.x || '未知');
+			if (type === 'country') return countryLabel(value);
 			if (type === 'region') {
 				const [countryCode, ...subdivisionParts] = value.toUpperCase().split('-');
 				const subdivisionCode = subdivisionParts.join('-');
@@ -238,139 +902,477 @@ const UMAMI_SHARE_ID = "1Dc4PAeDKgLAox0M";
 				const subdivision = subdivisionNames[countryCode]?.[subdivisionCode] || subdivisionCode;
 				return `${countryLabel(countryCode)} · ${subdivision}`;
 			}
+			if (type === 'screen') return value.replace(/\s*[x×]\s*/i, ' × ');
 			return metricNames[type]?.[value.toLowerCase()] || value;
-		}
+		};
 
-		function renderMetricList(listId, points, type, totalVisitors) {
-			const list = document.getElementById(listId);
-			if (!list) return;
-			list.replaceChildren();
-			if (!Array.isArray(points) || points.length === 0) {
-				list.innerHTML = '<div class="stats-metric-loading">这里还没有留下足迹 (｡•́︿•̀｡)</div>';
+		/* ---------------- environment donut -------------------------------- */
+		const renderEnvironment = (points, totalVisitors, type) => {
+			const donut = $('stats-donut');
+			const legend = $('stats-env-legend');
+			if (!donut || !legend) return;
+			const list = Array.isArray(points) ? points : [];
+			if (!list.length) {
+				donut.innerHTML = '';
+				legend.innerHTML = '<p class="stats-loading">这里还没有留下足迹 (｡•́︿•̀｡)</p>';
 				return;
 			}
-			const fragment = document.createDocumentFragment();
-			points.forEach((item) => {
-				const value = Number(item.y) || 0;
-				const percent = totalVisitors > 0 ? Math.max(1, Math.round((value / totalVisitors) * 100)) : 0;
-				const row = document.createElement('div');
-				row.className = 'stats-metric-row';
-				const symbol = document.createElement('span');
-				symbol.className = `stats-metric-symbol${type === 'country' ? ' is-flag' : ''}`;
-				symbol.textContent = type === 'country' ? flagFor(String(item.x || '').toUpperCase()) : '✦';
-				const copy = document.createElement('span');
-				copy.className = 'stats-metric-copy';
-				const name = document.createElement('span');
-				name.textContent = metricLabel(item, type);
-				const track = document.createElement('span');
-				track.className = 'stats-metric-track';
-				const bar = document.createElement('span');
-				bar.style.width = `${Math.min(100, percent)}%`;
-				track.appendChild(bar);
-				copy.append(name, track);
-				const count = document.createElement('span');
-				count.className = 'stats-metric-count';
-				count.innerHTML = `<strong>${numberFormat.format(value)}</strong><small>${percent}%</small>`;
-				row.append(symbol, copy, count);
-				fragment.appendChild(row);
-			});
-			list.appendChild(fragment);
-		}
+			const head = list.slice(0, 4).map((item) => ({ label: metricLabel(item, type), value: Number(item.y) || 0 }));
+			const tail = list.slice(4).reduce((sum, item) => sum + (Number(item.y) || 0), 0);
+			if (tail > 0) head.push({ label: '其他', value: tail });
+			const sum = head.reduce((total, item) => total + item.value, 0) || 1;
 
-		function setupMetricTabs(group, listId, datasets, totalVisitors) {
-			const tabs = document.querySelector(`[data-metric-tabs="${group}"]`);
+			donut.innerHTML = `
+				<svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+					<circle class="stats-donut-track" cx="60" cy="60" r="46"></circle>
+					<g transform="rotate(-90 60 60)">
+						${head
+							.map(
+								(item, index) =>
+									`<circle class="stats-donut-seg is-swatch-${index % 5}" data-share="${(item.value / sum) * 100}" cx="60" cy="60" r="46" pathLength="100" stroke-dasharray="0 100"></circle>`,
+							)
+							.join('')}
+					</g>
+				</svg>
+				<div class="stats-donut-copy"><strong>${numberFormat.format(totalVisitors)}</strong><small>位旅人</small></div>`;
+			const segments = Array.from(donut.querySelectorAll('.stats-donut-seg'));
+			let cursor = 0;
+			const target = segments.map((segment) => {
+				const share = Number(segment.dataset.share) || 0;
+				const offset = -cursor;
+				cursor += share;
+				return { share, offset };
+			});
+			const paint = () => {
+				segments.forEach((segment, index) => {
+					segment.setAttribute('stroke-dasharray', `${target[index].share} ${100 - target[index].share}`);
+					segment.setAttribute('stroke-dashoffset', String(target[index].offset));
+				});
+			};
+			if (reduceMotion) paint();
+			else requestAnimationFrame(() => requestAnimationFrame(paint));
+
+			legend.innerHTML = head
+				.map(
+					(item, index) => `
+					<div class="stats-legend-row">
+						<span class="stats-swatch is-swatch-${index % 5}"></span>
+						<span class="stats-legend-name">${escapeHtml(item.label)}</span>
+						<span class="stats-legend-count">${numberFormat.format(item.value)}<small>${Math.round((item.value / sum) * 100)}%</small></span>
+					</div>`,
+				)
+				.join('');
+		};
+
+		/* ---------------- geography list ----------------------------------- */
+		const renderMetricList = (listId, points, type, totalVisitors) => {
+			const list = $(listId);
+			if (!list) return;
+			const rows = Array.isArray(points) ? points : [];
+			if (!rows.length) {
+				list.innerHTML = '<p class="stats-loading">这里还没有留下足迹 (｡•́︿•̀｡)</p>';
+				return;
+			}
+			const max = Math.max(...rows.map((item) => Number(item.y) || 0), 1);
+			list.innerHTML = rows
+				.map((item, index) => {
+					const value = Number(item.y) || 0;
+					const share = totalVisitors > 0 ? Math.max(1, Math.round((value / totalVisitors) * 100)) : 0;
+					const symbol = type === 'country' ? countryBadge(item.x) : '✦';
+					const symbolClass = type === 'country' ? ' is-code' : '';
+					return `
+					<div class="stats-metric-row" style="--d: ${index * 45}ms">
+						<span class="stats-metric-symbol${symbolClass}">${escapeHtml(symbol)}</span>
+						<span class="stats-metric-copy">
+							<span class="stats-metric-name">${escapeHtml(metricLabel(item, type))}</span>
+							<span class="stats-metric-track"><i style="width: ${(value / max) * 100}%"></i></span>
+						</span>
+						<span class="stats-metric-count"><strong>${numberFormat.format(value)}</strong><small>${share}%</small></span>
+					</div>`;
+				})
+				.join('');
+		};
+
+		/* ---------------- favourite corners --------------------------------- */
+		const ROUTE_NAMES = {
+			'': '首页',
+			archive: '归档',
+			series: '系列',
+			bangumi: '番剧墙',
+			about: '关于',
+			stats: '网站统计',
+			dev: '开发手记',
+			travel: '旅行',
+			studios: '动画会社',
+			collection: '小小收藏馆',
+		};
+		const describePath = (path) => {
+			let decoded = String(path || '');
+			try {
+				decoded = decodeURIComponent(decoded);
+			} catch {
+				/* keep the raw path when it is not valid percent-encoding */
+			}
+			const trimmed = decoded.replace(/\/+$/, '');
+			const slug = trimmed.replace(/^\//, '');
+			const post = slug.match(/^posts\/(.+)$/);
+			if (post) return { label: post[1].replace(/[-_]+/g, ' '), href: decoded, isPost: true };
+			if (slug in ROUTE_NAMES) return { label: ROUTE_NAMES[slug], href: trimmed ? `${trimmed}/` : '/', isPost: false };
+			return { label: slug || decoded, href: decoded || '/', isPost: false };
+		};
+		const renderPaths = (points) => {
+			const list = $('stats-paths-list');
+			if (!list) return;
+			const rows = Array.isArray(points) ? points.slice(0, 6) : [];
+			if (!rows.length) {
+				list.innerHTML = '<p class="stats-loading">还没能数清哪个角落最热闹 (｡•́︿•̀｡)</p>';
+				return;
+			}
+			const max = Math.max(...rows.map((item) => Number(item.y) || 0), 1);
+			list.innerHTML = rows
+				.map((item, index) => {
+					const value = Number(item.y) || 0;
+					const info = describePath(item.x);
+					return `
+					<a class="stats-path-row" href="${escapeHtml(info.href)}" style="--d: ${index * 55}ms">
+						<span class="stats-path-rank">${index + 1}</span>
+						<span class="stats-path-main">
+							<span class="stats-path-name">${escapeHtml(info.label)}</span>
+							<span class="stats-path-track"><i style="width: ${(value / max) * 100}%"></i></span>
+						</span>
+						<span class="stats-path-count">${numberFormat.format(value)}<small>次</small></span>
+					</a>`;
+				})
+				.join('');
+		};
+
+		/* ---------------- daily slip ---------------------------------------- */
+		const SLIP_LINES = [
+			(data) => `第 ${numberFormat.format(data.days)} 天的营业，${numberFormat.format(data.visitors)} 位旅人把这里放进了收藏夹。`,
+			(data) => `今天已经有 ${numberFormat.format(data.today)} 次翻页，小站把每一枚脚印都收好了。`,
+			(data) => `平均每天 ${numberFormat.format(data.perDay)} 次翻页，慢慢地，也热闹了起来。`,
+			(data) => `现在的停留率是 ${data.stayRate}%，有 ${data.stayRate}% 的相遇愿意多逛一会儿。`,
+			(data) => `${numberFormat.format(data.pageviews)} 次翻页里，藏着 ${numberFormat.format(data.visitors)} 位朋友的好奇心。`,
+			(data) => `最热闹的那一天来过 ${numberFormat.format(data.peak)} 次，小站悄悄记下来了。`,
+			(data) => `已经写了 ${numberFormat.format(data.words)} 字，够铺满 ${Math.max(1, Math.round(data.words / 3000))} 张手帐纸。`,
+		];
+		const renderSlip = (data, offset) => {
+			const node = $('stats-daily-note');
+			if (!node) return;
+			const seed = Math.abs(new Date().getDate() * 7 + data.visitors + offset) % SLIP_LINES.length;
+			node.textContent = SLIP_LINES[seed](data);
+			if (!reduceMotion) {
+				node.classList.remove('is-flipping');
+				void node.offsetWidth;
+				node.classList.add('is-flipping');
+			}
+		};
+
+		/* ---------------- sections ------------------------------------------ */
+		const renderStats = (stats, dailyMap, hourlyPoints) => {
+			const visitors = Number(stats.visitors) || 0;
+			const pageviews = Number(stats.pageviews) || 0;
+			const visits = Number(stats.visits) || 0;
+			const bounces = Number(stats.bounces) || 0;
+			const totaltime = Number(stats.totaltime) || 0;
+			const comparison = stats.comparison || {};
+			const averageDuration = visits > 0 ? totaltime / visits : 0;
+			const stayRate = visits > 0 ? Math.max(0, Math.min(100, Math.round(100 - (bounces / visits) * 100))) : 0;
+
+			const today = todayStamp();
+			const todayViews = dailyMap.get(stampKey(today)) || 0;
+			const yesterdayViews = dailyMap.get(stampKey(shiftDays(today, -1))) || 0;
+			let activeDays = 0;
+			let peakDay = 0;
+			dailyMap.forEach((value) => {
+				if (value > 0) activeDays += 1;
+				if (value > peakDay) peakDay = value;
+			});
+
+			// 01 · hero
+			const startAt = new Date(`${SITE_START_DATE}T00:00:00+08:00`).getTime();
+			const runningDays = Math.max(0, Math.floor((Date.now() - startAt) / DAY_MS));
+			countUp($('stats-running-days'), runningDays);
+			setText('stats-running-days-copy', numberFormat.format(runningDays));
+			countUp($('stats-today-views'), todayViews);
+			if (todayViews <= 0) {
+				setText('stats-today-delta', yesterdayViews > 0 ? `今天还安静着，昨天来过 ${numberFormat.format(yesterdayViews)} 次` : '今天还很安静，随时欢迎路过');
+			} else if (yesterdayViews > 0) {
+				const delta = Math.round(((todayViews - yesterdayViews) / yesterdayViews) * 100);
+				setText(
+					'stats-today-delta',
+					delta === 0 ? `和昨天差不多，昨天 ${numberFormat.format(yesterdayViews)} 次` : `比昨天${delta > 0 ? '多' : '少'} ${Math.abs(delta)}%，昨天 ${numberFormat.format(yesterdayViews)} 次`,
+				);
+			} else {
+				setText('stats-today-delta', `昨天还没有脚印，今天已经 ${numberFormat.format(todayViews)} 次`);
+			}
+			setText('stats-stay-rate', `${stayRate}%`);
+			const ring = $('stats-ring-value');
+			if (ring) {
+				const offset = 100 - stayRate;
+				if (reduceMotion) ring.setAttribute('stroke-dashoffset', String(offset));
+				else
+					requestAnimationFrame(() => {
+						ring.style.transition = 'stroke-dashoffset 1300ms cubic-bezier(0.22, 1, 0.36, 1)';
+						ring.setAttribute('stroke-dashoffset', String(offset));
+					});
+			}
+			const stayCaption = $('stats-stay-caption');
+			if (stayCaption) stayCaption.textContent = visits > 0 ? '愿意多逛逛' : '还在等第一位';
+
+			// 02 · four numbers
+			const kpis = [
+				{ key: 'visitors', value: visitors, previous: Number(comparison.visitors) || 0 },
+				{ key: 'pageviews', value: pageviews, previous: Number(comparison.pageviews) || 0 },
+				{ key: 'visits', value: visits, previous: Number(comparison.visits) || 0 },
+				{
+					key: 'duration',
+					value: averageDuration,
+					previous: Number(comparison.visits) > 0 ? (Number(comparison.totaltime) || 0) / Number(comparison.visits) : 0,
+					format: formatDuration,
+				},
+			];
+			kpis.forEach((item) => {
+				countUp($(`stats-${item.key}`), item.value, item.format ? (value) => item.format(value) : null);
+				const trend = root.querySelector(`[data-kpi-trend="${item.key}"]`);
+				if (!trend) return;
+				if (!item.value) {
+					trend.textContent = '';
+					trend.hidden = true;
+					return;
+				}
+				trend.hidden = false;
+				if (!item.previous) {
+					trend.textContent = '刚刚开始记录';
+					return;
+				}
+				const delta = ((item.value - item.previous) / item.previous) * 100;
+				const rounded = Math.abs(delta) < 1 ? 0 : Math.round(Math.abs(delta));
+				trend.textContent = rounded === 0 ? '与上一周期持平' : `较上一周期 ${delta > 0 ? '↑' : '↓'} ${rounded}%`;
+				trend.classList.toggle('is-up', delta > 0);
+				trend.classList.toggle('is-down', delta < 0);
+			});
+
+			// 03 · ledger
+			setText('stats-per-visitor', visitors > 0 ? (pageviews / visitors).toFixed(1) : '···');
+			setText('stats-per-day', runningDays > 0 ? numberFormat.format(Math.round(pageviews / runningDays)) : '···');
+			setText('stats-peak-day', peakDay > 0 ? numberFormat.format(peakDay) : '···');
+			setText('stats-total-time', totaltime > 0 ? formatDuration(totaltime) : '···');
+			const bounceNode = $('stats-bounce-note');
+			if (bounceNode) {
+				bounceNode.textContent =
+					visits > 0 ? `有 ${stayRate}% 的相遇愿意继续逛逛，平均停留 ${formatDuration(averageDuration)}` : '正在整理今日手账...';
+			}
+
+			// 04 · pulse
+			setText('stats-pulse-hint', `近 ${CALENDAR_WEEKS} 周 · 一共 ${numberFormat.format(activeDays)} 天留下了脚印`);
+			renderCalendar(dailyMap);
+			renderRhythm(hourlyPoints || []);
+
+			// 05 · footer + slip
+			setText('stats-updated-at', `更新于 ${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', timeZone: TIME_ZONE })}`);
+			setText('stats-chart-summary', `一共收集了 ${numberFormat.format(pageviews)} 枚浏览脚印，来自 ${numberFormat.format(visitors)} 位旅人`);
+
+			const slipButton = $('stats-daily-note-refresh');
+			let slipOffset = 0;
+			const slipData = {
+				days: runningDays,
+				visitors,
+				pageviews,
+				today: todayViews,
+				stayRate,
+				peak: peakDay,
+				perDay: runningDays > 0 ? Math.round(pageviews / runningDays) : 0,
+				words: CONTENT_WORDS,
+			};
+			renderSlip(slipData, slipOffset);
+			if (slipButton && !slipButton.dataset.bound) {
+				slipButton.dataset.bound = '1';
+				slipButton.addEventListener('click', () => {
+					slipOffset += 1;
+					renderSlip(slipData, slipOffset);
+				});
+			}
+		};
+
+		const setupMetricTabs = (group, listId, datasets, totalVisitors) => {
+			const tabs = root.querySelector(`[data-metric-tabs="${group}"]`);
 			if (!tabs) return;
+			const isEnvironment = group === 'environment';
+			const noteNode = $(isEnvironment ? 'stats-env-note' : 'stats-geo-note');
+			// A one-line hand-written footnote under each list, rebuilt with the tab.
+			const noteCopy = (type, points) => {
+				const list = (Array.isArray(points) ? points : [])
+					.map((item) => ({ label: metricLabel(item, type), value: Number(item.y) || 0 }))
+					.filter((item) => item.value > 0)
+					.sort((left, right) => right.value - left.value);
+				const total = list.reduce((sum, item) => sum + item.value, 0);
+				if (!list.length || !total) return '';
+				const share = Math.max(1, Math.round((list[0].value / total) * 100));
+				if (isEnvironment) {
+					const suffix = type === 'browser' ? '浏览器' : type === 'os' ? '系统' : '设备';
+					return `${list[0].label} 占了 ${share}%，是最常见的${suffix}。`;
+				}
+				// Chinese names read better without the inter-word space that Latin
+				// labels (city names, mostly) still need.
+				const lead = /[A-Za-z0-9]$/.test(list[0].label) ? `${list[0].label} ` : list[0].label;
+				if (list.length < 2) return `${lead}的旅人最多（${share}%）。`;
+				const tail = /^[A-Za-z0-9]/.test(list[1].label) ? ` ${list[1].label}` : list[1].label;
+				return `${lead}的旅人最多（${share}%），之后是${tail}。`;
+			};
 			const render = (type) => {
 				tabs.querySelectorAll('button').forEach((button) => {
 					const active = button.dataset.metricType === type;
 					button.classList.toggle('is-active', active);
 					button.setAttribute('aria-pressed', String(active));
 				});
-				renderMetricList(listId, datasets[type] || [], type, totalVisitors);
+				const points = datasets[type] || [];
+				if (isEnvironment) renderEnvironment(points, totalVisitors, type);
+				else renderMetricList(listId, points, type, totalVisitors);
+				if (noteNode) noteNode.textContent = noteCopy(type, points);
 			};
 			tabs.addEventListener('click', (event) => {
 				const button = event.target.closest('button[data-metric-type]');
 				if (button) render(button.dataset.metricType);
 			});
-			render(group === 'environment' ? 'browser' : 'country');
-		}
+			render(isEnvironment ? 'browser' : 'country');
+		};
 
-		async function initStatsGarden() {
-			const root = document.getElementById('stats-garden');
-			if (!root || root.dataset.statsState === 'loading' || root.dataset.statsState === 'loaded') return;
-			root.dataset.statsState = 'loading';
+		/* ---------------- bootstrap ----------------------------------------- */
+		const initStatsGarden = async () => {
+			armReveals();
+			setupChartSwitch();
 
-			const startAt = new Date(SITE_START_DATE).getTime();
 			const endAt = Date.now();
-			const runningDays = Math.max(0, Math.floor((endAt - startAt) / 86400000));
-			setText('stats-running-days', numberFormat.format(runningDays));
+			const today = todayStamp();
+			const dailyStart = shiftDays(today, -(CALENDAR_DAYS - 1));
 
-			try {
-				const shareResponse = await fetch(`${UMAMI_API_BASE}/api/share/${UMAMI_SHARE_ID}`, {
-					headers: { Accept: 'application/json' },
-				});
-				if (!shareResponse.ok) throw new Error(`Share request failed: ${shareResponse.status}`);
-				const share = await shareResponse.json();
-				if (!share.websiteId || !share.token) throw new Error('Share data is incomplete');
-
-				const query = new URLSearchParams({ startAt: String(startAt), endAt: String(endAt) });
-				const chartQuery = new URLSearchParams({
-					startAt: String(startAt),
-					endAt: String(endAt),
-					unit: 'month',
-					timezone: 'Asia/Hong_Kong',
-				});
-				const headers = {
-					Accept: 'application/json',
-					'x-umami-share-token': share.token,
-					'x-umami-share-context': '1',
-				};
-				const metricUrl = (type) => {
-					const metricQuery = new URLSearchParams({ startAt: String(startAt), endAt: String(endAt), type, limit: '12' });
-					return `${UMAMI_API_BASE}/api/websites/${share.websiteId}/metrics?${metricQuery}`;
-				};
-
-				const metricTypes = ['browser', 'os', 'device', 'country', 'region', 'city'];
-				const [statsResponse, chartResponse, ...metricResponses] = await Promise.all([
-					fetch(`${UMAMI_API_BASE}/api/websites/${share.websiteId}/stats?${query}`, { headers }),
-					fetch(`${UMAMI_API_BASE}/api/websites/${share.websiteId}/pageviews?${chartQuery}`, { headers }),
-					...metricTypes.map((type) => fetch(metricUrl(type), { headers })),
-				]);
-				if (!statsResponse.ok || !chartResponse.ok || metricResponses.some((response) => !response.ok)) throw new Error('Statistics request failed');
-
-				const [stats, chartData, ...metricData] = await Promise.all([statsResponse.json(), chartResponse.json(), ...metricResponses.map((response) => response.json())]);
-				const metrics = Object.fromEntries(metricTypes.map((type, index) => [type, metricData[index]]));
-				const visits = Number(stats.visits) || 0;
-				const bounces = Number(stats.bounces) || 0;
-				const averageDuration = visits > 0 ? (Number(stats.totaltime) || 0) / visits : 0;
-				const bounceRate = visits > 0 ? Math.round((bounces / visits) * 100) : 0;
-
-				setText('stats-visitors', numberFormat.format(Number(stats.visitors) || 0));
-				setText('stats-pageviews', numberFormat.format(Number(stats.pageviews) || 0));
-				setText('stats-visits', numberFormat.format(visits));
-				setText('stats-duration', formatDuration(averageDuration));
-				setText('stats-bounce-note', `有 ${100 - bounceRate}% 的相遇愿意继续逛逛`);
-				setText('stats-chart-summary', `一共收集了 ${numberFormat.format(Number(stats.pageviews) || 0)} 枚浏览脚印`);
-				setText('stats-updated-at', `更新于 ${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`);
-				renderChart(Array.isArray(chartData.pageviews) ? chartData.pageviews : []);
-				const totalVisitors = Number(stats.visitors) || 0;
-				setupMetricTabs('environment', 'stats-environment-list', metrics, totalVisitors);
-				setupMetricTabs('location', 'stats-location-list', metrics, totalVisitors);
-
-				const status = document.getElementById('stats-sync-status');
-				if (status) status.lastElementChild.textContent = '脚印已数好';
-				root.dataset.statsState = 'loaded';
-			} catch (error) {
-				console.error('[StatsGarden] Failed to load statistics.', error);
-				const status = document.getElementById('stats-sync-status');
-				if (status) status.lastElementChild.textContent = '数据暂时睡着了';
-				const chart = document.getElementById('stats-chart');
-				if (chart) chart.innerHTML = '<div class="stats-chart-loading">今天的数据在打盹，晚点再来看看吧 (｡•́︿•̀｡)</div>';
-				root.dataset.statsState = 'error';
+			// Day buckets are fetched in windows: Umami drops empty days and
+			// front-truncates very long ranges, so the calendar is stitched
+			// from contiguous chunks instead of one year-long request.
+			const chunkStarts = [];
+			for (let cursor = dailyStart; cursor <= today; cursor = shiftDays(cursor, 61)) {
+				chunkStarts.push(cursor);
 			}
-		}
+
+			let share;
+			try {
+				share = await fetchJson(`${UMAMI_API_BASE}/api/share/${UMAMI_SHARE_ID}`, { Accept: 'application/json' });
+				if (!share?.websiteId || !share?.token) throw new Error('Share data is incomplete');
+			} catch (error) {
+				console.error('[StatsGarden] Failed to load the share token.', error);
+				if (!isLive()) return;
+				const status = $('stats-sync-status');
+				if (status) status.lastElementChild.textContent = '数据暂时睡着了';
+				const chartEmpty = $('stats-chart-empty');
+				if (chartEmpty) chartEmpty.textContent = '今天的数据在打盹，晚点再来看看吧 (｡•́︿•̀｡)';
+				const pathsList = $('stats-paths-list');
+				if (pathsList) pathsList.innerHTML = '<p class="stats-loading">今天的数据在打盹 (｡•́︿•̀｡)</p>';
+				root.dataset.statsState = 'error';
+				return;
+			}
+			if (!isLive()) return;
+
+			const authHeaders = {
+				Accept: 'application/json',
+				'x-umami-share-token': share.token,
+				'x-umami-share-context': '1',
+			};
+			const website = `${UMAMI_API_BASE}/api/websites/${share.websiteId}`;
+			const siteStartAt = new Date(`${SITE_START_DATE}T00:00:00+08:00`).getTime();
+			const range = (start, end, extra = {}) => new URLSearchParams({ startAt: String(start), endAt: String(end), ...extra }).toString();
+			const dayWindow = (start) => {
+				const finish = shiftDays(start, 60);
+				const cappedEnd = finish > today ? today : finish;
+				return { start: localNoonMs(start), end: localNoonMs(cappedEnd), days: Math.round((cappedEnd - start) / DAY_MS) + 1 };
+			};
+
+			const results = await settle({
+				stats: fetchJson(`${website}/stats?${range(siteStartAt, endAt)}`, authHeaders),
+				monthly: fetchJson(`${website}/pageviews?${range(siteStartAt, endAt, { unit: 'month', timezone: TIME_ZONE })}`, authHeaders),
+				hourly: fetchJson(`${website}/pageviews?${range(localNoonMs(shiftDays(today, -29)), localNoonMs(today), { unit: 'hour', timezone: TIME_ZONE })}`, authHeaders),
+				browser: fetchJson(`${website}/metrics?${range(siteStartAt, endAt, { type: 'browser', limit: '5' })}`, authHeaders),
+				os: fetchJson(`${website}/metrics?${range(siteStartAt, endAt, { type: 'os', limit: '5' })}`, authHeaders),
+				device: fetchJson(`${website}/metrics?${range(siteStartAt, endAt, { type: 'device', limit: '5' })}`, authHeaders),
+				country: fetchJson(`${website}/metrics?${range(siteStartAt, endAt, { type: 'country', limit: '6' })}`, authHeaders),
+				region: fetchJson(`${website}/metrics?${range(siteStartAt, endAt, { type: 'region', limit: '6' })}`, authHeaders),
+				city: fetchJson(`${website}/metrics?${range(siteStartAt, endAt, { type: 'city', limit: '6' })}`, authHeaders),
+				paths: fetchJson(`${website}/metrics?${range(siteStartAt, endAt, { type: 'path', limit: '8' })}`, authHeaders),
+				language: fetchJson(`${website}/metrics?${range(siteStartAt, endAt, { type: 'language', limit: '1' })}`, authHeaders),
+				screen: fetchJson(`${website}/metrics?${range(siteStartAt, endAt, { type: 'screen', limit: '1' })}`, authHeaders),
+				...Object.fromEntries(
+					chunkStarts.map((start, index) => {
+						const window = dayWindow(start);
+						return [
+							`day${index}`,
+							fetchJson(`${website}/pageviews?${range(window.start, window.end, { unit: 'day', timezone: TIME_ZONE })}`, authHeaders),
+						];
+					}),
+				),
+			});
+			if (!isLive()) return;
+
+			const dailyMap = new Map();
+			chunkStarts.forEach((start, index) => {
+				const window = dayWindow(start);
+				for (let offset = 0; offset < window.days; offset += 1) {
+					dailyMap.set(stampKey(shiftDays(start, offset)), 0);
+				}
+				const points = results[`day${index}`]?.pageviews;
+				if (!Array.isArray(points)) return;
+				points.forEach((point) => dailyMap.set(stampKey(normalizeStamp(point.x)), Number(point.y) || 0));
+			});
+
+			const monthPoints = (Array.isArray(results.monthly?.pageviews) ? results.monthly.pageviews : []).map((point) => {
+				const date = normalizeStamp(point.x);
+				return {
+					value: Number(point.y) || 0,
+					label: `${date.getUTCMonth() + 1}月`,
+					tooltip: `${date.getUTCFullYear()} 年 ${date.getUTCMonth() + 1} 月`,
+				};
+			});
+
+			const recentSeries = [];
+			for (let offset = RECENT_DAYS - 1; offset >= 0; offset -= 1) {
+				const date = shiftDays(today, -offset);
+				recentSeries.push({
+					date,
+					value: dailyMap.get(stampKey(date)) || 0,
+					label: shortDate(date),
+					tooltip: longDate(date),
+				});
+			}
+			chartState.series.recent = recentSeries;
+			chartState.series.monthly = monthPoints;
+			renderChart(chartState.mode);
+
+			if (results.stats) {
+				renderStats(results.stats, dailyMap, Array.isArray(results.hourly?.pageviews) ? results.hourly.pageviews : []);
+			} else {
+				setText('stats-chart-summary', '数据暂时睡着了，晚点再来看看吧 (｡•́︿•̀｡)');
+				renderCalendar(dailyMap);
+			}
+
+			const totalVisitors = Number(results.stats?.visitors) || 0;
+			setupMetricTabs('environment', 'stats-donut', results, totalVisitors);
+			setupMetricTabs('location', 'stats-location-list', results, totalVisitors);
+			renderPaths(results.paths);
+
+			// Two extra lines of hand-written-bookkeeping flavour: what language the
+			// visitors read in, and how wide their window usually is.
+			const topOf = (type) => (Array.isArray(results[type]) && results[type].length ? results[type][0] : null);
+			const language = topOf('language');
+			const screen = topOf('screen');
+			if (language) setText('stats-top-language', metricLabel(language, 'language'));
+			if (screen) setText('stats-top-screen', metricLabel(screen, 'screen'));
+
+			const status = $('stats-sync-status');
+			if (status) status.lastElementChild.textContent = '脚印已数好';
+			root.dataset.statsState = 'loaded';
+		};
 
 		initStatsGarden();
+
 		const setupStatsHooks = () => {
 			if (window.__fuwariStatsGardenHookRegistered) return;
 			window.__fuwariStatsGardenHookRegistered = true;
@@ -382,272 +1384,1657 @@ const UMAMI_SHARE_ID = "1Dc4PAeDKgLAox0M";
 </script>
 
 <style>
+	/* ==================================================================
+	   Shell
+	   ================================================================== */
 	.stats-garden {
 		position: relative;
 		isolation: isolate;
-		width: min(100%, 72rem);
-		margin: 0 auto;
-		padding: clamp(1.2rem, 3vw, 2.25rem);
-		border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--glass-border));
-		border-radius: 2.2rem;
+		display: grid;
+		gap: clamp(1.05rem, 2.1vw, 1.5rem);
+		width: 100%;
+		padding: clamp(1.1rem, 2.6vw, 2rem) clamp(1rem, 2.6vw, 2.1rem)
+			clamp(1.3rem, 2.8vw, 2.2rem);
+		border: 1px solid color-mix(in srgb, var(--primary) 13%, var(--glass-border));
+		border-radius: clamp(1.2rem, 2.4vw, 1.9rem);
 		background:
-			radial-gradient(circle at 94% 5%, color-mix(in srgb, var(--primary) 15%, transparent) 0 5rem, transparent 11rem),
-			radial-gradient(circle at 3% 94%, color-mix(in srgb, var(--azusa-blue) 9%, transparent) 0 4rem, transparent 10rem),
-			linear-gradient(135deg, color-mix(in srgb, var(--cream-base) 93%, white), color-mix(in srgb, var(--cream-base) 80%, var(--primary) 5%));
+			radial-gradient(120% 74% at 8% 0%, color-mix(in srgb, var(--primary) 11%, transparent), transparent 62%),
+			radial-gradient(96% 62% at 96% 6%, color-mix(in srgb, var(--azusa-blue) 10%, transparent), transparent 58%),
+			linear-gradient(
+				180deg,
+				color-mix(in srgb, var(--cream-base) 92%, white) 0%,
+				color-mix(in srgb, var(--cream-soft) 86%, white) 100%
+			);
 		box-shadow:
-			inset 0 1px 0 rgb(255 255 255 / 0.62),
-			0 1.5rem 4rem color-mix(in srgb, var(--tea) 12%, transparent);
-		overflow: hidden;
+			inset 0 1px 0 rgb(255 255 255 / 0.65),
+			0 1.4rem 3rem color-mix(in srgb, var(--tea) 10%, transparent);
+		color: var(--text-body);
 	}
+	/* A hairline dashed frame keeps the shell feeling hand-drawn. */
 	.stats-garden::before {
+		position: absolute;
+		inset: 0.5rem;
+		z-index: -1;
+		border: 1px dashed color-mix(in srgb, var(--primary) 20%, transparent);
+		border-radius: inherit;
 		content: "";
-		position: absolute;
-		inset: 0.65rem;
-		z-index: -1;
-		border: 1px dashed color-mix(in srgb, var(--primary) 16%, transparent);
-		border-radius: 1.75rem;
 		pointer-events: none;
 	}
-	.stats-decoration {
+	:global(.dark) .stats-garden {
+		border-color: color-mix(in srgb, var(--primary) 22%, transparent);
+		background:
+			radial-gradient(120% 74% at 8% 0%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 62%),
+			radial-gradient(96% 62% at 96% 6%, color-mix(in srgb, var(--azusa-blue) 12%, transparent), transparent 58%),
+			linear-gradient(180deg, color-mix(in srgb, var(--cream-base) 96%, black), color-mix(in srgb, var(--cream-base) 88%, black));
+		box-shadow:
+			inset 0 1px 0 rgb(255 255 255 / 0.06),
+			0 1.4rem 3rem rgb(0 0 0 / 0.32);
+	}
+
+	/* ------------------ ambient layer -------------------------------- */
+	.stats-ambient {
 		position: absolute;
-		z-index: -1;
-		color: color-mix(in srgb, var(--primary) 24%, transparent);
-		font-weight: 900;
+		inset: 0;
+		z-index: -2;
+		overflow: hidden;
+		border-radius: inherit;
 		pointer-events: none;
 	}
-	.stats-decoration-heart { right: 4%; top: 8.5rem; font-size: 2.8rem; transform: rotate(12deg); }
-	.stats-decoration-star { left: 1.3rem; top: 46%; font-size: 1.25rem; }
-	.stats-decoration-note { right: 1.6rem; bottom: 4rem; font-size: 1.5rem; transform: rotate(-12deg); }
-	.stats-header {
-		display: flex;
-		align-items: flex-start;
-		justify-content: space-between;
-		gap: 1.5rem;
-		margin-bottom: 1.75rem;
-		padding: 0.45rem 0.5rem 0;
+	.stats-aurora {
+		position: absolute;
+		border-radius: 50%;
+		filter: blur(2.4rem);
+		opacity: 0.5;
+	}
+	.stats-aurora--rose {
+		top: -6rem;
+		left: -4rem;
+		width: 22rem;
+		height: 22rem;
+		background: radial-gradient(circle, color-mix(in srgb, var(--primary) 26%, transparent), transparent 68%);
+		animation: stats-drift 26s ease-in-out infinite;
+	}
+	.stats-aurora--blue {
+		right: -5rem;
+		bottom: -7rem;
+		width: 24rem;
+		height: 24rem;
+		background: radial-gradient(circle, color-mix(in srgb, var(--azusa-blue) 22%, transparent), transparent 68%);
+		animation: stats-drift 32s ease-in-out -8s infinite reverse;
+	}
+	.stats-doodle {
+		position: absolute;
+		top: var(--y, 20%);
+		left: var(--x, 20%);
+		color: color-mix(in srgb, var(--primary) 46%, transparent);
+		font-size: var(--size, 1.1rem);
+		animation: stats-float var(--dur, 11s) ease-in-out var(--delay, 0s) infinite;
+	}
+	:global(.dark) .stats-doodle {
+		color: color-mix(in srgb, var(--primary) 62%, transparent);
+	}
+
+	/* ==================================================================
+	   01 · Hero
+	   ================================================================== */
+	.stats-hero {
+		position: relative;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 12.5rem;
+		align-items: center;
+		gap: clamp(1.1rem, 3vw, 2.4rem);
+		padding: clamp(0.3rem, 1.4vw, 0.9rem) 0 clamp(0.4rem, 1.6vw, 1rem);
+	}
+	.stats-hero-copy {
+		display: grid;
+		gap: 0.55rem;
+		min-width: 0;
 	}
 	.stats-eyebrow {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.42rem;
+		margin: 0;
+		color: color-mix(in srgb, var(--primary) 88%, var(--text-strong));
+		font-size: 0.72rem;
+		font-weight: 700;
+		letter-spacing: 0.16em;
+	}
+	.stats-eyebrow :global(svg) {
+		width: 0.95rem;
+		height: 0.95rem;
+		animation: stats-twinkle 3.8s ease-in-out infinite;
+	}
+	.stats-eyebrow-face {
+		color: color-mix(in srgb, var(--text-muted) 90%, transparent);
+		font-size: 0.66rem;
+		letter-spacing: 0.06em;
+	}
+	.stats-title {
+		position: relative;
+		margin: 0;
+		color: color-mix(in srgb, var(--text-strong) 92%, var(--primary));
+		font-size: clamp(1.5rem, 3.6vw, 2.35rem);
+		font-weight: 800;
+		letter-spacing: 0.02em;
+		line-height: 1.24;
+	}
+	.stats-title-mark {
+		position: relative;
+		color: var(--primary);
+		white-space: nowrap;
+	}
+	.stats-title-mark::after {
+		position: absolute;
+		bottom: 0.08em;
+		left: -0.06em;
+		width: 0;
+		height: 0.42em;
+		border-radius: 0.4rem;
+		background: linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--primary) 34%, transparent),
+			color-mix(in srgb, var(--tea) 40%, transparent)
+		);
+		content: "";
+		animation: stats-mark-sweep 900ms cubic-bezier(0.22, 1, 0.36, 1) 380ms forwards;
+		z-index: -1;
+	}
+	.stats-hero-sub {
+		margin: 0;
+		color: color-mix(in srgb, var(--text-muted) 94%, transparent);
+		font-size: 0.8rem;
+		line-height: 1.7;
+	}
+	.stats-hero-facts {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem 0.55rem;
+		margin: 0.15rem 0 0;
+		padding: 0;
+		list-style: none;
+	}
+	.stats-fact {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.28rem 0.6rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 24%, transparent);
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--primary) 6%, transparent);
+		color: color-mix(in srgb, var(--text-body) 92%, transparent);
+		font-size: 0.68rem;
+	}
+	.stats-fact :global(svg) {
+		width: 0.85rem;
+		height: 0.85rem;
+		color: color-mix(in srgb, var(--primary) 86%, transparent);
+	}
+	.stats-fact strong {
+		color: color-mix(in srgb, var(--text-strong) 94%, var(--primary));
+		font-size: 0.78rem;
+		font-variant-numeric: tabular-nums;
+	}
+	.stats-fact--muted {
+		border-style: solid;
+		border-color: transparent;
+		background: transparent;
+		color: color-mix(in srgb, var(--text-muted) 96%, transparent);
+	}
+
+	/* hand-written slip ------------------------------------------------ */
+	.stats-slip {
+		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 0.45rem;
-		margin-bottom: 0.45rem;
-		color: var(--primary);
-		font-size: 0.72rem;
-		font-weight: 800;
-		letter-spacing: 0.13em;
+		gap: 0.6rem;
+		margin-top: 0.35rem;
+		padding: 0.62rem 0.75rem 0.62rem 0.85rem;
+		border: 1px solid color-mix(in srgb, var(--tea) 34%, transparent);
+		border-radius: 0.95rem;
+		background:
+			repeating-linear-gradient(
+				180deg,
+				transparent 0 1.42rem,
+				color-mix(in srgb, var(--primary) 12%, transparent) 1.42rem 1.48rem
+			),
+			color-mix(in srgb, var(--cream-soft) 74%, white);
+		rotate: -0.35deg;
+		box-shadow: 0 0.4rem 1rem color-mix(in srgb, var(--tea) 12%, transparent);
 	}
-	.stats-eyebrow :global(svg) { width: 1rem; height: 1rem; }
-	.stats-header h1 {
+	.stats-slip-pin {
+		display: grid;
+		place-items: center;
+		width: 1.55rem;
+		height: 1.55rem;
+		flex: none;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--primary) 14%, transparent);
+		color: color-mix(in srgb, var(--primary) 92%, transparent);
+		font-size: 0.8rem;
+	}
+	.stats-slip-text {
+		flex: 1;
+		min-width: 0;
 		margin: 0;
-		color: color-mix(in srgb, var(--tea) 86%, black);
-		font-size: clamp(1.85rem, 4vw, 3rem);
-		font-weight: 900;
-		letter-spacing: -0.035em;
-		line-height: 1.12;
+		color: color-mix(in srgb, var(--text-body) 94%, transparent);
+		font-size: 0.74rem;
+		line-height: 1.55;
 	}
-	.stats-header p {
-		margin: 0.65rem 0 0;
-		color: color-mix(in srgb, var(--tea) 60%, transparent);
-		font-size: 0.92rem;
+	.stats-slip-text.is-flipping {
+		animation: stats-slip-flip 520ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+	.stats-slip-button {
+		flex: none;
+		padding: 0.24rem 0.55rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 40%, transparent);
+		border-radius: 999px;
+		background: color-mix(in srgb, white 55%, transparent);
+		color: color-mix(in srgb, var(--primary) 92%, var(--text-strong));
+		font-size: 0.64rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition:
+			background 240ms ease,
+			translate 240ms cubic-bezier(0.2, 0.9, 0.28, 1.3);
+	}
+	.stats-slip-button:hover {
+		background: color-mix(in srgb, var(--primary) 14%, white);
+		translate: 0 -1px;
+	}
+	:global(.dark) .stats-slip {
+		background:
+			repeating-linear-gradient(
+				180deg,
+				transparent 0 1.42rem,
+				color-mix(in srgb, var(--primary) 16%, transparent) 1.42rem 1.48rem
+			),
+			color-mix(in srgb, var(--cream-base) 88%, black);
+	}
+	:global(.dark) .stats-slip-button {
+		background: color-mix(in srgb, var(--primary) 14%, transparent);
+	}
+
+	/* ring + status ---------------------------------------------------- */
+	.stats-hero-side {
+		display: grid;
+		justify-items: center;
+		gap: 0.6rem;
+	}
+	.stats-ring {
+		position: relative;
+		display: grid;
+		place-items: center;
+		width: 8.6rem;
+		height: 8.6rem;
+	}
+	.stats-ring :global(svg) {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		rotate: -90deg;
+	}
+	.stats-ring-track {
+		fill: none;
+		stroke: color-mix(in srgb, var(--primary) 13%, transparent);
+		stroke-width: 7;
+	}
+	.stats-ring-value {
+		fill: none;
+		stroke: url(#stats-none);
+		stroke: var(--primary);
+		stroke-linecap: round;
+		stroke-width: 7;
+	}
+	.stats-ring-dot {
+		position: absolute;
+		inset: 1.5rem;
+		border-radius: 50%;
+		background: radial-gradient(circle at 34% 28%, color-mix(in srgb, white 78%, transparent), transparent 62%);
+		animation: stats-breathe 5.4s ease-in-out infinite;
+	}
+	.stats-ring-copy {
+		position: relative;
+		display: grid;
+		justify-items: center;
+		line-height: 1.1;
+	}
+	.stats-ring-copy strong {
+		color: color-mix(in srgb, var(--text-strong) 92%, var(--primary));
+		font-size: 1.42rem;
+		font-weight: 800;
+		font-variant-numeric: tabular-nums;
+	}
+	.stats-ring-copy small {
+		margin-top: 0.12rem;
+		color: color-mix(in srgb, var(--text-muted) 94%, transparent);
+		font-size: 0.6rem;
 	}
 	.stats-sync-status {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.45rem;
-		flex: none;
-		margin-top: 0.5rem;
-		padding: 0.55rem 0.85rem;
-		border: 1px solid color-mix(in srgb, var(--primary) 16%, transparent);
+		gap: 0.35rem;
+		padding: 0.26rem 0.7rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--glass-border));
 		border-radius: 999px;
-		background: rgb(255 255 255 / 0.48);
-		color: color-mix(in srgb, var(--tea) 70%, transparent);
-		font-size: 0.75rem;
-		font-weight: 700;
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+		background: color-mix(in srgb, white 62%, transparent);
+		color: color-mix(in srgb, var(--text-body) 88%, transparent);
+		font-size: 0.64rem;
+	}
+	:global(.dark) .stats-sync-status {
+		background: color-mix(in srgb, var(--cream-base) 72%, black);
 	}
 	.stats-live-dot {
-		width: 0.48rem;
-		height: 0.48rem;
+		width: 0.42rem;
+		height: 0.42rem;
 		border-radius: 50%;
-		background: #72c995;
-		box-shadow: 0 0 0 0.25rem rgb(114 201 149 / 0.13);
-		animation: stats-breathe 1.8s ease-in-out infinite;
+		background: color-mix(in srgb, var(--primary) 88%, transparent);
+		box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 45%, transparent);
+		animation: stats-pulse 2.4s ease-out infinite;
 	}
-	.stats-cards {
+	.stats-stamp {
+		margin: 0;
+		color: color-mix(in srgb, var(--text-muted) 82%, transparent);
+		font-size: 0.56rem;
+		letter-spacing: 0.22em;
+	}
+
+	/* ==================================================================
+	   02 · KPI cards
+	   ================================================================== */
+	.stats-kpis {
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 0.85rem;
+		gap: 0.7rem;
 	}
-	.stats-card {
+	.stats-kpi {
 		position: relative;
-		display: flex;
-		align-items: flex-start;
-		gap: 0.75rem;
-		min-height: 9rem;
-		padding: 1rem;
-		border: 1px solid rgb(255 255 255 / 0.7);
-		border-radius: 1.45rem 1.45rem 1.45rem 0.65rem;
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 0.75rem 1.8rem rgb(116 76 66 / 0.07);
-		transition: transform 220ms ease, box-shadow 220ms ease;
+		display: grid;
+		gap: 0.12rem;
+		padding: 0.95rem 0.95rem 1.05rem;
 		overflow: hidden;
+		border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--glass-border));
+		border-radius: 1.15rem;
+		background: linear-gradient(
+			160deg,
+			color-mix(in srgb, var(--kpi-tint, var(--primary)) 12%, white) 0%,
+			color-mix(in srgb, white 88%, var(--kpi-tint, var(--primary))) 62%
+		);
+		box-shadow: 0 0.5rem 1.3rem color-mix(in srgb, var(--kpi-tint, var(--primary)) 10%, transparent);
+		transition:
+			translate 320ms cubic-bezier(0.16, 1, 0.3, 1),
+			box-shadow 320ms ease;
 	}
-	.stats-card:hover { transform: translateY(-0.25rem) rotate(-0.5deg); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 1rem 2rem rgb(116 76 66 / 0.11); }
-	.stats-card-pink { background: linear-gradient(145deg, rgb(255 247 249 / 0.88), color-mix(in srgb, var(--primary) 9%, white)); }
-	.stats-card-peach { background: linear-gradient(145deg, rgb(255 250 244 / 0.9), color-mix(in srgb, var(--tea) 8%, white)); }
-	.stats-card-purple { background: linear-gradient(145deg, rgb(251 248 255 / 0.9), color-mix(in srgb, var(--mio-purple) 8%, white)); }
-	.stats-card-blue { background: linear-gradient(145deg, rgb(246 251 255 / 0.9), color-mix(in srgb, var(--azusa-blue) 8%, white)); }
-	.stats-card-icon {
+	.stats-kpi::after {
+		position: absolute;
+		top: -40%;
+		left: -60%;
+		width: 45%;
+		height: 180%;
+		background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.5), transparent);
+		content: "";
+		rotate: 12deg;
+		translate: -160% 0;
+		transition: translate 900ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+	.stats-kpi:hover {
+		translate: 0 -0.22rem;
+		box-shadow: 0 0.9rem 1.9rem color-mix(in srgb, var(--kpi-tint, var(--primary)) 18%, transparent);
+	}
+	.stats-kpi:hover::after {
+		translate: 420% 0;
+	}
+	.stats-kpi--rose {
+		--kpi-tint: var(--primary);
+	}
+	.stats-kpi--peach {
+		--kpi-tint: var(--tea);
+	}
+	.stats-kpi--lilac {
+		--kpi-tint: var(--mio-purple);
+	}
+	.stats-kpi--sky {
+		--kpi-tint: var(--azusa-blue);
+	}
+	:global(.dark) .stats-kpi {
+		background: linear-gradient(
+			160deg,
+			color-mix(in srgb, var(--kpi-tint, var(--primary)) 20%, var(--cream-base)) 0%,
+			color-mix(in srgb, var(--cream-base) 92%, black) 66%
+		);
+	}
+	:global(.dark) .stats-kpi::after {
+		background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.14), transparent);
+	}
+	.stats-kpi-icon {
 		display: grid;
 		place-items: center;
-		flex: none;
-		width: 2.4rem;
-		height: 2.4rem;
-		border-radius: 0.9rem;
-		background: rgb(255 255 255 / 0.58);
-		color: var(--primary);
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8);
+		width: 2.1rem;
+		height: 2.1rem;
+		margin-bottom: 0.35rem;
+		border-radius: 0.72rem;
+		background: color-mix(in srgb, var(--kpi-tint, var(--primary)) 18%, white);
+		color: color-mix(in srgb, var(--kpi-tint, var(--primary)) 82%, var(--text-strong));
+		transition: rotate 380ms cubic-bezier(0.2, 0.9, 0.28, 1.4);
 	}
-	.stats-card-icon :global(svg) { width: 1.3rem; height: 1.3rem; }
-	.stats-card-copy { display: flex; min-width: 0; flex-direction: column; }
-	.stats-card-copy > span { color: color-mix(in srgb, var(--tea) 63%, transparent); font-size: 0.75rem; font-weight: 700; }
-	.stats-card-copy strong { margin-top: 0.2rem; color: color-mix(in srgb, var(--tea) 88%, black); font-size: clamp(1.45rem, 3vw, 2rem); font-weight: 900; line-height: 1.15; font-variant-numeric: tabular-nums; }
-	.stats-card-copy small { margin-top: 0.4rem; color: color-mix(in srgb, var(--tea) 44%, transparent); font-size: 0.68rem; line-height: 1.4; }
-	.stats-card-face { position: absolute; right: 0.8rem; bottom: 0.55rem; color: color-mix(in srgb, var(--primary) 46%, transparent); font-size: 0.68rem; font-weight: 700; }
-	.stats-story-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(16rem, 0.8fr); gap: 0.95rem; margin-top: 0.95rem; }
-	.stats-chart-panel,
-	.stats-note-panel {
+	.stats-kpi-icon :global(svg) {
+		width: 1.15rem;
+		height: 1.15rem;
+	}
+	.stats-kpi:hover .stats-kpi-icon {
+		rotate: -8deg;
+	}
+	:global(.dark) .stats-kpi-icon {
+		background: color-mix(in srgb, var(--kpi-tint, var(--primary)) 26%, transparent);
+	}
+	.stats-kpi-label {
+		margin: 0;
+		color: color-mix(in srgb, var(--text-body) 90%, transparent);
+		font-size: 0.68rem;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+	}
+	.stats-kpi-value {
+		margin: 0.1rem 0 0;
+		color: color-mix(in srgb, var(--text-strong) 94%, var(--kpi-tint, var(--primary)));
+		font-size: clamp(1.32rem, 2.6vw, 1.72rem);
+		font-weight: 800;
+		font-variant-numeric: tabular-nums;
+		letter-spacing: -0.01em;
+	}
+	.stats-kpi-note {
+		margin: 0.1rem 0 0;
+		color: color-mix(in srgb, var(--text-muted) 94%, transparent);
+		font-size: 0.62rem;
+	}
+	.stats-kpi-trend {
+		position: absolute;
+		top: 0.8rem;
+		right: 0.8rem;
+		max-width: 62%;
+		color: color-mix(in srgb, var(--text-muted) 88%, transparent);
+		font-size: 0.58rem;
+		text-align: right;
+	}
+	.stats-kpi-trend.is-up {
+		color: color-mix(in srgb, var(--primary) 88%, var(--text-strong));
+	}
+	.stats-kpi-trend.is-down {
+		color: color-mix(in srgb, var(--azusa-blue) 74%, var(--text-body));
+	}
+	.stats-kpi-face {
+		position: absolute;
+		right: 0.75rem;
+		bottom: 0.55rem;
+		color: color-mix(in srgb, var(--kpi-tint, var(--primary)) 52%, transparent);
+		font-size: 0.6rem;
+	}
+
+	/* ==================================================================
+	   Shared panel furniture
+	   ================================================================== */
+	.stats-split {
+		display: grid;
+		grid-template-columns: minmax(0, 1.72fr) minmax(15rem, 0.86fr);
+		gap: 0.7rem;
+	}
+	.stats-trio {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.7rem;
+	}
+	.stats-panel {
 		position: relative;
-		border: 1px solid rgb(255 255 255 / 0.65);
-		background: rgb(255 255 255 / 0.42);
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.68);
+		display: grid;
+		gap: 0.7rem;
+		align-content: start;
+		min-width: 0;
+		padding: clamp(0.9rem, 1.9vw, 1.25rem);
+		border: 1px solid color-mix(in srgb, var(--primary) 13%, var(--glass-border));
+		border-radius: 1.25rem;
+		background:
+			linear-gradient(180deg, color-mix(in srgb, white 70%, transparent), transparent 42%),
+			color-mix(in srgb, var(--cream-base) 80%, white);
+		box-shadow:
+			inset 0 1px 0 rgb(255 255 255 / 0.55),
+			0 0.7rem 1.7rem color-mix(in srgb, var(--tea) 8%, transparent);
 	}
-	.stats-chart-panel { min-width: 0; padding: 1.3rem 1.35rem 1rem; border-radius: 1.55rem; }
-	.stats-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-	.stats-section-kicker { color: var(--primary); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.12em; }
-	.stats-section-heading h2,
-	.stats-note-panel h2 { margin: 0.15rem 0 0; color: color-mix(in srgb, var(--tea) 82%, black); font-size: 1.15rem; font-weight: 850; }
-	.stats-chart-legend { display: flex; align-items: center; gap: 0.4rem; color: color-mix(in srgb, var(--tea) 48%, transparent); font-size: 0.68rem; }
-	.stats-chart-legend span { width: 0.75rem; height: 0.45rem; border-radius: 99px; background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--tea) 55%, var(--primary))); }
-	.stats-chart { display: flex; align-items: stretch; gap: clamp(0.35rem, 1.2vw, 0.8rem); height: 15rem; margin-top: 0.9rem; padding: 0.8rem 0.35rem 0; border-bottom: 1px dashed color-mix(in srgb, var(--primary) 20%, transparent); }
-	.stats-chart-loading { display: grid; place-items: center; width: 100%; color: color-mix(in srgb, var(--tea) 46%, transparent); font-size: 0.78rem; }
-	:global(.stats-chart-item) { display: grid; grid-template-rows: 1.1rem 1fr 1.2rem; align-items: end; flex: 1; min-width: 0; height: 100%; text-align: center; }
-	:global(.stats-chart-value) { color: color-mix(in srgb, var(--tea) 48%, transparent); font-size: 0.58rem; font-variant-numeric: tabular-nums; opacity: 0; transform: translateY(0.25rem); transition: opacity 180ms ease, transform 180ms ease; }
-	:global(.stats-chart-item:hover .stats-chart-value) { opacity: 1; transform: translateY(0); }
-	:global(.stats-chart-track) { position: relative; display: flex; align-items: flex-end; align-self: stretch; justify-content: center; min-height: 0; border-radius: 999px 999px 0 0; background: linear-gradient(to top, color-mix(in srgb, var(--primary) 5%, transparent), transparent 70%); }
-	:global(.stats-chart-bar) { display: block; width: min(68%, 2.3rem); min-height: 0.75rem; border-radius: 999px 999px 0.4rem 0.4rem; background: linear-gradient(to top, color-mix(in srgb, var(--tea) 62%, var(--primary)), color-mix(in srgb, var(--primary) 76%, white)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4), 0 0.4rem 0.8rem color-mix(in srgb, var(--primary) 15%, transparent); transition: filter 180ms ease, transform 180ms ease; }
-	:global(.stats-chart-item:hover .stats-chart-bar) { filter: saturate(1.12); transform: scaleX(1.06); }
-	:global(.stats-chart-month) { color: color-mix(in srgb, var(--tea) 50%, transparent); font-size: 0.62rem; font-weight: 700; }
-	.stats-chart-footer { display: flex; justify-content: space-between; gap: 1rem; margin-top: 0.75rem; color: color-mix(in srgb, var(--tea) 46%, transparent); font-size: 0.64rem; }
-	.stats-note-panel { align-self: stretch; padding: 1.55rem 1.35rem 1.15rem; border-radius: 0.55rem 1.5rem 1.5rem 1.5rem; transform: rotate(0.35deg); }
-	.stats-note-tape { position: absolute; top: -0.55rem; left: 50%; width: 4.8rem; height: 1.25rem; transform: translateX(-50%) rotate(-2deg); background: color-mix(in srgb, var(--primary) 18%, white 52%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6); opacity: 0.8; }
-	.stats-running-copy { margin: 0.85rem 0 1.1rem; color: color-mix(in srgb, var(--tea) 58%, transparent); font-size: 0.8rem; }
-	.stats-running-copy strong { color: var(--primary); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
-	.stats-content-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
-	.stats-content-list div { display: grid; grid-template-columns: 1fr auto auto; align-items: baseline; gap: 0.2rem; padding-bottom: 0.4rem; border-bottom: 1px dashed color-mix(in srgb, var(--primary) 16%, transparent); }
-	.stats-content-list span { color: color-mix(in srgb, var(--tea) 54%, transparent); font-size: 0.7rem; }
-	.stats-content-list strong { color: color-mix(in srgb, var(--tea) 84%, black); font-size: 0.95rem; font-variant-numeric: tabular-nums; }
-	.stats-content-list small { color: color-mix(in srgb, var(--tea) 40%, transparent); font-size: 0.58rem; }
-	.stats-note-bottom { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 1.25rem; color: color-mix(in srgb, var(--tea) 48%, transparent); font-size: 0.65rem; }
-	.stats-note-bottom span:last-child { color: color-mix(in srgb, var(--primary) 60%, transparent); white-space: nowrap; }
-	.stats-insights-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.95rem; margin-top: 0.95rem; }
-	.stats-insight-panel { position: relative; min-width: 0; padding: 1.25rem 1.35rem 1.1rem; border: 1px solid rgb(255 255 255 / 0.65); border-radius: 1.45rem; background: rgb(255 255 255 / 0.42); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.68); overflow: hidden; }
-	.stats-insight-panel::after { content: ""; position: absolute; right: -2.5rem; top: -2.8rem; width: 7rem; height: 7rem; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--primary) 10%, transparent), transparent 68%); pointer-events: none; }
-	.stats-insight-heading { position: relative; z-index: 1; }
-	.stats-insight-heading h2 { margin: 0.15rem 0 0; color: color-mix(in srgb, var(--tea) 82%, black); font-size: 1.15rem; font-weight: 850; }
-	.stats-insight-face { color: color-mix(in srgb, var(--primary) 48%, transparent); font-size: 0.68rem; font-weight: 700; }
-	.stats-metric-tabs { position: relative; z-index: 1; display: flex; gap: 0.25rem; margin: 0.9rem 0 0.7rem; padding-bottom: 0.55rem; border-bottom: 1px dashed color-mix(in srgb, var(--primary) 18%, transparent); }
-	.stats-metric-tabs button { padding: 0.32rem 0.65rem; border-radius: 999px; color: color-mix(in srgb, var(--tea) 52%, transparent); font-size: 0.68rem; font-weight: 750; transition: color 160ms ease, background-color 160ms ease, transform 160ms ease; }
-	.stats-metric-tabs button:hover { color: var(--primary); transform: translateY(-1px); }
-	.stats-metric-tabs button.is-active { color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, white 40%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.62); }
-	.stats-metric-list { display: flex; height: 14rem; min-height: 0; flex-direction: column; gap: 0.3rem; padding-right: 0.2rem; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; -ms-overflow-style: none; }
-	.stats-metric-list::-webkit-scrollbar { display: none; width: 0; height: 0; }
-	.stats-metric-loading { display: grid; min-height: 12rem; place-items: center; color: color-mix(in srgb, var(--tea) 46%, transparent); font-size: 0.75rem; text-align: center; }
-	:global(.stats-metric-row) { display: grid; grid-template-columns: 1.25rem minmax(0, 1fr) auto; align-items: center; gap: 0.55rem; min-height: 2rem; padding: 0.25rem 0.35rem; border-radius: 0.7rem; transition: background-color 160ms ease, transform 160ms ease; }
-	:global(.stats-metric-row:hover) { background: color-mix(in srgb, var(--primary) 6%, transparent); transform: translateX(0.1rem); }
-	:global(.stats-metric-symbol) { display: grid; width: 1.15rem; height: 1.15rem; place-items: center; border-radius: 0.4rem; color: var(--primary); background: color-mix(in srgb, var(--primary) 9%, transparent); font-size: 0.52rem; }
-	:global(.stats-metric-symbol.is-flag) { width: auto; background: transparent; font-size: 0.85rem; }
-	:global(.stats-metric-copy) { display: flex; min-width: 0; flex-direction: column; gap: 0.22rem; }
-	:global(.stats-metric-copy > span:first-child) { overflow: hidden; color: color-mix(in srgb, var(--tea) 72%, black); font-size: 0.72rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-	:global(.stats-metric-track) { display: block; width: 100%; height: 0.22rem; border-radius: 999px; background: color-mix(in srgb, var(--tea) 7%, transparent); overflow: hidden; }
-	:global(.stats-metric-track > span) { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 72%, white), color-mix(in srgb, var(--tea) 52%, var(--primary))); }
-	:global(.stats-metric-count) { display: flex; min-width: 3.8rem; align-items: baseline; justify-content: flex-end; gap: 0.35rem; font-variant-numeric: tabular-nums; }
-	:global(.stats-metric-count strong) { color: color-mix(in srgb, var(--tea) 82%, black); font-size: 0.75rem; }
-	:global(.stats-metric-count small) { color: color-mix(in srgb, var(--tea) 42%, transparent); font-size: 0.58rem; }
-	.stats-footer-note { display: flex; align-items: center; justify-content: center; gap: 0.55rem; margin: 1.25rem 0 -0.2rem; color: color-mix(in srgb, var(--tea) 48%, transparent); font-size: 0.68rem; text-align: center; }
-	.stats-footer-note span:last-child { margin-left: 0.35rem; color: color-mix(in srgb, var(--primary) 55%, transparent); font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em; }
-	@keyframes stats-breathe { 50% { transform: scale(0.82); opacity: 0.65; } }
-	:global(.dark) .stats-garden { background: radial-gradient(circle at 94% 5%, color-mix(in srgb, var(--primary) 13%, transparent) 0 5rem, transparent 11rem), linear-gradient(145deg, color-mix(in srgb, var(--cream-base) 92%, black), color-mix(in srgb, var(--cream-base) 78%, var(--primary) 4%)); }
-	:global(.dark) .stats-card,
-	:global(.dark) .stats-chart-panel,
-	:global(.dark) .stats-note-panel,
-	:global(.dark) .stats-insight-panel,
-	:global(.dark) .stats-sync-status {
-		border-color: rgb(255 255 255 / 0.08);
-		background: color-mix(in srgb, var(--cream-base) 82%, transparent);
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 0.8rem 2rem rgb(0 0 0 / 0.18);
+	:global(.dark) .stats-panel {
+		background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 8%, transparent), transparent 46%),
+			color-mix(in srgb, var(--cream-base) 90%, black);
+		box-shadow:
+			inset 0 1px 0 rgb(255 255 255 / 0.05),
+			0 0.7rem 1.7rem rgb(0 0 0 / 0.28);
 	}
-	:global(.dark) .stats-header h1,
-	:global(.dark) .stats-card-copy strong,
-	:global(.dark) .stats-section-heading h2,
-	:global(.dark) .stats-insight-heading h2,
-	:global(.dark) .stats-note-panel h2,
-	:global(.dark) .stats-content-list strong,
-	:global(.dark) .stats-metric-copy > span:first-child,
-	:global(.dark) .stats-metric-count strong { color: rgb(245 237 232 / 0.9); }
-	:global(.dark) .stats-card-copy > span,
-	:global(.dark) .stats-chart-legend,
-	:global(.dark) .stats-running-copy,
-	:global(.dark) .stats-content-list span { color: rgb(245 237 232 / 0.62); }
-	:global(.dark) .stats-card-copy small,
-	:global(.dark) .stats-chart-loading,
-	:global(.dark) .stats-chart-footer,
-	:global(.dark) .stats-note-bottom,
-	:global(.dark) .stats-metric-loading,
-	:global(.dark) .stats-footer-note { color: rgb(245 237 232 / 0.44); }
-	:global(.dark) .stats-card-icon {
-		background: color-mix(in srgb, var(--primary) 13%, var(--cream-base));
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+	.stats-panel-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 0.7rem;
 	}
-	:global(.dark) .stats-note-tape {
-		background: color-mix(in srgb, var(--primary) 18%, var(--cream-base));
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+	.stats-panel-head h2 {
+		margin: 0.1rem 0 0;
+		color: color-mix(in srgb, var(--text-strong) 94%, var(--primary));
+		font-size: clamp(0.95rem, 1.7vw, 1.1rem);
+		font-weight: 750;
 	}
-	:global(.dark) .stats-metric-tabs button.is-active {
-		background: color-mix(in srgb, var(--primary) 15%, var(--cream-base));
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+	.stats-kicker {
+		margin: 0;
+		color: color-mix(in srgb, var(--primary) 82%, var(--text-muted));
+		font-size: 0.58rem;
+		font-weight: 700;
+		letter-spacing: 0.15em;
 	}
-	:global(.dark) .stats-card:hover {
-		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 1rem 2rem rgb(0 0 0 / 0.26);
+	.stats-panel-hint,
+	.stats-panel-face {
+		margin: 0;
+		color: color-mix(in srgb, var(--text-muted) 92%, transparent);
+		font-size: 0.62rem;
+		text-align: right;
 	}
-	@media (max-width: 900px) {
-		.stats-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-		.stats-story-grid { grid-template-columns: 1fr; }
-		.stats-insights-grid { grid-template-columns: 1fr; }
-		.stats-note-panel { transform: none; }
+	/* Also used inside rows rendered by the panel script, hence `:global`. */
+	:global(.stats-loading) {
+		margin: 0;
+		padding: 0.7rem 0;
+		color: color-mix(in srgb, var(--text-muted) 92%, transparent);
+		font-size: 0.68rem;
 	}
-	@media (max-width: 560px) {
-		.stats-garden { padding: 1.15rem; border-radius: 1.55rem; }
-		.stats-garden::before { inset: 0.42rem; border-radius: 1.25rem; }
-		.stats-header { flex-direction: column; margin-bottom: 1.2rem; padding: 0.2rem; }
-		.stats-header h1 { font-size: 1.75rem; }
-		.stats-sync-status { margin-top: 0; }
-		.stats-cards { grid-template-columns: 1fr; gap: 0.65rem; }
-		.stats-card { min-height: 7.3rem; }
-		.stats-card-copy strong { font-size: 1.7rem; }
-		.stats-chart-panel { padding-inline: 0.8rem; }
-		.stats-chart { height: 12rem; gap: 0.25rem; padding-inline: 0; }
-		:global(.stats-chart-value) { display: none; }
-		:global(.stats-chart-month) { font-size: 0.54rem; }
-		.stats-chart-footer { flex-direction: column; gap: 0.25rem; }
-		.stats-insight-panel { padding-inline: 0.85rem; }
-		.stats-metric-list { height: 12rem; }
-		.stats-footer-note { flex-wrap: wrap; }
-		.stats-footer-note span:last-child { width: 100%; }
+	.stats-switch {
+		display: inline-flex;
+		gap: 0.15rem;
+		padding: 0.16rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--glass-border));
+		border-radius: 999px;
+		background: color-mix(in srgb, white 60%, transparent);
 	}
+	:global(.dark) .stats-switch {
+		background: color-mix(in srgb, var(--cream-base) 74%, black);
+	}
+	.stats-switch button,
+	.stats-tabs button {
+		border: none;
+		background: transparent;
+		color: color-mix(in srgb, var(--text-muted) 96%, transparent);
+		font-size: 0.62rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition:
+			background 240ms ease,
+			color 240ms ease;
+	}
+	.stats-switch button {
+		padding: 0.24rem 0.62rem;
+		border-radius: 999px;
+	}
+	.stats-switch button.is-active {
+		background: color-mix(in srgb, var(--primary) 88%, white);
+		color: white;
+		box-shadow: 0 0.2rem 0.5rem color-mix(in srgb, var(--primary) 26%, transparent);
+	}
+	.stats-tabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem;
+	}
+	.stats-tabs button {
+		padding: 0.24rem 0.6rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 26%, transparent);
+		border-radius: 999px;
+	}
+	.stats-tabs button.is-active {
+		border-style: solid;
+		border-color: color-mix(in srgb, var(--primary) 52%, transparent);
+		background: color-mix(in srgb, var(--primary) 12%, transparent);
+		color: color-mix(in srgb, var(--primary) 92%, var(--text-strong));
+	}
+
+	/* ==================================================================
+	   03 · Footprint chart
+	   ================================================================== */
+	.stats-chart-body {
+		position: relative;
+		display: grid;
+		gap: 0.35rem;
+	}
+	.stats-chart-frame {
+		display: grid;
+		grid-template-columns: 2.3rem minmax(0, 1fr);
+		gap: 0.45rem;
+	}
+	.stats-chart-yaxis {
+		position: relative;
+		height: 15.5rem;
+	}
+	:global(.stats-chart-yaxis span) {
+		position: absolute;
+		right: 0;
+		translate: 0 50%;
+		color: color-mix(in srgb, var(--text-muted) 82%, transparent);
+		font-size: 0.55rem;
+		font-variant-numeric: tabular-nums;
+	}
+	.stats-chart-plot {
+		position: relative;
+		height: 15.5rem;
+		touch-action: pan-y;
+	}
+	/* The chart's svg, its two paths and the grid ticks are all assembled in
+	   script, so they never carry the component's scope attribute: they have to
+	   be reached through :global() or the rules silently do nothing. */
+	:global(.stats-chart-svg) {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		overflow: visible;
+	}
+	:global(.stats-chart-line) {
+		stroke-width: 2.4;
+		stroke-linejoin: round;
+		stroke-linecap: round;
+	}
+	:global(.stats-chart-area) {
+		transform-box: fill-box;
+		transform-origin: 50% 100%;
+	}
+	:global(.stats-chart-area.is-in) {
+		animation: stats-area-grow 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+	}
+	.stats-chart-grid {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+	}
+	:global(.stats-chart-grid span) {
+		position: absolute;
+		left: 0;
+		width: 100%;
+		height: 1px;
+		background-image: linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--primary) 20%, transparent) 0 0.3rem,
+			transparent 0.3rem 0.75rem
+		);
+		background-size: 0.75rem 1px;
+	}
+	.stats-chart-dots {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+	}
+	:global(.stats-chart-dots i) {
+		position: absolute;
+		width: 0.5rem;
+		height: 0.5rem;
+		border: 2px solid color-mix(in srgb, var(--primary) 88%, white);
+		border-radius: 50%;
+		background: white;
+		translate: -50% -50%;
+		animation: stats-dot-in 420ms cubic-bezier(0.34, 1.42, 0.5, 1) var(--d, 0ms) both;
+	}
+	:global(.dark .stats-chart-dots i) {
+		background: color-mix(in srgb, var(--cream-base) 84%, black);
+	}
+	:global(.stats-chart-cursor) {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 1px;
+		background: linear-gradient(
+			180deg,
+			transparent,
+			color-mix(in srgb, var(--primary) 46%, transparent) 12%,
+			color-mix(in srgb, var(--primary) 46%, transparent) 88%,
+			transparent
+		);
+		translate: -0.5px 0;
+		pointer-events: none;
+	}
+	:global(.stats-chart-cursor i) {
+		position: absolute;
+		left: 50%;
+		width: 0.62rem;
+		height: 0.62rem;
+		border: 2.5px solid color-mix(in srgb, var(--primary) 92%, white);
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--cream-soft) 90%, white);
+		translate: -50% -50%;
+		box-shadow: 0 0 0 0.3rem color-mix(in srgb, var(--primary) 16%, transparent);
+	}
+	.stats-chart-xaxis {
+		display: flex;
+		margin-left: 2.75rem;
+	}
+	:global(.stats-chart-xaxis span) {
+		flex: 1;
+		color: color-mix(in srgb, var(--text-muted) 82%, transparent);
+		font-size: 0.55rem;
+		text-align: center;
+		font-variant-numeric: tabular-nums;
+	}
+	:global(.stats-chart-xaxis span:first-child) {
+		text-align: left;
+	}
+	:global(.stats-chart-xaxis span:last-child) {
+		text-align: right;
+	}
+	.stats-chart-tooltip {
+		position: absolute;
+		top: 0.2rem;
+		display: grid;
+		gap: 0.06rem;
+		padding: 0.36rem 0.6rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
+		border-radius: 0.7rem;
+		background: color-mix(in srgb, white 92%, var(--cream-soft));
+		box-shadow: 0 0.5rem 1.2rem color-mix(in srgb, var(--tea) 20%, transparent);
+		translate: -50% 0;
+		pointer-events: none;
+		z-index: 3;
+	}
+	:global(.dark) .stats-chart-tooltip {
+		background: color-mix(in srgb, var(--cream-base) 82%, black);
+	}
+	:global(.stats-chart-tooltip strong) {
+		color: color-mix(in srgb, var(--text-strong) 92%, var(--primary));
+		font-size: 0.66rem;
+		white-space: nowrap;
+	}
+	:global(.stats-chart-tooltip span) {
+		color: color-mix(in srgb, var(--text-muted) 94%, transparent);
+		font-size: 0.6rem;
+		white-space: nowrap;
+	}
+	.stats-chart-empty {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		margin: 0;
+		color: color-mix(in srgb, var(--text-muted) 88%, transparent);
+		font-size: 0.7rem;
+	}
+	.stats-chart-empty[hidden] {
+		display: none;
+	}
+	.stats-chart-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+	.stats-chart-chips:empty {
+		display: none;
+	}
+	:global(.stats-chip) {
+		display: grid;
+		gap: 0.02rem;
+		padding: 0.34rem 0.66rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 24%, transparent);
+		border-radius: 0.8rem;
+		background: color-mix(in srgb, var(--primary) 6%, transparent);
+	}
+	:global(.stats-chip-label) {
+		color: color-mix(in srgb, var(--text-muted) 94%, transparent);
+		font-size: 0.56rem;
+	}
+	:global(.stats-chip strong) {
+		color: color-mix(in srgb, var(--text-strong) 92%, var(--primary));
+		font-size: 0.78rem;
+		font-variant-numeric: tabular-nums;
+	}
+	:global(.stats-chip small) {
+		color: color-mix(in srgb, var(--text-muted) 88%, transparent);
+		font-size: 0.54rem;
+	}
+	.stats-chart-summary {
+		margin: 0;
+		color: color-mix(in srgb, var(--text-muted) 92%, transparent);
+		font-size: 0.64rem;
+	}
+
+	/* ==================================================================
+	   03b · Note panel
+	   ================================================================== */
+	.stats-panel--note {
+		align-content: start;
+		background:
+			repeating-linear-gradient(
+				180deg,
+				transparent 0 1.7rem,
+				color-mix(in srgb, var(--primary) 9%, transparent) 1.7rem 1.76rem
+			),
+			color-mix(in srgb, var(--cream-soft) 72%, white);
+	}
+	:global(.dark) .stats-panel--note {
+		background:
+			repeating-linear-gradient(
+				180deg,
+				transparent 0 1.7rem,
+				color-mix(in srgb, var(--primary) 12%, transparent) 1.7rem 1.76rem
+			),
+			color-mix(in srgb, var(--cream-base) 90%, black);
+	}
+	.stats-note-tape {
+		position: absolute;
+		top: -0.5rem;
+		left: 50%;
+		width: 4.4rem;
+		height: 1.1rem;
+		background:
+			repeating-linear-gradient(
+				115deg,
+				color-mix(in srgb, var(--primary) 20%, transparent) 0 0.28rem,
+				transparent 0.28rem 0.64rem
+			),
+			color-mix(in srgb, var(--primary) 38%, var(--cream-soft));
+		rotate: -2.4deg;
+		translate: -50% 0;
+		opacity: 0.88;
+		border-radius: 0.1rem;
+		box-shadow: 0 0.12rem 0.4rem color-mix(in srgb, var(--primary) 30%, transparent);
+	}
+	.stats-running-copy {
+		margin: 0;
+		color: color-mix(in srgb, var(--text-body) 92%, transparent);
+		font-size: 0.72rem;
+	}
+	.stats-running-copy strong {
+		color: color-mix(in srgb, var(--primary) 88%, var(--text-strong));
+		font-size: 0.95rem;
+		font-variant-numeric: tabular-nums;
+	}
+	.stats-ledger {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.45rem 0.5rem;
+	}
+	.stats-ledger > div {
+		display: flex;
+		align-items: baseline;
+		gap: 0.3rem;
+		padding: 0.4rem 0.55rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 22%, transparent);
+		border-radius: 0.8rem;
+		background: color-mix(in srgb, white 46%, transparent);
+	}
+	:global(.dark) .stats-ledger > div {
+		background: color-mix(in srgb, var(--primary) 8%, transparent);
+	}
+	.stats-ledger span {
+		color: color-mix(in srgb, var(--text-muted) 94%, transparent);
+		font-size: 0.62rem;
+	}
+	.stats-ledger strong {
+		margin-left: auto;
+		color: color-mix(in srgb, var(--text-strong) 92%, var(--primary));
+		font-size: 0.82rem;
+		font-variant-numeric: tabular-nums;
+	}
+	.stats-ledger small {
+		color: color-mix(in srgb, var(--text-muted) 88%, transparent);
+		font-size: 0.56rem;
+	}
+	.stats-ledger--derived > div {
+		border-style: solid;
+		border-color: color-mix(in srgb, var(--tea) 30%, transparent);
+		background: color-mix(in srgb, var(--tea) 8%, transparent);
+	}
+	/* Word-shaped values (语言 / 屏幕) need a smaller voice than numbers. */
+	.stats-ledger > div.is-text strong {
+		overflow: hidden;
+		font-size: 0.72rem;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.stats-panel-note {
+		margin: 0;
+		padding-top: 0.5rem;
+		border-top: 1px dashed color-mix(in srgb, var(--primary) 18%, transparent);
+		color: color-mix(in srgb, var(--text-muted) 94%, transparent);
+		font-size: 0.6rem;
+		line-height: 1.5;
+	}
+	.stats-panel-note:empty {
+		display: none;
+	}
+	/* The two panels beside the path list are rarely the tallest in the row, so
+	   they stack as columns and share the leftover height instead of leaving a
+	   gap under the list. */
+	.stats-panel--env,
+	.stats-panel--geo,
+	.stats-panel--note {
+		display: flex;
+		flex-direction: column;
+	}
+	.stats-panel--env .stats-donut-wrap,
+	.stats-panel--geo .stats-metric-list {
+		margin-block: auto;
+	}
+	.stats-note-bottom {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		margin-top: auto;
+		padding-top: 0.55rem;
+		border-top: 1px dashed color-mix(in srgb, var(--primary) 22%, transparent);
+		color: color-mix(in srgb, var(--text-muted) 94%, transparent);
+		font-size: 0.62rem;
+	}
+
+	/* ==================================================================
+	   04 · Pulse (calendar + rhythm)
+	   ================================================================== */
+	.stats-pulse-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1.62fr) minmax(14rem, 0.82fr);
+		gap: clamp(0.9rem, 2vw, 1.6rem);
+	}
+	.stats-heat {
+		display: grid;
+		gap: 0.3rem;
+		min-width: 0;
+	}
+	.stats-heat-months {
+		display: grid;
+		grid-template-columns: repeat(var(--stats-heat-weeks, 26), minmax(0, 1fr));
+		margin-left: 1.1rem;
+		color: color-mix(in srgb, var(--text-muted) 88%, transparent);
+		font-size: 0.55rem;
+	}
+	:global(.stats-heat-months span) {
+		white-space: nowrap;
+	}
+	.stats-heat-body {
+		display: grid;
+		grid-template-columns: 0.9rem minmax(0, 1fr);
+		gap: 0.25rem;
+	}
+	.stats-heat-weekdays {
+		display: grid;
+		grid-template-rows: repeat(7, minmax(0, 1fr));
+		gap: 3px;
+		color: color-mix(in srgb, var(--text-muted) 82%, transparent);
+		font-size: 0.5rem;
+		text-align: center;
+	}
+	.stats-heat-grid {
+		display: grid;
+		grid-auto-flow: column;
+		grid-template-columns: repeat(var(--stats-heat-weeks, 26), minmax(0, 1fr));
+		grid-template-rows: repeat(7, minmax(0, 1fr));
+		gap: 3px;
+	}
+	:global(.stats-heat-cell) {
+		aspect-ratio: 1;
+		border-radius: 0.24rem;
+		background: color-mix(in srgb, var(--tea) 9%, transparent);
+		transition:
+			scale 220ms cubic-bezier(0.2, 0.9, 0.28, 1.4),
+			box-shadow 220ms ease;
+	}
+	:global(.stats-heat-cell[data-level="0"]) {
+		background: color-mix(in srgb, var(--tea) 9%, transparent);
+	}
+	:global(.stats-heat-cell[data-level="1"]) {
+		background: color-mix(in srgb, var(--primary) 24%, transparent);
+	}
+	:global(.stats-heat-cell[data-level="2"]) {
+		background: color-mix(in srgb, var(--primary) 45%, transparent);
+	}
+	:global(.stats-heat-cell[data-level="3"]) {
+		background: color-mix(in srgb, var(--primary) 68%, transparent);
+	}
+	:global(.stats-heat-cell[data-level="4"]) {
+		background: color-mix(in srgb, var(--primary) 94%, transparent);
+		box-shadow: 0 0 0.4rem color-mix(in srgb, var(--primary) 40%, transparent);
+	}
+	:global(.stats-heat-cell.is-blank) {
+		background: transparent;
+	}
+	:global(.stats-heat-cell:not(.is-blank):hover) {
+		scale: 1.32;
+		box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--primary) 52%, transparent);
+	}
+	:global(.stats-panel--pulse.is-in) :global(.stats-heat-cell:not(.is-blank)) {
+		animation: stats-cell-in 460ms cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0ms) backwards;
+	}
+	.stats-heat-foot {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.4rem 0.8rem;
+		margin-top: 0.2rem;
+		color: color-mix(in srgb, var(--text-muted) 92%, transparent);
+		font-size: 0.6rem;
+	}
+	.stats-heat-legend {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.22rem;
+	}
+	.stats-heat-legend i {
+		width: 0.55rem;
+		height: 0.55rem;
+		border-radius: 0.2rem;
+	}
+	.stats-heat-legend i[data-level="1"] {
+		background: color-mix(in srgb, var(--primary) 24%, transparent);
+	}
+	.stats-heat-legend i[data-level="2"] {
+		background: color-mix(in srgb, var(--primary) 45%, transparent);
+	}
+	.stats-heat-legend i[data-level="3"] {
+		background: color-mix(in srgb, var(--primary) 68%, transparent);
+	}
+	.stats-heat-legend i[data-level="4"] {
+		background: color-mix(in srgb, var(--primary) 94%, transparent);
+	}
+	.stats-rhythm {
+		display: grid;
+		gap: 0.4rem;
+		align-content: start;
+		min-width: 0;
+		padding-left: clamp(0rem, 1.4vw, 0.9rem);
+	}
+	.stats-rhythm-title {
+		margin: 0;
+		color: color-mix(in srgb, var(--text-body) 90%, transparent);
+		font-size: 0.68rem;
+		font-weight: 650;
+	}
+	.stats-rhythm-chart {
+		display: grid;
+		gap: 0.25rem;
+	}
+	.stats-rhythm-bars {
+		display: flex;
+		align-items: flex-end;
+		gap: 2px;
+		height: 8.5rem;
+	}
+	:global(.stats-rhythm-bars i) {
+		flex: 1;
+		height: var(--h, 4%);
+		min-height: 3px;
+		border-radius: 0.2rem 0.2rem 0.1rem 0.1rem;
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--primary) 82%, var(--tea)) 0%,
+			color-mix(in srgb, var(--primary) 30%, transparent) 100%
+		);
+		transform-origin: 50% 100%;
+		transition:
+			background 220ms ease,
+			filter 220ms ease;
+	}
+	:global(.stats-panel--pulse.is-in) :global(.stats-rhythm-bars i) {
+		animation: stats-bar-rise 620ms cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0ms) backwards;
+	}
+	:global(.stats-rhythm-bars i:hover) {
+		background: color-mix(in srgb, var(--primary) 88%, var(--tea));
+		filter: drop-shadow(0 0 0.35rem color-mix(in srgb, var(--primary) 46%, transparent));
+	}
+	.stats-rhythm-axis {
+		display: flex;
+		justify-content: space-between;
+		color: color-mix(in srgb, var(--text-muted) 82%, transparent);
+		font-size: 0.52rem;
+	}
+	.stats-rhythm-note {
+		margin: 0;
+		color: color-mix(in srgb, var(--text-muted) 94%, transparent);
+		font-size: 0.62rem;
+		line-height: 1.6;
+	}
+
+	/* ==================================================================
+	   05 · Corners / environment / map
+	   ================================================================== */
+	.stats-paths-list,
+	.stats-metric-list {
+		display: grid;
+		gap: 0.34rem;
+	}
+	:global(.stats-path-row) {
+		display: grid;
+		grid-template-columns: 1.35rem minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.36rem 0.5rem;
+		border-radius: 0.7rem;
+		color: inherit;
+		text-decoration: none;
+		transition:
+			background 220ms ease,
+			translate 220ms cubic-bezier(0.16, 1, 0.3, 1);
+		animation: stats-row-in 520ms cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0ms) backwards;
+	}
+	:global(.stats-path-row:hover) {
+		background: color-mix(in srgb, var(--primary) 8%, transparent);
+		translate: 0.16rem 0;
+	}
+	:global(.stats-path-rank) {
+		display: grid;
+		place-items: center;
+		width: 1.35rem;
+		height: 1.35rem;
+		border-radius: 0.5rem;
+		background: color-mix(in srgb, var(--primary) 12%, transparent);
+		color: color-mix(in srgb, var(--primary) 88%, var(--text-strong));
+		font-size: 0.6rem;
+		font-weight: 700;
+	}
+	:global(.stats-path-row:nth-child(-n + 3) .stats-path-rank) {
+		background: color-mix(in srgb, var(--primary) 84%, white);
+		color: white;
+	}
+	:global(.stats-path-main) {
+		display: grid;
+		gap: 0.2rem;
+		min-width: 0;
+	}
+	:global(.stats-path-name) {
+		overflow: hidden;
+		color: color-mix(in srgb, var(--text-body) 94%, transparent);
+		font-size: 0.66rem;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	:global(.stats-path-track),
+	:global(.stats-metric-track) {
+		display: block;
+		overflow: hidden;
+		height: 0.28rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--primary) 10%, transparent);
+	}
+	:global(.stats-path-track i),
+	:global(.stats-metric-track i) {
+		display: block;
+		width: 0;
+		height: 100%;
+		border-radius: inherit;
+		background: linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--primary) 58%, transparent),
+			color-mix(in srgb, var(--primary) 92%, var(--tea))
+		);
+	}
+	:global(.stats-panel--paths.is-in) :global(.stats-path-track i) {
+		animation: stats-track-grow 760ms cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0ms) forwards;
+	}
+	:global(.stats-path-count),
+	:global(.stats-metric-count) {
+		display: grid;
+		justify-items: end;
+		line-height: 1.15;
+		color: color-mix(in srgb, var(--text-strong) 90%, var(--primary));
+		font-size: 0.72rem;
+		font-variant-numeric: tabular-nums;
+	}
+	:global(.stats-path-count small),
+	:global(.stats-metric-count small) {
+		color: color-mix(in srgb, var(--text-muted) 86%, transparent);
+		font-size: 0.52rem;
+	}
+
+	/* donut ------------------------------------------------------------ */
+	.stats-donut-wrap {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: center;
+		gap: 0.8rem;
+	}
+	.stats-donut {
+		position: relative;
+		display: grid;
+		place-items: center;
+		width: 7.2rem;
+		height: 7.2rem;
+	}
+	.stats-donut :global(svg) {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+	}
+	:global(.stats-donut-track) {
+		fill: none;
+		stroke: color-mix(in srgb, var(--primary) 10%, transparent);
+		stroke-width: 9;
+	}
+	:global(.stats-donut-seg) {
+		fill: none;
+		stroke: currentcolor;
+		stroke-width: 9;
+		stroke-linecap: butt;
+		transition: stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+	:global(.stats-donut-copy) {
+		position: relative;
+		display: grid;
+		justify-items: center;
+		line-height: 1.15;
+	}
+	:global(.stats-donut-copy strong) {
+		color: color-mix(in srgb, var(--text-strong) 92%, var(--primary));
+		font-size: 1rem;
+		font-weight: 800;
+		font-variant-numeric: tabular-nums;
+	}
+	:global(.stats-donut-copy small) {
+		color: color-mix(in srgb, var(--text-muted) 92%, transparent);
+		font-size: 0.54rem;
+	}
+	:global(.is-swatch-0) {
+		color: var(--primary);
+	}
+	:global(.is-swatch-1) {
+		color: color-mix(in srgb, var(--tea) 78%, var(--primary));
+	}
+	:global(.is-swatch-2) {
+		color: var(--azusa-blue);
+	}
+	:global(.is-swatch-3) {
+		color: var(--mio-purple);
+	}
+	:global(.is-swatch-4) {
+		color: color-mix(in srgb, var(--primary) 48%, var(--tea));
+	}
+	.stats-legend {
+		display: grid;
+		gap: 0.34rem;
+		min-width: 0;
+	}
+	:global(.stats-legend-row) {
+		display: grid;
+		grid-template-columns: 0.6rem minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 0.45rem;
+		font-size: 0.64rem;
+	}
+	:global(.stats-swatch) {
+		width: 0.6rem;
+		height: 0.6rem;
+		border-radius: 0.2rem;
+		background: currentcolor;
+	}
+	:global(.stats-legend-name) {
+		overflow: hidden;
+		color: color-mix(in srgb, var(--text-body) 92%, transparent);
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	:global(.stats-legend-count) {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 0.25rem;
+		color: color-mix(in srgb, var(--text-strong) 88%, var(--primary));
+		font-variant-numeric: tabular-nums;
+	}
+	:global(.stats-legend-count small) {
+		color: color-mix(in srgb, var(--text-muted) 86%, transparent);
+		font-size: 0.54rem;
+	}
+
+	/* metric rows ------------------------------------------------------ */
+	:global(.stats-metric-row) {
+		display: grid;
+		grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.3rem 0.35rem;
+		border-radius: 0.7rem;
+		animation: stats-row-in 520ms cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0ms) backwards;
+	}
+	:global(.stats-metric-row:hover) {
+		background: color-mix(in srgb, var(--primary) 7%, transparent);
+	}
+	:global(.stats-metric-symbol) {
+		display: grid;
+		place-items: center;
+		width: 1.5rem;
+		height: 1.5rem;
+		border-radius: 0.55rem;
+		background: color-mix(in srgb, var(--primary) 10%, transparent);
+		color: color-mix(in srgb, var(--primary) 70%, transparent);
+		font-size: 0.6rem;
+	}
+	:global(.stats-metric-symbol.is-code) {
+		background: color-mix(in srgb, var(--primary) 12%, transparent);
+		color: color-mix(in srgb, var(--primary) 88%, var(--text-strong));
+		font-size: 0.56rem;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+	}
+	:global(.stats-metric-copy) {
+		display: grid;
+		gap: 0.22rem;
+		min-width: 0;
+	}
+	:global(.stats-metric-name) {
+		overflow: hidden;
+		color: color-mix(in srgb, var(--text-body) 94%, transparent);
+		font-size: 0.66rem;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	:global(.stats-panel--geo.is-in) :global(.stats-metric-track i) {
+		animation: stats-track-grow 760ms cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0ms) forwards;
+	}
+
+	/* footer ----------------------------------------------------------- */
+	.stats-footer-note {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35rem 0.7rem;
+		padding-top: 0.35rem;
+		color: color-mix(in srgb, var(--text-muted) 92%, transparent);
+		font-size: 0.62rem;
+	}
+	.stats-footer-meta {
+		color: color-mix(in srgb, var(--text-muted) 82%, transparent);
+	}
+
+	/* ==================================================================
+	   Motion
+	   ================================================================== */
+	:global(html.stats-reveal-pending) .stats-garden [data-reveal]:not(.is-in) {
+		opacity: 0;
+		translate: 0 1.4rem;
+	}
+	.stats-garden [data-reveal].is-in {
+		animation: stats-reveal 780ms cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0ms) backwards;
+	}
+	:global(html.stats-motion:not(.stats-no-enter)) .stats-hero-copy > * {
+		animation: stats-rise 780ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+	}
+	:global(html.stats-motion:not(.stats-no-enter)) .stats-hero-copy > *:nth-child(1) {
+		animation-delay: 40ms;
+	}
+	:global(html.stats-motion:not(.stats-no-enter)) .stats-hero-copy > *:nth-child(2) {
+		animation-delay: 120ms;
+	}
+	:global(html.stats-motion:not(.stats-no-enter)) .stats-hero-copy > *:nth-child(3) {
+		animation-delay: 190ms;
+	}
+	:global(html.stats-motion:not(.stats-no-enter)) .stats-hero-copy > *:nth-child(4) {
+		animation-delay: 260ms;
+	}
+	:global(html.stats-motion:not(.stats-no-enter)) .stats-hero-copy > *:nth-child(5) {
+		animation-delay: 330ms;
+	}
+	:global(html.stats-motion:not(.stats-no-enter)) .stats-hero-side {
+		animation: stats-pop 720ms cubic-bezier(0.34, 1.42, 0.5, 1) 240ms backwards;
+	}
+
+	@keyframes stats-reveal {
+		from {
+			opacity: 0;
+			translate: 0 1.4rem;
+			filter: blur(0.4rem);
+		}
+		to {
+			opacity: 1;
+			translate: 0 0;
+			filter: blur(0);
+		}
+	}
+	@keyframes stats-rise {
+		0% {
+			opacity: 0;
+			translate: 0 1rem;
+			filter: blur(0.4rem);
+		}
+		62% {
+			opacity: 1;
+			filter: blur(0);
+		}
+		100% {
+			opacity: 1;
+			translate: 0 0;
+		}
+	}
+	@keyframes stats-pop {
+		0% {
+			opacity: 0;
+			scale: 0.82;
+		}
+		100% {
+			opacity: 1;
+			scale: 1;
+		}
+	}
+	@keyframes stats-area-grow {
+		from {
+			opacity: 0;
+			transform: scaleY(0.3);
+		}
+		to {
+			opacity: 1;
+			transform: scaleY(1);
+		}
+	}
+	@keyframes stats-dot-in {
+		from {
+			opacity: 0;
+			scale: 0.4;
+		}
+		to {
+			opacity: 1;
+			scale: 1;
+		}
+	}
+	@keyframes stats-cell-in {
+		from {
+			opacity: 0;
+			scale: 0.35;
+		}
+		to {
+			opacity: 1;
+			scale: 1;
+		}
+	}
+	@keyframes stats-bar-rise {
+		from {
+			transform: scaleY(0.04);
+			opacity: 0.2;
+		}
+		to {
+			transform: scaleY(1);
+			opacity: 1;
+		}
+	}
+	@keyframes stats-row-in {
+		from {
+			opacity: 0;
+			translate: -0.4rem 0;
+		}
+		to {
+			opacity: 1;
+			translate: 0 0;
+		}
+	}
+	@keyframes stats-track-grow {
+		from {
+			width: 0;
+		}
+	}
+	@keyframes stats-slip-flip {
+		0% {
+			opacity: 0;
+			rotate: 0deg;
+			translate: 0 0.3rem;
+		}
+		100% {
+			opacity: 1;
+			rotate: 0deg;
+			translate: 0 0;
+		}
+	}
+	@keyframes stats-mark-sweep {
+		to {
+			width: calc(100% + 0.12em);
+		}
+	}
+	@keyframes stats-float {
+		0%,
+		100% {
+			translate: 0 0;
+			opacity: 0.65;
+		}
+		50% {
+			translate: 0 -0.7rem;
+			opacity: 1;
+		}
+	}
+	@keyframes stats-drift {
+		0%,
+		100% {
+			translate: 0 0;
+			scale: 1;
+		}
+		50% {
+			translate: 1.6rem 1.2rem;
+			scale: 1.08;
+		}
+	}
+	@keyframes stats-twinkle {
+		0%,
+		100% {
+			opacity: 0.55;
+			scale: 0.94;
+		}
+		50% {
+			opacity: 1;
+			scale: 1.08;
+		}
+	}
+	@keyframes stats-breathe {
+		0%,
+		100% {
+			opacity: 0.26;
+			scale: 0.94;
+		}
+		50% {
+			opacity: 0.6;
+			scale: 1.04;
+		}
+	}
+	@keyframes stats-pulse {
+		0% {
+			box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 45%, transparent);
+		}
+		70% {
+			box-shadow: 0 0 0 0.42rem transparent;
+		}
+		100% {
+			box-shadow: 0 0 0 0 transparent;
+		}
+	}
+
+	/* ==================================================================
+	   Responsive
+	   ================================================================== */
+	@media (max-width: 1180px) {
+		.stats-trio {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+		.stats-panel--geo {
+			grid-column: span 2;
+		}
+	}
+	@media (max-width: 1024px) {
+		.stats-split,
+		.stats-pulse-grid {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.stats-rhythm {
+			padding-top: 0.6rem;
+			padding-left: 0;
+			border-top: 1px dashed color-mix(in srgb, var(--primary) 20%, transparent);
+		}
+		.stats-ledger {
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+		}
+	}
+	@media (max-width: 860px) {
+		.stats-hero {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.stats-hero-side {
+			justify-items: start;
+			grid-auto-flow: column;
+			align-items: center;
+			gap: 0.9rem;
+		}
+		.stats-ring {
+			width: 6.6rem;
+			height: 6.6rem;
+		}
+		.stats-kpis {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+	@media (max-width: 720px) {
+		.stats-trio {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.stats-panel--geo {
+			grid-column: auto;
+		}
+		.stats-donut-wrap {
+			grid-template-columns: minmax(0, 1fr);
+			justify-items: center;
+		}
+		.stats-legend {
+			width: 100%;
+		}
+	}
+	@media (max-width: 620px) {
+		.stats-ledger {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+		.stats-chart-frame {
+			grid-template-columns: 1.9rem minmax(0, 1fr);
+		}
+		.stats-chart-yaxis,
+		.stats-chart-plot {
+			height: 12rem;
+		}
+		.stats-chart-xaxis {
+			margin-left: 2.35rem;
+		}
+	}
+	@media (max-width: 520px) {
+		.stats-kpis {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.stats-hero-side {
+			grid-auto-flow: row;
+			justify-items: center;
+		}
+	}
+
 	@media (prefers-reduced-motion: reduce) {
-		.stats-live-dot { animation: none; }
-		.stats-card,
-		:global(.stats-chart-bar),
-		:global(.stats-chart-value) { transition: none; }
+		.stats-garden *,
+		.stats-garden *::before,
+		.stats-garden *::after {
+			animation: none !important;
+			transition: none !important;
+		}
+		:global(html.stats-reveal-pending) .stats-garden [data-reveal]:not(.is-in) {
+			opacity: 1;
+			translate: none;
+		}
+		.stats-path-track i,
+		.stats-metric-track i {
+			width: 100%;
+		}
 	}
 </style>
