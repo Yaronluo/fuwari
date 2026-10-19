@@ -1528,7 +1528,7 @@ const socialBrand = (name: string) => {
 			for (let i = 0; i < 25; i++) {
 				this.sakuras.push(new Sakura(this.canvas.width, this.canvas.height));
 			}
-			this.animId = requestAnimationFrame(() => this.animate());
+			this.animId = requestAnimationFrame(() => this.step());
 		}
 
 		updateColor = () => {};
@@ -1543,7 +1543,7 @@ const socialBrand = (name: string) => {
 			this.themeObserver?.disconnect();
 		}
 
-		animate() {
+		step() {
 			const canvas = this.canvas;
 			const ctx = this.ctx;
 			if (!canvas || !ctx) return;
@@ -1552,7 +1552,7 @@ const socialBrand = (name: string) => {
 				petal.update(canvas.width, canvas.height);
 				petal.draw(ctx, this.sakuraColor);
 			}
-			this.animId = requestAnimationFrame(() => this.animate());
+			this.animId = requestAnimationFrame(() => this.step());
 		}
 	}
 
