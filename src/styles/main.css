@@ -28,9 +28,29 @@
         background: var(--glass-panel);
         border-color: var(--glass-border);
         -webkit-backdrop-filter: blur(40px);
+        /* 打开时 visibility 要立刻生效：Tailwind 的 transition 默认含 visibility，
+         * 离散属性要等过渡过半才翻转，期间 panel.querySelector("input").focus() 会被浏览器忽略。
+         * 所以基础态显式列出过渡属性（不含 visibility），收起淡出仍由 .float-panel-closed 接管。 */
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke,
+            opacity, box-shadow, transform, filter, -webkit-backdrop-filter, backdrop-filter;
     }
     .float-panel-closed {
-        @apply -translate-y-1 opacity-0 pointer-events-none
+        @apply -translate-y-1 opacity-0 pointer-events-none;
+        /* 收起后不可见、不可聚焦（只靠 opacity 会让隐藏面板里的按钮还能被 Tab 到） */
+        visibility: hidden;
+        /* !important：面板上常同时挂着 Tailwind 的 transition / transition-all 工具类，
+         * 它们在 utilities 层、会盖掉这里的过渡定义，结果退场直接消失而不是淡出。 */
+        transition-property: opacity, transform, visibility !important;
+        transition-duration: 200ms !important;
+        transition-timing-function: ease !important;
+        /* 让退场淡出播完再真正隐藏 */
+        transition-delay: 0s, 0s, 200ms !important;
+    }
+    /* 主题面板的外层 wrapper 不是 .float-panel，单独补「打开」这一侧的过渡 */
+    #light-dark-panel {
+        transition-property: opacity, transform;
+        transition-duration: 200ms;
+        transition-timing-function: ease;
     }
     .search-panel mark {
         @apply bg-transparent text-[var(--primary)]

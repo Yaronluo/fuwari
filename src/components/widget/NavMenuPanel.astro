@@ -9,7 +9,7 @@ interface Props {
 
 const links = Astro.props.links;
 ---
-<div id="nav-menu-panel" class:list={["float-panel float-panel-closed absolute transition-all right-4 px-2 py-2 pointer-events-auto shadow-xl"]}>
+<div id="nav-menu-panel" class:list={["float-panel float-panel-closed absolute right-4 px-2 py-2 pointer-events-auto shadow-xl md:hidden"]}>
     {links.map((link) => link.children?.length ? (
         <details class="mobile-nav-group">
             <summary class="mobile-nav-summary">

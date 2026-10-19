@@ -1284,13 +1284,15 @@ const RECENT_DAYS = 30;
 			const dayWindow = (start) => {
 				const finish = shiftDays(start, 60);
 				const cappedEnd = finish > today ? today : finish;
-				return { start: localNoonMs(start), end: localNoonMs(cappedEnd), days: Math.round((cappedEnd - start) / DAY_MS) + 1 };
+				// 最后一段覆盖到今天：end 要用「此刻」而不是今天正午，否则中午之后的数据全被切掉。
+				const end = cappedEnd.getTime() === today.getTime() ? endAt : localNoonMs(cappedEnd);
+				return { start: localNoonMs(start), end, days: Math.round((cappedEnd - start) / DAY_MS) + 1 };
 			};
 
 			const results = await settle({
 				stats: fetchJson(`${website}/stats?${range(siteStartAt, endAt)}`, authHeaders),
 				monthly: fetchJson(`${website}/pageviews?${range(siteStartAt, endAt, { unit: 'month', timezone: TIME_ZONE })}`, authHeaders),
-				hourly: fetchJson(`${website}/pageviews?${range(localNoonMs(shiftDays(today, -29)), localNoonMs(today), { unit: 'hour', timezone: TIME_ZONE })}`, authHeaders),
+				hourly: fetchJson(`${website}/pageviews?${range(localNoonMs(shiftDays(today, -29)), endAt, { unit: 'hour', timezone: TIME_ZONE })}`, authHeaders),
 				browser: fetchJson(`${website}/metrics?${range(siteStartAt, endAt, { type: 'browser', limit: '5' })}`, authHeaders),
 				os: fetchJson(`${website}/metrics?${range(siteStartAt, endAt, { type: 'os', limit: '5' })}`, authHeaders),
 				device: fetchJson(`${website}/metrics?${range(siteStartAt, endAt, { type: 'device', limit: '5' })}`, authHeaders),

@@ -58,7 +58,7 @@ function selectPalette(palette: ThemePalette) {
 }
 </script>
 
-<div id="display-setting" class="float-panel float-panel-closed absolute transition-all w-[22rem] max-w-[calc(100vw-2rem)] right-4 px-4 py-4 pointer-events-auto">
+<div id="display-setting" class="float-panel float-panel-closed absolute w-[22rem] max-w-[calc(100vw-2rem)] right-4 px-4 py-4 pointer-events-auto">
 	<div class="flex items-center gap-2 mb-3 ml-1 text-[var(--text-strong)]">
 		<Icon icon="material-symbols:palette-outline-rounded" class="text-xl text-[var(--primary)]" />
 		<div>

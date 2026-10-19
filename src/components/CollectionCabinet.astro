@@ -346,6 +346,9 @@ const padded = (value: number) => String(value).padStart(2, "0");
 
 	class CollectionCabinetElement extends HTMLElement {
 		#swapTimer = 0;
+		#resizeHandler: (() => void) | null = null;
+		#unregisterPageView: (() => void) | null = null;
+		#swupEnableHandler: (() => void) | null = null;
 
 		connectedCallback() {
 			if (this.dataset.ready === "true") return;
@@ -430,16 +433,37 @@ const padded = (value: number) => String(value).padStart(2, "0");
 			placeGlider: (button: HTMLElement | undefined, animate?: boolean) => void,
 			activeButton: () => HTMLElement | undefined,
 		) {
-			const sync = () => placeGlider(activeButton(), false);
+			const sync = () => {
+				if (!this.isConnected) return;
+				placeGlider(activeButton(), false);
+			};
 			requestAnimationFrame(sync);
 			document.fonts?.ready.then(sync).catch(() => {});
-			window.addEventListener("resize", () => placeGlider(activeButton(), false), { passive: true });
+			this.#resizeHandler = sync;
+			window.addEventListener("resize", sync, { passive: true });
 
 			const attachSwupSync = () => {
-				if (window.swup?.hooks) window.swup.hooks.on("page:view", sync);
+				if (window.swup?.hooks) this.#unregisterPageView = window.swup.hooks.on("page:view", sync);
 			};
 			if (window.swup) attachSwupSync();
-			else document.addEventListener("swup:enable", attachSwupSync, { once: true });
+			else {
+				this.#swupEnableHandler = attachSwupSync;
+				document.addEventListener("swup:enable", attachSwupSync, { once: true });
+			}
+		}
+
+		disconnectedCallback() {
+			if (this.#resizeHandler) {
+				window.removeEventListener("resize", this.#resizeHandler);
+				this.#resizeHandler = null;
+			}
+			this.#unregisterPageView?.();
+			this.#unregisterPageView = null;
+			if (this.#swupEnableHandler) {
+				document.removeEventListener("swup:enable", this.#swupEnableHandler);
+				this.#swupEnableHandler = null;
+			}
+			window.clearTimeout(this.#swapTimer);
 		}
 	}
 

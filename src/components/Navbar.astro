@@ -87,14 +87,14 @@ let links: NavBarLink[] = navBarConfig.links.map(
         <!-- Right: Actions -->
         <div class="navbar-pill pointer-events-auto h-14 flex items-center relative isolate rounded-full px-2">
             <div class="nav-bg-blur absolute inset-0 rounded-full bg-white/35 dark:bg-black/45 backdrop-blur-2xl border border-white/40 dark:border-white/10 z-[-1] transition-opacity duration-400"></div>
-            <button aria-label="Search Panel" class="btn-plain scale-animation rounded-lg w-10 h-10 active:scale-90" id="search-switch">
+            <button aria-label="Search Panel" aria-expanded="false" aria-controls="search-panel" class="btn-plain scale-animation rounded-lg w-10 h-10 active:scale-90" id="search-switch">
                 <Icon name="material-symbols:search" class="text-[1.25rem]"></Icon>
             </button>
             <Search client:load></Search>
-            <button aria-label="配色主题" title="配色主题" class="btn-plain scale-animation rounded-lg h-10 w-10 active:scale-90" id="display-settings-switch">
+            <button aria-label="配色主题" title="配色主题" aria-expanded="false" aria-controls="display-setting" class="btn-plain scale-animation rounded-lg h-10 w-10 active:scale-90" id="display-settings-switch">
                 <Icon name="material-symbols:palette-outline" class="text-[1.25rem]"></Icon>
             </button>
-            <button aria-label="Menu" name="Nav Menu" class="btn-plain scale-animation rounded-lg w-10 h-10 active:scale-90 md:!hidden" id="nav-menu-switch">
+            <button aria-label="Menu" name="Nav Menu" aria-expanded="false" aria-controls="nav-menu-panel" class="btn-plain scale-animation rounded-lg w-10 h-10 active:scale-90 md:!hidden" id="nav-menu-switch">
                 <Icon name="material-symbols:menu-rounded" class="text-[1.25rem]"></Icon>
             </button>
         </div>
@@ -236,38 +236,91 @@ let links: NavBarLink[] = navBarConfig.links.map(
 </style>
 
 <script>
+type PanelBinding = { toggleId: string; panelId: string; focusSelector?: string };
+
+// 三个浮动面板共用一套开关逻辑：同一时间只开一个、Esc 关闭、换页前收起。
+const PANEL_BINDINGS: PanelBinding[] = [
+    { toggleId: "search-switch", panelId: "search-panel", focusSelector: "input" },
+    { toggleId: "display-settings-switch", panelId: "display-setting" },
+    { toggleId: "nav-menu-switch", panelId: "nav-menu-panel" },
+];
+
+const isPanelOpen = (panel: HTMLElement) => !panel.classList.contains("float-panel-closed");
+
+function setPanelOpen(panel: HTMLElement, toggleId: string, open: boolean) {
+    panel.classList.toggle("float-panel-closed", !open);
+    // 收起时同时移出焦点顺序与无障碍树，别让隐藏面板里的按钮还能被 Tab 到
+    panel.inert = !open;
+    document.getElementById(toggleId)?.setAttribute("aria-expanded", String(open));
+}
+
+function closeAllPanels() {
+    for (const binding of PANEL_BINDINGS) {
+        const panel = document.getElementById(binding.panelId);
+        if (!panel || !isPanelOpen(panel)) continue;
+        setPanelOpen(panel, binding.toggleId, false);
+    }
+}
+
+function focusInsidePanel(panel: HTMLElement, selector: string) {
+    if (!isPanelOpen(panel)) return;
+    const target = panel.querySelector<HTMLElement>(selector);
+    if (!target) return;
+    target.focus({ preventScroll: true });
+    // 极端情况下这一帧仍然不可见（祖先还在过渡），下一帧再试一次
+    if (document.activeElement !== target) {
+        requestAnimationFrame(() => {
+            if (isPanelOpen(panel)) target.focus({ preventScroll: true });
+        });
+    }
+}
+
+function togglePanel(binding: PanelBinding) {
+    const panel = document.getElementById(binding.panelId);
+    if (!panel) return;
+    const willOpen = !isPanelOpen(panel);
+    closeAllPanels();
+    setPanelOpen(panel, binding.toggleId, willOpen);
+    const focusSelector = binding.focusSelector;
+    if (willOpen && focusSelector) {
+        // 等一次样式重算后再聚焦：同一个 tick 里刚摘掉 .float-panel-closed，
+        // 子元素继承到的 visibility 还是 hidden，focus() 会被浏览器静默忽略。
+        queueMicrotask(() => focusInsidePanel(panel, focusSelector));
+    }
+}
 
 function loadButtonScript() {
-
-    let searchBtn = document.getElementById("search-switch");
-    if (searchBtn) {
-        searchBtn.onclick = function () {
-            let searchPanel = document.getElementById("search-panel");
-            if (searchPanel) {
-                searchPanel.classList.toggle("float-panel-closed");
-            }
-        };
+    for (const binding of PANEL_BINDINGS) {
+        const toggle = document.getElementById(binding.toggleId);
+        if (!toggle) continue;
+        toggle.onclick = () => togglePanel(binding);
+        const panel = document.getElementById(binding.panelId);
+        if (panel) setPanelOpen(panel, binding.toggleId, isPanelOpen(panel));
     }
 
-    let settingBtn = document.getElementById("display-settings-switch");
-    if (settingBtn) {
-        settingBtn.onclick = function () {
-            let settingPanel = document.getElementById("display-setting");
-            if (settingPanel) {
-                settingPanel.classList.toggle("float-panel-closed");
-            }
-        };
-    }
+    // Esc 关闭当前展开的面板，并把焦点还给它的开关
+    document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        for (const binding of PANEL_BINDINGS) {
+            const panel = document.getElementById(binding.panelId);
+            if (!panel || !isPanelOpen(panel)) continue;
+            setPanelOpen(panel, binding.toggleId, false);
+            document.getElementById(binding.toggleId)?.focus();
+            event.stopPropagation();
+            return;
+        }
+    });
 
-    let menuBtn = document.getElementById("nav-menu-switch");
-    if (menuBtn) {
-        menuBtn.onclick = function () {
-            let menuPanel = document.getElementById("nav-menu-panel");
-            if (menuPanel) {
-                menuPanel.classList.toggle("float-panel-closed");
-            }
-        };
-    }
+    // 面板里的链接会触发换页：立刻收起，避免面板盖住新页面
+    document.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        if (!target.closest(".float-panel")) return;
+        if (target.closest("a[href]")) closeAllPanels();
+    });
+
+    // 兜底：任何来源的软导航结束后都保证面板是收起的
+    document.addEventListener("astro:page-load", closeAllPanels);
 
     const navContainer = document.getElementById('nav-menu-container');
     const indicator = document.getElementById('nav-indicator');

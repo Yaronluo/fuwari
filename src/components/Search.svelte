@@ -101,7 +101,7 @@ left-1/2 -translate-x-1/2 shadow-xl rounded-2xl p-2 z-50"
 style="top: 5rem;">
 
     <!-- search bar inside panel -->
-    <div id="search-bar-inside" class="flex relative transition-all items-center h-11 rounded-xl
+    <div id="search-bar-inside" class="flex relative transition-colors items-center h-11 rounded-xl
       bg-black/[0.04] hover:bg-black/[0.06] focus-within:bg-black/[0.06]
       dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10
   ">
