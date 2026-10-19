@@ -1,196 +1,2598 @@
 ---
-import { UNCATEGORIZED } from '@constants/constants'
-import { getCategoryList, getSortedPosts, getTagList } from '../utils/content-utils'
-import { getPostUrlBySlug, getCategoryUrl, getTagUrl } from '../utils/url-utils'
-import { Icon } from 'astro-icon/components'
+import { UNCATEGORIZED } from "@constants/constants";
+import { Icon } from "astro-icon/components";
+import getReadingTime from "reading-time";
+import {
+	getCategoryList,
+	getSiteContentStats,
+	getSortedPosts,
+	getTagList,
+} from "../utils/content-utils";
+import {
+	getCategoryUrl,
+	getPostUrlBySlug,
+	getTagUrl,
+	url,
+} from "../utils/url-utils";
 
 interface Props {
-    keyword?: string
-    tags?: string[]
-    categories?: string[]
+	keyword?: string;
+	tags?: string[];
+	categories?: string[];
 }
 
-let posts = await getSortedPosts()
-const categories = await getCategoryList()
-const tags = await getTagList()
+const posts = await getSortedPosts();
+const categories = await getCategoryList();
+const tags = await getTagList();
+const siteStats = await getSiteContentStats();
 
+/* 星标里最亮的那颗：出现次数最多的标签 */
+const starTag = tags.length
+	? tags.reduce((best, tag) => (tag.count > best.count ? tag : best))
+	: null;
+const starTagPosts = starTag
+	? posts.filter((post) => (post.data.tags || []).includes(starTag.name))
+	: [];
+
+type Post = (typeof posts)[number];
+
+/* ---------------------------------------------------------------- helpers */
+const pad = (value: number) => String(value).padStart(2, "0");
+const dateOf = (post: Post) => new Date(post.data.published);
+const shortDate = (post: Post) =>
+	`${pad(dateOf(post).getMonth() + 1)}.${pad(dateOf(post).getDate())}`;
+const fullDate = (post: Post) =>
+	`${dateOf(post).getFullYear()}-${shortDate(post)}`;
+const weekdayFmt = new Intl.DateTimeFormat("zh-CN", { weekday: "short" });
+const minutesOf = (post: Post) =>
+	Math.max(1, Math.round(getReadingTime(post.body || "").minutes));
+const numberFmt = new Intl.NumberFormat("en-US");
+
+const byDate = [...posts].sort(
+	(a, b) => dateOf(b).getTime() - dateOf(a).getTime(),
+);
+const newest = byDate[0];
+const oldest = byDate[byDate.length - 1];
+const pinned = posts.find((post) => post.data.pinned);
+
+const totalMinutes = posts.reduce((sum, post) => sum + minutesOf(post), 0);
+const totalWords = siteStats.wordCount;
+
+/** 每条「领地 / 线路」都有自己的颜色，颜色跟着分类名走，排序变化也不会串色。 */
+const TONES = [
+	"var(--primary)",
+	"var(--azusa-blue)",
+	"var(--mio-purple)",
+	"var(--tea)",
+];
+const toneOf = (name: string) => {
+	const index = categories.findIndex((category) => category.name === name);
+	return index >= 0 ? TONES[index % TONES.length] : TONES[0];
+};
+
+/* ------------------------------------------------------------ series map */
 interface Series {
-    count: number
-    name: string
-    posts: typeof posts
+	count: number;
+	name: string;
+	posts: Post[];
 }
 
-const groups: { category: string; series: Series[] }[] = (() => {
-    const groupedSeries = posts.reduce(
-        (grouped: { [category: string]: {[seriesName: string]: Series} }, post) => {
-            const category = post.data.category || UNCATEGORIZED
-            const series = post.data.series || UNCATEGORIZED
-			if (category === UNCATEGORIZED || series === UNCATEGORIZED) {
-                return grouped
-            }
-            if (!grouped[category]) {
-                grouped[category] = {}
-            }
-            if (!grouped[category][series]) {
-                grouped[category][series] = {
-                    count: 0,
-                    name: series,
-                    posts: [],
-                }
-            }
-            grouped[category][series].count++
-            grouped[category][series].posts.push(post)
-            return grouped
-        },
-        {},
-    )
+const groups = (() => {
+	const grouped: { [category: string]: { [seriesName: string]: Series } } = {};
 
-    // convert the object to an array
-    const groupedSeriesArray = Object.keys(groupedSeries).map(key => ({
-        category: key,
-        series: Object.values(groupedSeries[key]),
-    }))
+	for (const post of posts) {
+		const category = post.data.category || UNCATEGORIZED;
+		const series = post.data.series || UNCATEGORIZED;
+		if (category === UNCATEGORIZED || series === UNCATEGORIZED) continue;
+		if (!grouped[category]) grouped[category] = {};
+		if (!grouped[category][series])
+			grouped[category][series] = { count: 0, name: series, posts: [] };
+		grouped[category][series].count++;
+		grouped[category][series].posts.push(post);
+	}
 
-    return groupedSeriesArray
-})()
+	return Object.keys(grouped).map((category) => {
+		// 线路上的站点按时间正序：从第一篇一路读到最新一篇。
+		const seriesList = Object.values(grouped[category]).map((series) => ({
+			...series,
+			posts: [...series.posts].sort(
+				(a, b) => dateOf(a).getTime() - dateOf(b).getTime(),
+			),
+		}));
+		return {
+			category,
+			series: seriesList,
+			postCount: seriesList.reduce((sum, series) => sum + series.count, 0),
+		};
+	});
+})();
 
-const seriesCount = groups.reduce((count, group) => count + group.series.length, 0)
+const seriesCount = groups.reduce((sum, group) => sum + group.series.length, 0);
+
+/* ------------------------------------------------------------- hero data */
+const heroStats = [
+	{
+		icon: "material-symbols:description-outline-rounded",
+		value: posts.length,
+		suffix: "篇文章",
+	},
+	{ icon: "material-symbols:route", value: seriesCount, suffix: "条线路" },
+	{
+		icon: "material-symbols:folder-open-outline-rounded",
+		value: categories.length,
+		suffix: "片领地",
+	},
+	{
+		icon: "material-symbols:tag-rounded",
+		value: tags.length,
+		suffix: "枚星标",
+	},
+	{
+		icon: "material-symbols:stylus-note-outline-rounded",
+		value: totalWords,
+		suffix: "字",
+	},
+	{
+		icon: "material-symbols:timer-outline-rounded",
+		value: totalMinutes,
+		suffix: "分钟",
+	},
+];
+
+const jumpLinks = [
+	{
+		href: "#map-start",
+		icon: "material-symbols:near-me-outline-rounded",
+		label: "从这里出发",
+		hint: "3 个入口",
+	},
+	{
+		href: "#map-routes",
+		icon: "material-symbols:route",
+		label: "系列路线",
+		hint: `${seriesCount} 条`,
+	},
+	{
+		href: "#map-territory",
+		icon: "material-symbols:folder-open-outline-rounded",
+		label: "分类 · 标签",
+		hint: `${categories.length} + ${tags.length}`,
+	},
+	{
+		href: "#map-timeline",
+		icon: "material-symbols:timeline",
+		label: "时间航线",
+		hint: `${posts.length} 站`,
+	},
+];
+
+/** 星图上的坐标点：前几个分类按文章数量落在地图上，虚线把它们连成一条游览路线。 */
+const PIN_SPOTS = [
+	{ x: 22, y: 27 },
+	{ x: 45, y: 16 },
+	{ x: 64, y: 31 },
+	{ x: 30, y: 62 },
+	{ x: 55, y: 55 },
+	{ x: 70, y: 76 },
+];
+const atlasPins = [...categories]
+	.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+	.slice(0, PIN_SPOTS.length)
+	.map((category, index) => ({
+		...category,
+		...PIN_SPOTS[index],
+		tone: toneOf(category.name),
+	}));
+
+const atlasPath =
+	atlasPins.length > 1
+		? atlasPins
+				.map((pin, index) => `${index === 0 ? "M" : "L"} ${pin.x} ${pin.y}`)
+				.join(" ")
+		: "M 14 78 L 32 30 L 58 20 L 86 44";
+
+/* --------------------------------------------------------- start entries */
+interface StartCard {
+	key: string;
+	label: string;
+	icon: string;
+	note: string;
+	tone: string;
+	post: Post;
+}
+
+const startCards: StartCard[] = [];
+const usedSlugs = new Set<string>();
+const addStartCard = (card: StartCard) => {
+	if (usedSlugs.has(card.post.slug)) return;
+	usedSlugs.add(card.post.slug);
+	startCards.push(card);
+};
+
+if (pinned) {
+	addStartCard({
+		key: "pinned",
+		label: "先看这里",
+		icon: "material-symbols:push-pin",
+		note: "第一次来？从这篇开始就好～",
+		tone: "var(--primary)",
+		post: pinned,
+	});
+}
+if (newest) {
+	addStartCard({
+		key: "newest",
+		label: "最新更新",
+		icon: "material-symbols:bolt-outline-rounded",
+		note: "刚出炉的一篇，还热乎着。",
+		tone: "var(--azusa-blue)",
+		post: newest,
+	});
+}
+if (oldest) {
+	addStartCard({
+		key: "oldest",
+		label: "从零开始",
+		icon: "material-symbols:flag-outline-rounded",
+		note: "这里藏着这个博客最早的足迹。",
+		tone: "var(--mio-purple)",
+		post: oldest,
+	});
+}
+if (startCards.length < 3) {
+	const longest = [...posts].sort(
+		(a, b) => (b.body?.length || 0) - (a.body?.length || 0),
+	)[0];
+	if (longest) {
+		addStartCard({
+			key: "longest",
+			label: "最长的一篇",
+			icon: "material-symbols:auto-stories-outline-rounded",
+			note: "泡杯茶，慢慢读完它。",
+			tone: "var(--tea)",
+			post: longest,
+		});
+	}
+}
+
+/* ------------------------------------------------------- shuffle machine */
+const shufflePool = posts.map((post) => ({
+	slug: post.slug,
+	title: post.data.title,
+	url: getPostUrlBySlug(post.slug),
+	note:
+		(post.data.description || "").replace(/\s+/g, " ").slice(0, 56) ||
+		`收录在「${post.data.category || UNCATEGORIZED}」里的一篇。`,
+	date: shortDate(post),
+	minutes: minutesOf(post),
+}));
+// 初始那篇不要和上面几张推荐卡重复，否则会出现两张一模一样的卡片。
+const shuffleSeedIndex = Math.max(
+	0,
+	shufflePool.findIndex((item) => !usedSlugs.has(item.slug)),
+);
+const shuffleSeed = shufflePool[shuffleSeedIndex];
+
+/* -------------------------------------------------------------- timeline */
+const timeline = (() => {
+	const years: { year: string; posts: Post[] }[] = [];
+	for (const post of byDate) {
+		const year = String(dateOf(post).getFullYear());
+		let bucket = years[years.length - 1];
+		if (!bucket || bucket.year !== year) {
+			bucket = { year, posts: [] };
+			years.push(bucket);
+		}
+		bucket.posts.push(post);
+	}
+	return years;
+})();
+
+const territoryList = [...categories].sort(
+	(a, b) => b.count - a.count || a.name.localeCompare(b.name),
+);
+
+/* 背景里飘着的小装饰，只出现在页面两侧的留白处 */
+const doodles = [
+	{
+		char: "✦",
+		x: 3,
+		y: 8,
+		size: 1.15,
+		rotate: -8,
+		duration: 13,
+		delay: 0,
+		tone: "var(--primary)",
+	},
+	{
+		char: "✧",
+		x: 96.5,
+		y: 5,
+		size: 0.95,
+		rotate: 12,
+		duration: 15,
+		delay: 1.2,
+		tone: "var(--azusa-blue)",
+	},
+	{
+		char: "♡",
+		x: 2.4,
+		y: 23,
+		size: 0.9,
+		rotate: 6,
+		duration: 12,
+		delay: 0.6,
+		tone: "var(--primary)",
+	},
+	{
+		char: "˚₊",
+		x: 97,
+		y: 30,
+		size: 0.85,
+		rotate: -6,
+		duration: 16,
+		delay: 1.8,
+		tone: "var(--mio-purple)",
+	},
+	{
+		char: "✿",
+		x: 2.8,
+		y: 46,
+		size: 1,
+		rotate: 10,
+		duration: 14,
+		delay: 0.9,
+		tone: "var(--tea)",
+	},
+	{
+		char: "☁",
+		x: 96.8,
+		y: 55,
+		size: 1.1,
+		rotate: -10,
+		duration: 18,
+		delay: 0.3,
+		tone: "var(--azusa-blue)",
+	},
+	{
+		char: "୨୧",
+		x: 2.6,
+		y: 69,
+		size: 0.8,
+		rotate: 8,
+		duration: 13,
+		delay: 1.5,
+		tone: "var(--primary)",
+	},
+	{
+		char: "✦",
+		x: 97,
+		y: 78,
+		size: 0.95,
+		rotate: -12,
+		duration: 15,
+		delay: 0.4,
+		tone: "var(--mio-purple)",
+	},
+	{
+		char: "⌇",
+		x: 3,
+		y: 89,
+		size: 0.95,
+		rotate: 4,
+		duration: 17,
+		delay: 1.1,
+		tone: "var(--tea)",
+	},
+	{
+		char: "☆",
+		x: 96.2,
+		y: 95,
+		size: 0.85,
+		rotate: 14,
+		duration: 12,
+		delay: 2,
+		tone: "var(--primary)",
+	},
+];
 ---
 
 <div class="article-map max-w-5xl mx-auto">
-    <header class="map-hero onload-animation">
-        <div class="map-stickers" aria-hidden="true"><span>✦</span><span>♡</span><span>₊˚⊹</span></div>
-        <p><Icon name="material-symbols:map-outline-rounded" /> ARTICLE MAP</p>
-        <h1>文章地图 <span>(｡•ᴗ•｡)♡</span></h1>
-        <div class="map-subtitle">沿着系列、分类和标签，找到想看的内容。</div>
-        <div class="map-counts">
-            <span><strong>{seriesCount}</strong> 个系列</span>
-            <i></i>
-            <span><strong>{categories.length}</strong> 个分类</span>
-            <i></i>
-            <span><strong>{tags.length}</strong> 个标签</span>
+    {/* 先给根节点打上动画开关：脚本没跑起来时页面就是静态可见的，不会白屏 */}
+    <script is:inline>
+        (function () {
+            var node = document.currentScript
+            var root = node && node.parentElement
+            if (root && root.classList.contains('article-map')) root.classList.add('map-anim')
+        })()
+    </script>
+
+    <div class="map-doodles" aria-hidden="true">
+        {doodles.map(doodle => (
+            <span
+                style={`--x: ${doodle.x}; --y: ${doodle.y}; --s: ${doodle.size}; --r: ${doodle.rotate}deg; --dur: ${doodle.duration}s; --delay: ${doodle.delay}s; --tone: ${doodle.tone}`}
+            >{doodle.char}</span>
+        ))}
+    </div>
+
+    <header class="map-hero" id="map-top" data-map-reveal style="--i: 0">
+        <div class="hero-grid">
+            <div class="hero-copy">
+                <p class="hero-eyebrow">
+                    <Icon name="material-symbols:map-outline-rounded" />
+                    ARTICLE MAP<em>· Yaron's Life</em>
+                </p>
+                <h1>文章地图 <span class="hero-kaomoji">(｡•ᴗ•｡)♡</span></h1>
+                <p class="hero-lead">
+                    沿着系列、分类和标签，找到想看的内容。<br />
+                    像翻一张手绘地图那样，从一个坐标逛到另一个坐标～
+                </p>
+
+                <ul class="hero-stats">
+                    {heroStats.map((stat, index) => (
+                        <li style={`--i: ${index}`}>
+                            <Icon name={stat.icon} />
+                            <strong data-map-count={stat.value}>{numberFmt.format(stat.value)}</strong>
+                            <span>{stat.suffix}</span>
+                        </li>
+                    ))}
+                </ul>
+
+                <nav class="hero-jump" aria-label="页面内跳转">
+                    {jumpLinks.map(link => (
+                        <a href={link.href} data-map-jump data-no-swup>
+                            <Icon name={link.icon} />
+                            <b>{link.label}</b>
+                            <small>{link.hint}</small>
+                        </a>
+                    ))}
+                </nav>
+            </div>
+
+            <div class="hero-atlas" data-map-atlas>
+                <span class="atlas-caption">CONTENT ATLAS</span>
+                <svg class="atlas-route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <path class="atlas-line" d={atlasPath} pathLength="100" vector-effect="non-scaling-stroke" />
+                    <path class="atlas-flow" d={atlasPath} pathLength="100" vector-effect="non-scaling-stroke" />
+                    <path class="atlas-runner" d={atlasPath} pathLength="100" vector-effect="non-scaling-stroke" />
+                </svg>
+                <div class="atlas-pins">
+                    {atlasPins.map((pin, index) => (
+                        <a
+                            class="atlas-pin"
+                            href={pin.url}
+                            style={`--x: ${pin.x}; --y: ${pin.y}; --tone: ${pin.tone}; --i: ${index}`}
+                            title={`${pin.name} · ${pin.count} 篇`}
+                        >
+                            <span class="pin-dot"><i></i></span>
+                            <span class="pin-label"><b>{pin.name}</b><small>{pin.count}</small></span>
+                        </a>
+                    ))}
+                    {/* 还没被写到的坐标，留给以后的新文章 */}
+                    <span class="atlas-unknown" style="--x: 14; --y: 46" title="还没有被写到的坐标">?</span>
+                    <span class="atlas-unknown" style="--x: 85; --y: 58" title="还没有被写到的坐标">?</span>
+                </div>
+                <div class="atlas-compass" aria-hidden="true">
+                    <svg viewBox="0 0 64 64">
+                        <circle class="compass-ring" cx="32" cy="32" r="26" />
+                        <circle class="compass-ring is-inner" cx="32" cy="32" r="17" />
+                        <path class="compass-tick" d="M32 3 v7 M32 54 v7 M3 32 h7 M54 32 h7" />
+                        <path class="compass-needle" d="M32 12 L37 34 L32 42 L27 34 Z" />
+                        <circle class="compass-core" cx="32" cy="32" r="2.4" />
+                    </svg>
+                </div>
+                <span class="atlas-you"><i></i>你在这里</span>
+                <span class="atlas-hint">点一下坐标就能出发</span>
+            </div>
+        </div>
+
+        <div class="hero-legend">
+            <span><i class="legend-route" aria-hidden="true"></i>系列 ＝ 一条路线</span>
+            <span><i class="legend-area" aria-hidden="true"></i>分类 ＝ 一片领地</span>
+            <span><i class="legend-glyph" aria-hidden="true">✦</i>标签 ＝ 散落的星标</span>
+            <span><i class="legend-glyph" aria-hidden="true">↺</i>时间 ＝ 一条航线</span>
+            <em>小提示：地图会跟着新文章一起长大 ✧</em>
         </div>
     </header>
 
-    <section class="map-section series-section onload-animation" style="animation-delay: 80ms">
+    <section class="map-section start-section" id="map-start" data-map-reveal style="--i: 1">
         <div class="section-heading">
-            <div class="section-icon series-icon"><Icon name="material-symbols:book-2-outline-rounded" /></div>
-            <div><p>按专题慢慢读</p><h2>系列专题</h2></div>
-            <span>连续的故事，要从第一篇开始看呀</span>
+            <div class="section-icon icon-primary"><Icon name="material-symbols:near-me-outline-rounded" /></div>
+            <div class="section-title">
+                <p>START HERE</p>
+                <h2>从这里出发</h2>
+            </div>
+            <span class="section-note">第一次来？先看这几篇就够啦</span>
         </div>
-        <div class="series-groups">
-            {groups.map(group => (
-                <div class="series-group">
-                    <a class="series-category" href={getCategoryUrl(group.category)}>{group.category}</a>
-                    <div class="series-links">
-                        {group.series.map(series => (
-                            <a class="series-item" href={getPostUrlBySlug(series.posts[series.posts.length - 1].slug)} aria-label={series.name}>
-                                <span class="series-dot"></span>
-                                <span class="series-name">{series.name}</span>
-                                <small>{series.count} 篇</small>
-                                <Icon name="material-symbols:arrow-forward-rounded" />
-                            </a>
+
+        <div class="start-grid">
+            {startCards.map((card, index) => (
+                <a class="start-card" href={getPostUrlBySlug(card.post.slug)} style={`--tone: ${card.tone}; --i: ${index}`}>
+                    <span class="start-badge"><Icon name={card.icon} />{card.label}</span>
+                    <h3 class="start-title">{card.post.data.title}</h3>
+                    <p class="start-desc">{card.note}</p>
+                    <span class="start-meta">
+                        <span><Icon name="material-symbols:calendar-today-outline-rounded" />{fullDate(card.post)}</span>
+                        <span><Icon name="material-symbols:timer-outline-rounded" />约 {minutesOf(card.post)} 分钟</span>
+                        {card.post.data.category && (
+                            <span><Icon name="material-symbols:folder-outline-rounded" />{card.post.data.category}</span>
+                        )}
+                    </span>
+                    <span class="start-go">去读这篇 <Icon name="material-symbols:arrow-forward-rounded" /></span>
+                </a>
+            ))}
+
+            <div
+                class="start-card start-card--shuffle"
+                data-map-shuffle
+                data-map-shuffle-index={shuffleSeedIndex}
+                aria-live="polite"
+                style={`--tone: var(--tea); --i: ${startCards.length}`}
+            >
+                <span class="start-badge"><Icon name="material-symbols:casino" />随便翻翻</span>
+                <a class="shuffle-link" href={shuffleSeed.url} data-map-shuffle-link>
+                    <h3 class="start-title" data-map-shuffle-title>{shuffleSeed.title}</h3>
+                </a>
+                <p class="start-desc" data-map-shuffle-desc>{shuffleSeed.note}</p>
+                <span class="start-meta">
+                    <span><Icon name="material-symbols:calendar-today-outline-rounded" /><span data-map-shuffle-date>{shuffleSeed.date}</span></span>
+                    <span><Icon name="material-symbols:timer-outline-rounded" />约 <span data-map-shuffle-time>{shuffleSeed.minutes} 分钟</span></span>
+                </span>
+                <button type="button" class="shuffle-btn" data-map-shuffle-btn>
+                    <Icon name="material-symbols:shuffle-rounded" />换一篇
+                </button>
+            </div>
+        </div>
+
+        <script type="application/json" id="map-shuffle-pool" is:inline set:html={JSON.stringify(shufflePool).replace(/</g, '\\u003c')}></script>
+    </section>
+
+    <section class="map-section route-section" id="map-routes" data-map-reveal style="--i: 2">
+        <div class="section-heading">
+            <div class="section-icon icon-blue"><Icon name="material-symbols:route" /></div>
+            <div class="section-title">
+                <p>SERIES ROUTES</p>
+                <h2>系列路线</h2>
+            </div>
+            <span class="section-note">一条线路，从第一篇走到最新一篇</span>
+        </div>
+
+        <div class="route-list">
+            {groups.map((group, groupIndex) => (
+                <article class="route-card" data-map-reveal style={`--tone: ${toneOf(group.category)}; --i: ${groupIndex}`}>
+                    <header class="route-head">
+                        <span class="route-index">{pad(groupIndex + 1)}</span>
+                        <div class="route-titles">
+                            <p>CATEGORY ROUTE</p>
+                            <h3><a href={getCategoryUrl(group.category)}>{group.category}</a></h3>
+                        </div>
+                        <span class="route-meta">{group.series.length} 条线路 · {group.postCount} 篇文章</span>
+                        <a class="route-more" href={getCategoryUrl(group.category)}>
+                            进入领地<Icon name="material-symbols:arrow-forward-rounded" />
+                        </a>
+                    </header>
+
+                    <div class="route-lines">
+                        {group.series.map((series, seriesIndex) => (
+                            <div class="route-line" style={`--si: ${seriesIndex}`}>
+                                <div class="line-head">
+                                    <span class="line-bullet"><i></i></span>
+                                    <a class="line-name" href={getPostUrlBySlug(series.posts[0].slug)}>{series.name}</a>
+                                    <span class="line-count">{series.count} 站</span>
+                                    <span class="line-hint">从第一篇开始读<Icon name="material-symbols:subdirectory-arrow-right-rounded" /></span>
+                                </div>
+                                <ol class="line-track">
+                                    {series.posts.map((post, postIndex) => (
+                                        <li class="line-stop" style={`--pi: ${postIndex}`}>
+                                            <span class="stop-pin" aria-hidden="true"></span>
+                                            <a class="stop-card" href={getPostUrlBySlug(post.slug)}>
+                                                <span class="stop-date">{shortDate(post)}</span>
+                                                <span class="stop-title">{post.data.title}</span>
+                                                <span class="stop-foot">
+                                                    {series.posts.length === 1 ? '起点 · 也是终点' : postIndex === 0 ? '起点' : postIndex === series.posts.length - 1 ? '终点' : `第 ${postIndex + 1} 站`}
+                                                    · 约 {minutesOf(post)} 分钟
+                                                </span>
+                                            </a>
+                                        </li>
+                                    ))}
+                                </ol>
+                            </div>
                         ))}
                     </div>
-                </div>
+                </article>
             ))}
         </div>
     </section>
 
     <div class="map-columns">
-        <section class="map-section category-section onload-animation" style="animation-delay: 140ms">
-            <div class="section-heading compact">
-                <div class="section-icon category-icon"><Icon name="material-symbols:folder-open-outline-rounded" /></div>
-                <div><p>按内容类型找</p><h2>分类目录</h2></div>
+        <section class="map-section territory-section" id="map-territory" data-map-reveal style="--i: 3">
+            <div class="section-heading">
+                <div class="section-icon icon-purple"><Icon name="material-symbols:folder-open-outline-rounded" /></div>
+                <div class="section-title">
+                    <p>TERRITORIES</p>
+                    <h2>分类领地</h2>
+                </div>
             </div>
-            <div class="category-list">
-                {categories.map(category => (
-                    <a href={category.url}>
-                        <span>{category.name}</span>
-                        <strong>{category.count}</strong>
+            <div class="territory-list">
+                {territoryList.map((category, index) => {
+                    const percent = posts.length ? Math.round((category.count / posts.length) * 100) : 0
+                    return (
+                        <a
+                            class="territory"
+                            href={category.url}
+                            style={`--tone: ${toneOf(category.name)}; --i: ${index}; --w: ${percent}`}
+                        >
+                            <span class="territory-name">{category.name}</span>
+                            <span class="territory-bar" aria-hidden="true"><i></i></span>
+                            <span class="territory-count">{category.count}</span>
+                            <span class="territory-percent">{percent}%</span>
+                        </a>
+                    )
+                })}
+            </div>
+            <p class="panel-foot">共 {posts.length} 篇文章，落在 {categories.length} 片领地上</p>
+        </section>
+
+        <section class="map-section tag-section" id="map-tags" data-map-reveal style="--i: 4">
+            <div class="section-heading">
+                <div class="section-icon icon-tea"><Icon name="material-symbols:tag-rounded" /></div>
+                <div class="section-title">
+                    <p>TAG STARS</p>
+                    <h2>标签星标</h2>
+                </div>
+            </div>
+            <div class="tag-cloud">
+                {tags.map((tag, index) => (
+                    <a
+                        class="tag-star"
+                        href={getTagUrl(tag.name)}
+                        style={`--i: ${index}; --size: ${Math.min(tag.count, 4)}`}
+                        title={`${tag.name} · ${tag.count} 篇`}
+                    >
+                        <Icon name="material-symbols:star-outline-rounded" />
+                        {tag.name}
+                        <small>{tag.count}</small>
                     </a>
                 ))}
             </div>
-        </section>
-
-        <section class="map-section tag-section onload-animation" style="animation-delay: 200ms">
-            <div class="section-heading compact">
-                <div class="section-icon tag-icon"><Icon name="material-symbols:tag-rounded" /></div>
-                <div><p>跟着关键词逛</p><h2>标签线索</h2></div>
-            </div>
-            <div class="tag-cloud">
-                {tags.map(tag => (
-                    <a href={getTagUrl(tag.name)}><span>#</span>{tag.name}<small>{tag.count}</small></a>
-                ))}
-            </div>
+            {starTag && (
+                <a
+                    class="star-lead"
+                    href={getTagUrl(starTag.name)}
+                    title={`${starTag.name} · ${starTag.count} 篇`}
+                >
+                    <span class="star-lead-glyph" aria-hidden="true">✦</span>
+                    <span class="star-lead-body">
+                        <b>
+                            最亮的星 · {starTag.name}
+                            <small>{starTag.count}</small>
+                        </b>
+                        <span class="star-lead-line">
+                            {starTagPosts[0]
+                                ? `最近更新 ${shortDate(starTagPosts[0])} · ${starTagPosts[0].data.title}`
+                                : "这颗星下面还空着"}
+                        </span>
+                    </span>
+                    <span class="star-lead-go" aria-hidden="true">
+                        <Icon name="material-symbols:arrow-forward-rounded" />
+                    </span>
+                </a>
+            )}
+            <p class="panel-foot">星标越大，说明这个词出现得越多 ✧</p>
         </section>
     </div>
+
+    <section class="map-section timeline-section" id="map-timeline" data-map-reveal style="--i: 5">
+        <div class="section-heading">
+            <div class="section-icon icon-primary"><Icon name="material-symbols:timeline" /></div>
+            <div class="section-title">
+                <p>TIMELINE</p>
+                <h2>时间航线</h2>
+            </div>
+            <span class="section-note">从最近一篇，一路往回走</span>
+        </div>
+
+        <div class="timeline" data-map-timeline>
+            <span class="timeline-rail" aria-hidden="true"><i class="timeline-fill" data-map-rail></i></span>
+
+            {timeline.map(yearGroup => (
+                <div class="year-group">
+                    <p class="year-chip">
+                        <span class="year-dot" aria-hidden="true"></span>
+                        <b>{yearGroup.year}</b>
+                        <small>{yearGroup.posts.length} 篇</small>
+                    </p>
+                    <ol class="year-list">
+                        {yearGroup.posts.map(post => (
+                            <li class="timeline-stop" data-map-stop>
+                                <span class="stop-dot" aria-hidden="true"></span>
+                                <a class="stop-link" href={getPostUrlBySlug(post.slug)}>
+                                    <span class="stop-date">
+                                        <b>{shortDate(post)}</b>
+                                        <small>{weekdayFmt.format(dateOf(post))}</small>
+                                    </span>
+                                    <span class="stop-main">
+                                        <span class="stop-title">
+                                            <b class="stop-name">{post.data.title}</b>
+                                            {post.data.pinned && <em class="stop-badge">置顶</em>}
+                                        </span>
+                                        <span class="stop-meta">
+                                            <span>{post.data.category || UNCATEGORIZED}</span>
+                                            {post.data.series && <span>· {post.data.series}</span>}
+                                            <span>· 约 {minutesOf(post)} 分钟</span>
+                                            {(post.data.tags || []).slice(0, 3).map(tag => (
+                                                <span class="stop-tag">#{tag}</span>
+                                            ))}
+                                        </span>
+                                    </span>
+                                    <span class="stop-go" aria-hidden="true"><Icon name="material-symbols:arrow-forward-rounded" /></span>
+                                </a>
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+            ))}
+        </div>
+    </section>
+
+    <footer class="map-outro" data-map-reveal style="--i: 6">
+        <div class="outro-dash" aria-hidden="true"><span>✧</span><i></i><span>♡</span><i></i><span>✦</span></div>
+        <p class="outro-text">
+            地图会跟着新文章一起长大 —— 现在一共有 <strong>{posts.length}</strong> 个坐标、
+            <strong>{seriesCount}</strong> 条线路，走完大约要 <strong>{totalMinutes}</strong> 分钟。
+        </p>
+        <div class="outro-links">
+            <a href={url('/archive/')}><Icon name="material-symbols:menu-book-outline-rounded" />查看全部文章</a>
+            <a href="#map-top" data-map-jump data-no-swup><Icon name="material-symbols:north-east-rounded" />回到地图顶部</a>
+        </div>
+    </footer>
+
+    <script is:inline>
+        (function () {
+            var root = document.querySelector('.article-map')
+            if (!root || root.dataset.mapReady === '1') return
+            root.dataset.mapReady = '1'
+
+            if (typeof window.__fuwariSeriesMapCleanup === 'function') {
+                try { window.__fuwariSeriesMapCleanup() } catch (error) { /* 上一页的清理失败就算了 */ }
+            }
+
+            var cleanups = []
+            var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            var numberFmt = new Intl.NumberFormat('en-US')
+
+            /* 1. 滚动到就出现 */
+            var revealTargets = Array.prototype.slice.call(root.querySelectorAll('[data-map-reveal]'))
+            if (reduceMotion) {
+                revealTargets.forEach(function (el) { el.classList.add('is-visible') })
+            } else if ('IntersectionObserver' in window) {
+                var revealObserver = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (!entry.isIntersecting) return
+                        entry.target.classList.add('is-visible')
+                        revealObserver.unobserve(entry.target)
+                    })
+                }, { threshold: 0, rootMargin: '0px 0px -10% 0px' })
+                revealTargets.forEach(function (el) { revealObserver.observe(el) })
+                cleanups.push(function () { revealObserver.disconnect() })
+            } else {
+                revealTargets.forEach(function (el) { el.classList.add('is-visible') })
+            }
+
+            /* 2. 数字滚动 */
+            var counters = Array.prototype.slice.call(root.querySelectorAll('[data-map-count]'))
+            var runCounter = function (el) {
+                var target = Number(el.getAttribute('data-map-count') || '0')
+                if (!isFinite(target) || target <= 0) return
+                if (reduceMotion) {
+                    el.textContent = numberFmt.format(target)
+                    return
+                }
+                var duration = 900
+                var startTime = performance.now()
+                var step = function (now) {
+                    var progress = Math.min(1, (now - startTime) / duration)
+                    var eased = 1 - Math.pow(1 - progress, 3)
+                    el.textContent = numberFmt.format(Math.round(target * eased))
+                    if (progress < 1) requestAnimationFrame(step)
+                    else el.textContent = numberFmt.format(target)
+                }
+                requestAnimationFrame(step)
+            }
+            if (counters.length && 'IntersectionObserver' in window) {
+                var countObserver = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (!entry.isIntersecting) return
+                        runCounter(entry.target)
+                        countObserver.unobserve(entry.target)
+                    })
+                }, { threshold: 0.35 })
+                counters.forEach(function (el) { countObserver.observe(el) })
+                cleanups.push(function () { countObserver.disconnect() })
+            }
+
+            /* 3. 星图跟随鼠标轻轻浮动 */
+            var atlas = root.querySelector('[data-map-atlas]')
+            if (atlas && !reduceMotion && window.matchMedia('(hover: hover)').matches) {
+                var frame = 0
+                var targetX = 0
+                var targetY = 0
+                var currentX = 0
+                var currentY = 0
+                var render = function () {
+                    frame = 0
+                    currentX += (targetX - currentX) * 0.16
+                    currentY += (targetY - currentY) * 0.16
+                    atlas.style.setProperty('--px', currentX.toFixed(2))
+                    atlas.style.setProperty('--py', currentY.toFixed(2))
+                    if (Math.abs(targetX - currentX) > 0.04 || Math.abs(targetY - currentY) > 0.04) {
+                        frame = requestAnimationFrame(render)
+                    }
+                }
+                var queue = function () { if (!frame) frame = requestAnimationFrame(render) }
+                var onMove = function (event) {
+                    var rect = atlas.getBoundingClientRect()
+                    if (!rect.width || !rect.height) return
+                    var relX = (event.clientX - rect.left) / rect.width - 0.5
+                    var relY = (event.clientY - rect.top) / rect.height - 0.5
+                    targetX = Math.max(-0.5, Math.min(0.5, relX)) * 18
+                    targetY = Math.max(-0.5, Math.min(0.5, relY)) * 14
+                    queue()
+                }
+                var onLeave = function () { targetX = 0; targetY = 0; queue() }
+                atlas.addEventListener('pointermove', onMove)
+                atlas.addEventListener('pointerleave', onLeave)
+                cleanups.push(function () {
+                    atlas.removeEventListener('pointermove', onMove)
+                    atlas.removeEventListener('pointerleave', onLeave)
+                    if (frame) cancelAnimationFrame(frame)
+                })
+            }
+
+            /* 4. 时间航线：进度条 + 走过的站点会亮起来 */
+            var timeline = root.querySelector('[data-map-timeline]')
+            if (timeline) {
+                var fill = timeline.querySelector('[data-map-rail]')
+                var stops = Array.prototype.slice.call(timeline.querySelectorAll('[data-map-stop]'))
+                var railFrame = 0
+                var updateRail = function () {
+                    railFrame = 0
+                    if (!fill) return
+                    var rect = timeline.getBoundingClientRect()
+                    if (!rect.height) return
+                    var anchor = window.innerHeight * 0.55
+                    var progress = Math.max(0, Math.min(1, (anchor - rect.top) / rect.height))
+                    fill.style.setProperty('--progress', progress.toFixed(4))
+                }
+                var onScroll = function () { if (!railFrame) railFrame = requestAnimationFrame(updateRail) }
+                updateRail()
+                window.addEventListener('scroll', onScroll, { passive: true })
+                window.addEventListener('resize', onScroll)
+                cleanups.push(function () {
+                    window.removeEventListener('scroll', onScroll)
+                    window.removeEventListener('resize', onScroll)
+                    if (railFrame) cancelAnimationFrame(railFrame)
+                })
+
+                if (reduceMotion || !('IntersectionObserver' in window)) {
+                    stops.forEach(function (stop) { stop.classList.add('is-passed') })
+                } else {
+                    var stopObserver = new IntersectionObserver(function (entries) {
+                        entries.forEach(function (entry) {
+                            if (entry.isIntersecting) entry.target.classList.add('is-passed')
+                        })
+                    }, { rootMargin: '-45% 0px -45% 0px', threshold: 0 })
+                    stops.forEach(function (stop) { stopObserver.observe(stop) })
+                    cleanups.push(function () { stopObserver.disconnect() })
+                }
+            }
+
+            /* 5. 随机漫步 */
+            var shuffleCard = root.querySelector('[data-map-shuffle]')
+            var poolScript = document.getElementById('map-shuffle-pool')
+            if (shuffleCard && poolScript) {
+                var pool = []
+                try { pool = JSON.parse(poolScript.textContent || '[]') } catch (error) { pool = [] }
+                if (pool.length > 1) {
+                    var shuffleLink = shuffleCard.querySelector('[data-map-shuffle-link]')
+                    var shuffleTitle = shuffleCard.querySelector('[data-map-shuffle-title]')
+                    var shuffleDesc = shuffleCard.querySelector('[data-map-shuffle-desc]')
+                    var shuffleDate = shuffleCard.querySelector('[data-map-shuffle-date]')
+                    var shuffleTime = shuffleCard.querySelector('[data-map-shuffle-time]')
+                    var shuffleButton = shuffleCard.querySelector('[data-map-shuffle-btn]')
+                    var current = Math.min(pool.length - 1, Math.max(0, Number(shuffleCard.getAttribute('data-map-shuffle-index')) || 0))
+                    var onShuffle = function () {
+                        var next = current
+                        while (next === current) next = Math.floor(Math.random() * pool.length)
+                        current = next
+                        var item = pool[next]
+                        shuffleCard.classList.remove('is-shuffling')
+                        void shuffleCard.offsetWidth
+                        shuffleCard.classList.add('is-shuffling')
+                        window.setTimeout(function () { shuffleCard.classList.remove('is-shuffling') }, 720)
+                        if (shuffleLink) shuffleLink.href = item.url
+                        if (shuffleTitle) shuffleTitle.textContent = item.title
+                        if (shuffleDesc) shuffleDesc.textContent = item.note
+                        if (shuffleDate) shuffleDate.textContent = item.date
+                        if (shuffleTime) shuffleTime.textContent = item.minutes + ' 分钟'
+                    }
+                    if (shuffleButton) {
+                        shuffleButton.addEventListener('click', onShuffle)
+                        cleanups.push(function () { shuffleButton.removeEventListener('click', onShuffle) })
+                    }
+                }
+            }
+
+            /* 6. 页面内平滑跳转 */
+            var jumps = Array.prototype.slice.call(root.querySelectorAll('[data-map-jump]'))
+            var onJump = function (event) {
+                var href = event.currentTarget.getAttribute('href') || ''
+                if (href.charAt(0) !== '#') return
+                var target = document.querySelector(href)
+                if (!target) return
+                event.preventDefault()
+                target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
+                if (window.history && window.history.replaceState) window.history.replaceState(null, '', href)
+            }
+            jumps.forEach(function (anchor) { anchor.addEventListener('click', onJump) })
+            cleanups.push(function () {
+                jumps.forEach(function (anchor) { anchor.removeEventListener('click', onJump) })
+            })
+
+            window.__fuwariSeriesMapCleanup = function () {
+                cleanups.forEach(function (fn) {
+                    try { fn() } catch (error) { /* 忽略 */ }
+                })
+                cleanups = []
+            }
+        })()
+    </script>
 </div>
 
 <style>
-    .article-map { padding: 1rem 1.25rem 3rem; }
-    .map-hero, .map-section { position: relative; border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--glass-border)); background: var(--glass-card); backdrop-filter: blur(28px); }
-    .map-hero { overflow: hidden; padding: 1.65rem 1.8rem; border-radius: 1.7rem; background: radial-gradient(circle at 90% 0%, color-mix(in srgb, var(--primary) 17%, transparent), transparent 30%), linear-gradient(135deg, color-mix(in srgb, var(--primary) 8%, transparent), transparent 48%), var(--glass-card); box-shadow: 0 1.2rem 3rem rgb(118 80 68 / 0.07); }
-    .map-stickers { position: absolute; right: 1.4rem; top: 1.05rem; display: flex; gap: 0.45rem; color: color-mix(in srgb, var(--primary) 70%, white); font-weight: 800; transform: rotate(3deg); opacity: 0.8; }
-    .map-stickers span:nth-child(1) { animation: map-twinkle 2.4s ease-in-out infinite; }
-    .map-hero > p { display: flex; align-items: center; gap: 0.35rem; margin: 0 0 0.25rem; color: var(--primary); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.14em; }
-    .map-hero h1 { margin: 0; color: var(--text-strong); font-size: clamp(1.65rem, 4vw, 2.15rem); line-height: 1.25; }
-    .map-hero h1 span { display: inline-block; margin-left: 0.25rem; color: var(--primary); font-size: 0.55em; white-space: nowrap; transform: rotate(-2deg); }
-    .map-subtitle { margin-top: 0.35rem; color: var(--text-muted); font-size: 0.82rem; }
-    .map-counts { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem 0.75rem; margin-top: 1.05rem; color: var(--text-muted); font-size: 0.74rem; }
-    .map-counts strong { color: var(--primary); font-size: 1rem; }
-    .map-counts i { width: 0.22rem; height: 0.22rem; border-radius: 999px; background: color-mix(in srgb, var(--primary) 52%, var(--text-muted)); }
+    /* ============================================================ 页面骨架 */
+    .article-map {
+        position: relative;
+        isolation: isolate;
+        padding: 1rem 1.25rem 3rem;
+    }
 
-    .map-section { margin-top: 1rem; padding: 1.35rem; border-radius: 1.45rem; box-shadow: 0 0.8rem 2.3rem rgb(118 80 68 / 0.045); }
-    .section-heading { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
-    .section-heading > span { margin-left: auto; color: var(--text-muted); font-size: 0.7rem; }
-    .section-heading p { margin: 0; color: var(--text-muted); font-size: 0.65rem; }
-    .section-heading h2 { margin: 0.08rem 0 0; color: var(--text-strong); font-size: 1.12rem; }
-    .section-icon { display: grid; place-items: center; flex: 0 0 auto; width: 2.55rem; height: 2.55rem; border-radius: 0.9rem; font-size: 1.3rem; }
-    .series-icon { color: var(--primary); background: color-mix(in srgb, var(--primary) 11%, transparent); }
-    .category-icon,
-    .tag-icon { color: var(--primary); background: color-mix(in srgb, var(--primary) 11%, transparent); }
+    .map-doodles {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+        pointer-events: none;
+    }
+    .map-doodles span {
+        position: absolute;
+        left: calc(var(--x) * 1%);
+        top: calc(var(--y) * 1%);
+        color: var(--tone);
+        font-size: calc(var(--s) * 1rem);
+        font-weight: 800;
+        opacity: 0.22;
+        transform: translate(-50%, -50%) rotate(var(--r));
+        animation: map-doodle-float var(--dur) ease-in-out var(--delay) infinite;
+    }
 
-    .series-groups { display: grid; gap: 1.1rem; }
-    .series-group { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 0.9rem; align-items: start; }
-    .series-category { display: flex; align-items: center; min-height: 2.8rem; color: var(--text-body); font-size: 0.9rem; font-weight: 800; }
-    .series-category:hover { color: var(--primary); }
-    .series-links { display: grid; gap: 0.45rem; }
-    .series-item { display: grid; grid-template-columns: 0.7rem minmax(0, 1fr) auto 1.3rem; align-items: center; gap: 0.55rem; min-height: 2.8rem; padding: 0.45rem 0.65rem; border: 1px solid transparent; border-radius: 0.95rem; color: inherit; transition: transform 0.22s ease, background-color 0.22s ease, border-color 0.22s ease; }
-    .series-item:hover { transform: translateX(0.25rem); border-color: color-mix(in srgb, var(--primary) 16%, transparent); background: color-mix(in srgb, var(--primary) 6%, transparent); }
-    .series-dot { width: 0.5rem; height: 0.5rem; border: 2px solid var(--glass-card); border-radius: 999px; background: var(--primary); box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--primary) 12%, transparent); }
-    .series-name { overflow: hidden; color: var(--text-body); font-size: 0.88rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-    .series-item small { color: var(--text-muted); font-size: 0.68rem; }
-    .series-item > :global(svg) { color: var(--primary); opacity: 0; transform: translateX(-0.3rem); transition: opacity 0.22s ease, transform 0.22s ease; }
-    .series-item:hover > :global(svg) { opacity: 1; transform: none; }
+    .map-hero,
+    .map-section,
+    .map-outro {
+        position: relative;
+        border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--glass-border));
+        background: var(--glass-card);
+        backdrop-filter: blur(28px);
+        box-shadow: 0 0.85rem 2.4rem rgb(118 80 68 / 0.05);
+    }
+    /* 地图纸上的虚线内框 */
+    .map-hero::after,
+    .map-section::after,
+    .map-outro::after {
+        content: '';
+        position: absolute;
+        inset: 0.42rem;
+        border: 1px dashed color-mix(in srgb, var(--primary) 13%, transparent);
+        border-radius: inherit;
+        pointer-events: none;
+    }
 
-    .map-columns { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 1rem; }
-    .section-heading.compact { margin-bottom: 0.85rem; }
-    .category-list { display: grid; gap: 0.38rem; }
-    .category-list a { display: flex; align-items: center; justify-content: space-between; min-height: 2.65rem; padding: 0.45rem 0.7rem; border-radius: 0.9rem; color: var(--text-body); font-size: 0.86rem; font-weight: 650; transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease; }
-    .category-list a:hover { transform: translateX(0.22rem); color: var(--primary); background: color-mix(in srgb, var(--primary) 7%, transparent); }
-    .category-list strong { display: grid; place-items: center; min-width: 1.7rem; height: 1.45rem; padding-inline: 0.35rem; border-radius: 999px; color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent); font-size: 0.68rem; }
-    .tag-cloud { display: flex; flex-wrap: wrap; gap: 0.55rem; }
-    .tag-cloud a { display: inline-flex; align-items: center; gap: 0.28rem; min-height: 2.25rem; padding: 0.4rem 0.72rem; border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--glass-border)); border-radius: 999px; color: var(--text-body); background: color-mix(in srgb, var(--glass-card) 72%, transparent); font-size: 0.78rem; transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease; }
-    .tag-cloud a:hover { transform: translateY(-0.12rem) rotate(-1deg); border-color: color-mix(in srgb, var(--primary) 40%, transparent); color: var(--primary); }
-    .tag-cloud a > span { color: var(--primary); font-weight: 800; }
-    .tag-cloud small { display: grid; place-items: center; min-width: 1.15rem; height: 1.15rem; border-radius: 999px; color: var(--text-muted); background: color-mix(in srgb, var(--primary) 8%, transparent); font-size: 0.6rem; }
+    /* ============================================================ 出场动画 */
+    .article-map.map-anim [data-map-reveal] {
+        opacity: 0;
+        transform: translateY(1.1rem);
+        transition: opacity 0.7s ease, transform 0.75s cubic-bezier(0.22, 0.68, 0, 1);
+        transition-delay: calc(var(--i, 0) * 70ms);
+    }
+    .article-map.map-anim [data-map-reveal].is-visible {
+        opacity: 1;
+        transform: none;
+    }
 
-    @keyframes map-twinkle { 0%, 100% { opacity: 0.45; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.15) rotate(12deg); } }
+    /* ================================================================ HERO */
+    .map-hero {
+        overflow: hidden;
+        padding: 1.7rem 1.8rem 1.15rem;
+        border-radius: 1.7rem;
+        background:
+            radial-gradient(circle at 88% -6%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 34%),
+            radial-gradient(circle at 4% 108%, color-mix(in srgb, var(--azusa-blue) 12%, transparent), transparent 40%),
+            var(--glass-card);
+    }
+    .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
+        gap: 1.5rem;
+        align-items: stretch;
+    }
+
+    .hero-eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin: 0;
+        color: var(--primary);
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+    }
+    .hero-eyebrow em {
+        color: var(--text-muted);
+        font-size: 0.62rem;
+        font-style: normal;
+        letter-spacing: 0.08em;
+    }
+    .hero-copy h1 {
+        margin: 0.3rem 0 0;
+        color: var(--text-strong);
+        font-size: clamp(1.7rem, 4vw, 2.2rem);
+        line-height: 1.22;
+    }
+    .hero-kaomoji {
+        display: inline-block;
+        margin-left: 0.3rem;
+        color: var(--primary);
+        font-size: 0.5em;
+        white-space: nowrap;
+        transform: rotate(-2deg);
+    }
+    .hero-lead {
+        margin: 0.55rem 0 0;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        line-height: 1.75;
+    }
+
+    .hero-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.5rem;
+        margin: 1rem 0 0;
+        padding: 0;
+        list-style: none;
+    }
+    .hero-stats li {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.28rem 0.55rem;
+        border: 1px dashed color-mix(in srgb, var(--primary) 24%, transparent);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--glass-card) 72%, transparent);
+        color: var(--text-muted);
+        font-size: 0.66rem;
+        transition: transform 0.24s ease, border-color 0.24s ease;
+        transition-delay: calc(var(--i) * 40ms);
+    }
+    .hero-stats li:hover {
+        transform: translateY(-0.12rem);
+        border-color: color-mix(in srgb, var(--primary) 48%, transparent);
+    }
+    .hero-stats li > :global(svg) {
+        color: color-mix(in srgb, var(--primary) 72%, var(--text-muted));
+        font-size: 0.95rem;
+    }
+    .hero-stats strong {
+        color: var(--primary);
+        font-size: 0.94rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .hero-jump {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 1.05rem;
+    }
+    .hero-jump a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.32rem;
+        padding: 0.42rem 0.7rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--glass-border));
+        border-radius: 0.9rem;
+        background: color-mix(in srgb, var(--primary) 6%, transparent);
+        color: var(--text-body);
+        font-size: 0.72rem;
+        transition: transform 0.24s cubic-bezier(0.22, 0.68, 0, 1), border-color 0.24s ease, box-shadow 0.24s ease;
+    }
+    .hero-jump a > :global(svg) {
+        color: var(--primary);
+        font-size: 1rem;
+    }
+    .hero-jump a b {
+        font-weight: 700;
+    }
+    .hero-jump a small {
+        color: var(--text-muted);
+        font-size: 0.62rem;
+    }
+    .hero-jump a:hover {
+        transform: translateY(-0.16rem);
+        border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+        box-shadow: 0 0.6rem 1.2rem color-mix(in srgb, var(--primary) 14%, transparent);
+    }
+
+    /* ------------------------------------------------------------- 星图 */
+    .hero-atlas {
+        position: relative;
+        align-self: center;
+        height: 100%;
+        min-height: 16.5rem;
+        max-height: 21.5rem;
+        border: 1px dashed color-mix(in srgb, var(--primary) 26%, var(--glass-border));
+        border-radius: 1.35rem;
+        background-color: color-mix(in srgb, var(--glass-card) 62%, transparent);
+        background-image:
+            linear-gradient(color-mix(in srgb, var(--primary) 8%, transparent) 1px, transparent 1px),
+            linear-gradient(90deg, color-mix(in srgb, var(--primary) 8%, transparent) 1px, transparent 1px);
+        background-size: 2.3rem 2.3rem;
+        overflow: hidden;
+    }
+    .atlas-caption,
+    .atlas-hint,
+    .atlas-you {
+        position: absolute;
+        z-index: 3;
+        color: var(--text-muted);
+        font-size: 0.58rem;
+        letter-spacing: 0.1em;
+    }
+    .atlas-caption {
+        left: 0.9rem;
+        top: 0.75rem;
+        color: color-mix(in srgb, var(--primary) 75%, var(--text-muted));
+        font-weight: 800;
+    }
+    .atlas-hint {
+        right: 0.9rem;
+        bottom: 0.7rem;
+        letter-spacing: 0.04em;
+    }
+    .atlas-you {
+        left: 0.9rem;
+        bottom: 0.7rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.28rem;
+        padding: 0.16rem 0.45rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary) 10%, transparent);
+        color: color-mix(in srgb, var(--primary) 82%, var(--text-body));
+        letter-spacing: 0.02em;
+    }
+    .atlas-you i {
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 999px;
+        background: var(--primary);
+        animation: atlas-you-pulse 2.6s ease-in-out infinite;
+    }
+
+    .atlas-route {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        transform: translate3d(calc(var(--px, 0) * 0.4px), calc(var(--py, 0) * 0.4px), 0);
+    }
+    .atlas-line,
+    .atlas-flow,
+    .atlas-runner {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    .atlas-line {
+        stroke: color-mix(in srgb, var(--primary) 42%, transparent);
+        stroke-width: 1.6;
+        stroke-dasharray: 3 2.4;
+        animation: atlas-flow 22s linear infinite;
+    }
+    .atlas-flow {
+        stroke: color-mix(in srgb, var(--azusa-blue) 60%, transparent);
+        stroke-width: 1.2;
+        stroke-dasharray: 0.4 9.6;
+        animation: atlas-flow 9s linear infinite reverse;
+    }
+    .atlas-runner {
+        stroke: var(--primary);
+        stroke-width: 3.4;
+        stroke-dasharray: 0.55 100;
+        animation: atlas-run 7.5s linear infinite;
+    }
+
+    .atlas-pins {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        transform: translate3d(calc(var(--px, 0) * 1px), calc(var(--py, 0) * 1px), 0);
+        transition: transform 0.5s ease-out;
+    }
+    .atlas-pin {
+        position: absolute;
+        left: calc(var(--x) * 1%);
+        top: calc(var(--y) * 1%);
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        transform: translate(-50%, -50%);
+        transition: transform 0.26s cubic-bezier(0.22, 0.68, 0, 1);
+    }
+    .atlas-pin:hover {
+        transform: translate(-50%, -50%) scale(1.06);
+    }
+    .pin-dot {
+        position: relative;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 0.74rem;
+        height: 0.74rem;
+        border-radius: 999px;
+        background: var(--tone);
+        box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--tone) 16%, transparent);
+    }
+    .pin-dot i {
+        width: 0.26rem;
+        height: 0.26rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, white 82%, var(--tone));
+    }
+    .pin-dot::after {
+        content: '';
+        position: absolute;
+        inset: -0.28rem;
+        border: 1px solid var(--tone);
+        border-radius: 999px;
+        opacity: 0;
+        animation: pin-pulse 3.6s ease-out calc(var(--i) * 0.55s) infinite;
+    }
+    .pin-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.26rem;
+        padding: 0.14rem 0.44rem;
+        border: 1px solid color-mix(in srgb, var(--tone) 26%, var(--glass-border));
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--glass-card) 88%, transparent);
+        backdrop-filter: blur(6px);
+        color: var(--text-body);
+        font-size: 0.66rem;
+        white-space: nowrap;
+        transition: border-color 0.24s ease, color 0.24s ease;
+    }
+    .pin-label b {
+        font-weight: 700;
+    }
+    .pin-label small {
+        color: color-mix(in srgb, var(--tone) 85%, var(--text-muted));
+        font-size: 0.6rem;
+        font-weight: 700;
+    }
+    .atlas-pin:hover .pin-label {
+        border-color: color-mix(in srgb, var(--tone) 55%, transparent);
+        color: color-mix(in srgb, var(--tone) 88%, var(--text-strong));
+    }
+    /* 还没被写到的坐标 */
+    .atlas-unknown {
+        position: absolute;
+        left: calc(var(--x) * 1%);
+        top: calc(var(--y) * 1%);
+        display: grid;
+        place-items: center;
+        width: 1.05rem;
+        height: 1.05rem;
+        border: 1px dashed color-mix(in srgb, var(--text-muted) 45%, transparent);
+        border-radius: 999px;
+        color: color-mix(in srgb, var(--text-muted) 70%, transparent);
+        font-size: 0.6rem;
+        font-weight: 700;
+        transform: translate(-50%, -50%);
+        animation: atlas-unknown 5.5s ease-in-out infinite;
+    }
+    .atlas-unknown:nth-of-type(2) {
+        animation-delay: 1.6s;
+    }
+
+    .atlas-compass {
+        position: absolute;
+        right: 0.75rem;
+        top: 0.75rem;
+        z-index: 3;
+        width: 3.6rem;
+        height: 3.6rem;
+        opacity: 1;
+    }
+    .atlas-compass svg {
+        width: 100%;
+        height: 100%;
+        animation: compass-spin 40s linear infinite;
+    }
+    .compass-ring {
+        fill: none;
+        stroke: color-mix(in srgb, var(--primary) 34%, transparent);
+        stroke-width: 1;
+        stroke-dasharray: 2 3;
+    }
+    .compass-ring.is-inner {
+        stroke-dasharray: 1 4;
+        opacity: 0.7;
+    }
+    .compass-tick {
+        stroke: color-mix(in srgb, var(--primary) 45%, transparent);
+        stroke-width: 1.4;
+        stroke-linecap: round;
+    }
+    .compass-needle {
+        fill: color-mix(in srgb, var(--primary) 62%, transparent);
+    }
+    .compass-core {
+        fill: var(--primary);
+    }
+
+    /* ------------------------------------------------------------ 图例条 */
+    .hero-legend {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.4rem 1rem;
+        margin-top: 1.3rem;
+        padding-top: 0.85rem;
+        border-top: 1px dashed color-mix(in srgb, var(--primary) 20%, transparent);
+        color: var(--text-muted);
+        font-size: 0.66rem;
+    }
+    .hero-legend > span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .hero-legend em {
+        margin-left: auto;
+        color: color-mix(in srgb, var(--primary) 70%, var(--text-muted));
+        font-size: 0.64rem;
+        font-style: normal;
+    }
+    .legend-route {
+        width: 1.4rem;
+        border-top: 2px dashed color-mix(in srgb, var(--primary) 55%, transparent);
+    }
+    .legend-area {
+        width: 0.72rem;
+        height: 0.72rem;
+        border: 1px solid color-mix(in srgb, var(--azusa-blue) 55%, transparent);
+        border-radius: 0.24rem;
+        background: color-mix(in srgb, var(--azusa-blue) 22%, transparent);
+    }
+    .legend-glyph {
+        color: color-mix(in srgb, var(--primary) 78%, var(--text-muted));
+        font-style: normal;
+        font-weight: 800;
+    }
+
+    /* ============================================================ 通用分节 */
+    .map-section {
+        margin-top: 1rem;
+        padding: 1.4rem 1.45rem;
+        border-radius: 1.5rem;
+    }
+    .section-heading {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        margin-bottom: 1.15rem;
+    }
+    .section-icon {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 2.6rem;
+        height: 2.6rem;
+        border-radius: 0.9rem;
+        font-size: 1.35rem;
+    }
+    .icon-primary {
+        color: var(--primary);
+        background: color-mix(in srgb, var(--primary) 12%, transparent);
+    }
+    .icon-blue {
+        color: var(--azusa-blue);
+        background: color-mix(in srgb, var(--azusa-blue) 14%, transparent);
+    }
+    .icon-purple {
+        color: var(--mio-purple);
+        background: color-mix(in srgb, var(--mio-purple) 14%, transparent);
+    }
+    .icon-tea {
+        color: var(--tea);
+        background: color-mix(in srgb, var(--tea) 14%, transparent);
+    }
+    .section-title p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+    }
+    .section-title h2 {
+        margin: 0.12rem 0 0;
+        color: var(--text-strong);
+        font-size: 1.16rem;
+    }
+    .section-note {
+        margin-left: auto;
+        color: var(--text-muted);
+        font-size: 0.68rem;
+    }
+    .panel-foot {
+        margin: auto 0 0;
+        padding-top: 0.7rem;
+        border-top: 1px dashed color-mix(in srgb, var(--primary) 16%, transparent);
+        color: var(--text-muted);
+        font-size: 0.64rem;
+    }
+    /* 两栏卡片内部用纵向 flex，页脚就会贴在卡片底部，左右高度看起来才齐 */
+    .territory-section,
+    .tag-section {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ========================================================== 从这里出发 */
+    .start-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+        gap: 0.8rem;
+    }
+    .start-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 0.42rem;
+        padding: 1rem 1.05rem;
+        border: 1px solid color-mix(in srgb, var(--tone) 20%, var(--glass-border));
+        border-radius: 1.15rem;
+        background:
+            linear-gradient(158deg, color-mix(in srgb, var(--tone) 9%, transparent), transparent 62%),
+            color-mix(in srgb, var(--glass-card) 84%, transparent);
+        overflow: hidden;
+        transition: transform 0.28s cubic-bezier(0.22, 0.68, 0, 1), border-color 0.28s ease, box-shadow 0.28s ease;
+    }
+    .start-card > * {
+        position: relative;
+        z-index: 1;
+    }
+    .start-card::before {
+        content: '';
+        position: absolute;
+        right: -1.7rem;
+        bottom: -1.9rem;
+        width: 5.4rem;
+        height: 5.4rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--tone) 13%, transparent);
+        transition: transform 0.45s cubic-bezier(0.22, 0.68, 0, 1);
+    }
+    .start-card:hover {
+        transform: translateY(-0.28rem);
+        border-color: color-mix(in srgb, var(--tone) 45%, transparent);
+        box-shadow: 0 1rem 2rem color-mix(in srgb, var(--tone) 16%, transparent);
+    }
+    .start-card:hover::before {
+        transform: scale(1.3);
+    }
+    .start-badge {
+        display: inline-flex;
+        align-items: center;
+        align-self: flex-start;
+        gap: 0.26rem;
+        padding: 0.22rem 0.5rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--tone) 14%, transparent);
+        color: color-mix(in srgb, var(--tone) 86%, var(--text-strong));
+        font-size: 0.62rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+    }
+    .start-badge > :global(svg) {
+        font-size: 0.86rem;
+    }
+    .start-title {
+        margin: 0;
+        color: var(--text-strong);
+        font-size: 0.92rem;
+        font-weight: 750;
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .start-desc {
+        margin: 0;
+        min-height: 2.4em;
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        line-height: 1.6;
+    }
+    .start-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.24rem 0.6rem;
+        margin-top: auto;
+        padding-top: 0.2rem;
+        color: var(--text-muted);
+        font-size: 0.63rem;
+    }
+    .start-meta > span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.22rem;
+    }
+    .start-meta > span > :global(svg) {
+        font-size: 0.82rem;
+        color: color-mix(in srgb, var(--tone) 70%, var(--text-muted));
+    }
+    .start-go {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.24rem;
+        color: color-mix(in srgb, var(--tone) 85%, var(--text-body));
+        font-size: 0.68rem;
+        font-weight: 700;
+        opacity: 0;
+        transform: translateX(-0.2rem);
+        transition: opacity 0.26s ease, transform 0.26s ease;
+    }
+    .start-card:hover .start-go {
+        opacity: 1;
+        transform: none;
+    }
+
+    .start-card--shuffle {
+        border-style: dashed;
+        background:
+            repeating-linear-gradient(135deg, color-mix(in srgb, var(--tone) 5%, transparent) 0 0.55rem, transparent 0.55rem 1.25rem),
+            color-mix(in srgb, var(--glass-card) 84%, transparent);
+    }
+    .start-card--shuffle::before {
+        display: none;
+    }
+    .shuffle-link {
+        color: inherit;
+    }
+    .shuffle-btn {
+        display: inline-flex;
+        align-items: center;
+        align-self: flex-start;
+        gap: 0.3rem;
+        margin-top: 0.55rem;
+        padding: 0.34rem 0.66rem;
+        border: 1px solid color-mix(in srgb, var(--tone) 32%, transparent);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--tone) 11%, transparent);
+        color: color-mix(in srgb, var(--tone) 88%, var(--text-strong));
+        font-size: 0.66rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.22s ease, background-color 0.22s ease;
+    }
+    .shuffle-btn:hover {
+        transform: translateY(-0.12rem);
+        background: color-mix(in srgb, var(--tone) 20%, transparent);
+    }
+    .start-card--shuffle.is-shuffling [data-map-shuffle-title],
+    .start-card--shuffle.is-shuffling [data-map-shuffle-desc],
+    .start-card--shuffle.is-shuffling .start-meta {
+        animation: shuffle-pop 0.62s cubic-bezier(0.22, 0.68, 0, 1);
+    }
+    .start-card--shuffle.is-shuffling .start-desc {
+        animation-delay: 40ms;
+    }
+    .start-card--shuffle.is-shuffling .start-meta {
+        animation-delay: 80ms;
+    }
+
+    /* ============================================================ 系列路线 */
+    .route-list {
+        display: grid;
+        gap: 0.9rem;
+    }
+    .route-card {
+        position: relative;
+        padding: 1.05rem 1.15rem 1.15rem;
+        border: 1px solid color-mix(in srgb, var(--tone) 18%, var(--glass-border));
+        border-radius: 1.25rem;
+        background:
+            linear-gradient(152deg, color-mix(in srgb, var(--tone) 7%, transparent), transparent 56%),
+            color-mix(in srgb, var(--glass-card) 78%, transparent);
+    }
+    .route-head {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-bottom: 0.95rem;
+    }
+    .route-index {
+        display: grid;
+        place-items: center;
+        width: 1.9rem;
+        height: 1.9rem;
+        border-radius: 0.65rem;
+        background: color-mix(in srgb, var(--tone) 13%, transparent);
+        color: color-mix(in srgb, var(--tone) 86%, var(--text-strong));
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+    .route-titles p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.56rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+    }
+    .route-titles h3 {
+        margin: 0.1rem 0 0;
+        font-size: 1.02rem;
+    }
+    .route-titles h3 a {
+        color: var(--text-strong);
+        transition: color 0.22s ease;
+    }
+    .route-titles h3 a:hover {
+        color: var(--tone);
+    }
+    .route-meta {
+        margin-left: auto;
+        color: var(--text-muted);
+        font-size: 0.68rem;
+    }
+    .route-more {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+        padding: 0.28rem 0.58rem;
+        border: 1px dashed color-mix(in srgb, var(--tone) 32%, transparent);
+        border-radius: 999px;
+        color: color-mix(in srgb, var(--tone) 85%, var(--text-body));
+        font-size: 0.64rem;
+        transition: background-color 0.22s ease, transform 0.22s ease;
+    }
+    .route-more:hover {
+        transform: translateX(0.12rem);
+        background: color-mix(in srgb, var(--tone) 10%, transparent);
+    }
+
+    .route-lines {
+        display: grid;
+        gap: 0.7rem;
+    }
+    .route-line {
+        padding: 0.65rem 0.8rem 0.8rem;
+        border: 1px solid color-mix(in srgb, var(--tone) 10%, transparent);
+        border-radius: 1rem;
+        background: color-mix(in srgb, var(--tone) 4%, transparent);
+    }
+    .line-head {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+    }
+    .line-bullet {
+        display: grid;
+        place-items: center;
+        width: 1.05rem;
+        height: 1.05rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--tone) 18%, transparent);
+    }
+    .line-bullet i {
+        width: 0.42rem;
+        height: 0.42rem;
+        border-radius: 999px;
+        background: var(--tone);
+    }
+    .line-name {
+        color: var(--text-body);
+        font-size: 0.86rem;
+        font-weight: 750;
+        transition: color 0.22s ease;
+    }
+    .line-name:hover {
+        color: var(--tone);
+    }
+    .line-count {
+        padding: 0.14rem 0.45rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--tone) 11%, transparent);
+        color: color-mix(in srgb, var(--tone) 82%, var(--text-muted));
+        font-size: 0.6rem;
+        font-weight: 700;
+    }
+    .line-hint {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.18rem;
+        margin-left: auto;
+        color: var(--text-muted);
+        font-size: 0.62rem;
+    }
+    .line-hint > :global(svg) {
+        color: color-mix(in srgb, var(--tone) 70%, var(--text-muted));
+    }
+
+    .line-track {
+        position: relative;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 0.6rem;
+        margin: 0;
+        padding: 1.35rem 0 0;
+        list-style: none;
+    }
+    /* 轨道画在每一站自己身上：线路跟着最后一站停下，不会拖出一条空荡荡的长线 */
+    .line-track::before {
+        display: none;
+    }
+    .line-stop {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        flex: 0 1 17rem;
+        min-width: 12rem;
+    }
+    .line-stop::before {
+        content: '';
+        position: absolute;
+        left: 1.05rem;
+        right: -0.6rem;
+        top: -0.8rem;
+        border-top: 2px dashed color-mix(in srgb, var(--tone) 42%, transparent);
+        transform-origin: left center;
+    }
+    .line-stop:last-child::before {
+        right: calc(100% - 3.4rem);
+    }
+    /* 顺着线路往前跑的小光点 */
+    .line-stop::after {
+        content: '';
+        position: absolute;
+        top: -0.8rem;
+        left: 1.05rem;
+        width: 0.34rem;
+        height: 0.34rem;
+        margin-top: -0.17rem;
+        border-radius: 999px;
+        background: var(--tone);
+        opacity: 0;
+        animation: station-travel 4.8s ease-in-out infinite;
+        animation-delay: calc(var(--si, 0) * 0.9s + var(--pi, 0) * 1.3s);
+        pointer-events: none;
+    }
+    .line-stop:last-child::after {
+        animation-name: station-travel-end;
+    }
+    .article-map.map-anim .line-stop::before {
+        transform: scaleX(0);
+        transition: transform 0.75s cubic-bezier(0.22, 0.68, 0, 1) calc(var(--i, 0) * 90ms + var(--si, 0) * 80ms + var(--pi, 0) * 150ms + 160ms);
+    }
+    .article-map.map-anim .route-card.is-visible .line-stop::before {
+        transform: scaleX(1);
+    }
+    .article-map.map-anim .line-stop {
+        opacity: 0;
+        transform: translateY(0.55rem);
+        transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.22, 0.68, 0, 1);
+        transition-delay: calc(var(--i, 0) * 90ms + var(--si, 0) * 80ms + var(--pi, 0) * 110ms + 200ms);
+    }
+    .article-map.map-anim .route-card.is-visible .line-stop {
+        opacity: 1;
+        transform: none;
+    }
+    .stop-pin {
+        position: absolute;
+        left: 1.05rem;
+        top: -0.8rem;
+        z-index: 1;
+        width: 0.62rem;
+        height: 0.62rem;
+        border: 2px solid color-mix(in srgb, var(--tone) 55%, transparent);
+        border-radius: 999px;
+        background: var(--glass-card);
+        transform: translate(-50%, -50%);
+        transition: background-color 0.24s ease, border-color 0.24s ease, box-shadow 0.24s ease;
+    }
+    .stop-pin::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 100%;
+        width: 1px;
+        height: 0.5rem;
+        background: color-mix(in srgb, var(--tone) 34%, transparent);
+    }
+    .line-stop:hover .stop-pin {
+        background: var(--tone);
+        border-color: var(--tone);
+        box-shadow: 0 0 0 0.24rem color-mix(in srgb, var(--tone) 18%, transparent);
+    }
+    .stop-card {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        gap: 0.26rem;
+        padding: 0.58rem 0.7rem;
+        border: 1px solid color-mix(in srgb, var(--tone) 14%, var(--glass-border));
+        border-radius: 0.85rem;
+        background: color-mix(in srgb, var(--glass-card) 78%, transparent);
+        transition: transform 0.26s cubic-bezier(0.22, 0.68, 0, 1), border-color 0.26s ease, background-color 0.26s ease;
+    }
+    .stop-card:hover {
+        transform: translateY(-0.22rem);
+        border-color: color-mix(in srgb, var(--tone) 45%, transparent);
+        background: color-mix(in srgb, var(--tone) 8%, var(--glass-card));
+    }
+    .stop-date {
+        color: color-mix(in srgb, var(--tone) 82%, var(--text-muted));
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+    }
+    .stop-title {
+        color: var(--text-body);
+        font-size: 0.78rem;
+        font-weight: 650;
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .stop-foot {
+        color: var(--text-muted);
+        font-size: 0.6rem;
+    }
+
+    /* ====================================================== 领地 + 星标 */
+    .map-columns {
+        display: grid;
+        grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+        gap: 1rem;
+    }
+    .territory-list {
+        display: grid;
+        gap: 0.3rem;
+    }
+    .territory {
+        display: grid;
+        grid-template-columns: 5.6rem minmax(0, 1fr) 1.75rem 2.5rem;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.48rem 0.6rem;
+        border-radius: 0.85rem;
+        transition: background-color 0.24s ease, transform 0.24s ease;
+    }
+    .territory:hover {
+        transform: translateX(0.2rem);
+        background: color-mix(in srgb, var(--tone) 6%, transparent);
+    }
+    .territory-name {
+        overflow: hidden;
+        color: var(--text-body);
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .territory:hover .territory-name {
+        color: var(--tone);
+    }
+    .territory-bar {
+        position: relative;
+        height: 0.42rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--tone) 12%, transparent);
+        overflow: hidden;
+    }
+    .territory-bar i {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: calc(var(--w) * 1%);
+        border-radius: 999px;
+        background: linear-gradient(90deg, color-mix(in srgb, var(--tone) 60%, transparent), var(--tone));
+    }
+    .article-map.map-anim .territory-bar i {
+        width: 0;
+        transition: width 1s cubic-bezier(0.22, 0.68, 0, 1) calc(var(--i, 0) * 90ms + 200ms);
+    }
+    .article-map.map-anim .map-section.is-visible .territory-bar i {
+        width: calc(var(--w) * 1%);
+    }
+    .territory-count {
+        display: grid;
+        place-items: center;
+        min-width: 1.6rem;
+        height: 1.4rem;
+        padding-inline: 0.3rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--tone) 12%, transparent);
+        color: color-mix(in srgb, var(--tone) 85%, var(--text-strong));
+        font-size: 0.66rem;
+        font-weight: 800;
+    }
+    .territory-percent {
+        color: var(--text-muted);
+        font-size: 0.64rem;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .tag-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .tag-star {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.28rem;
+        padding: calc(0.34rem + var(--size, 1) * 0.045rem) calc(0.6rem + var(--size, 1) * 0.05rem);
+        border: 1px dashed color-mix(in srgb, var(--primary) 26%, transparent);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary) 5%, var(--glass-card));
+        color: var(--text-body);
+        font-size: calc(0.72rem + var(--size, 1) * 0.035rem);
+        transition: transform 0.26s cubic-bezier(0.22, 0.68, 0, 1), border-color 0.24s ease, color 0.24s ease;
+    }
+    .article-map.map-anim .tag-star {
+        opacity: 0;
+        transform: translateY(0.4rem) scale(0.94);
+        transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.22, 0.68, 0, 1), border-color 0.24s ease, color 0.24s ease;
+        transition-delay: calc(var(--i, 0) * 45ms + 120ms);
+    }
+    .article-map.map-anim .map-section.is-visible .tag-star {
+        opacity: 1;
+        transform: none;
+    }
+    .tag-star > :global(svg) {
+        color: color-mix(in srgb, var(--primary) 72%, var(--text-muted));
+        font-size: 0.9em;
+    }
+    .tag-star small {
+        display: grid;
+        place-items: center;
+        min-width: 1.1rem;
+        height: 1.1rem;
+        padding-inline: 0.18rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary) 10%, transparent);
+        color: var(--text-muted);
+        font-size: 0.58rem;
+    }
+    .tag-star:hover {
+        transform: translateY(-0.16rem) rotate(-1.5deg);
+        border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+        color: var(--primary);
+    }
+
+    /* 最亮的星：出现次数最多的标签，顺手带一篇最近的 */
+    .star-lead {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin-top: 0.9rem;
+        padding: 0.65rem 0.8rem;
+        border: 1px dashed color-mix(in srgb, var(--primary) 30%, transparent);
+        border-radius: 1.1rem;
+        background:
+            radial-gradient(circle at 10% 18%, color-mix(in srgb, var(--primary) 15%, transparent), transparent 62%),
+            color-mix(in srgb, var(--glass-card) 70%, transparent);
+        transition: transform 0.26s cubic-bezier(0.22, 0.68, 0, 1), border-color 0.26s ease;
+    }
+    .star-lead:hover {
+        transform: translateY(-0.18rem);
+        border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+    }
+    .star-lead-glyph {
+        color: var(--primary);
+        font-size: 1.1rem;
+        line-height: 1;
+        animation: star-lead-pulse 3.4s ease-in-out infinite;
+    }
+    .star-lead-body {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 0.16rem;
+        min-width: 0;
+    }
+    .star-lead-body b {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--text-strong);
+        font-size: 0.8rem;
+        font-weight: 800;
+    }
+    .star-lead-body b small {
+        display: grid;
+        place-items: center;
+        min-width: 1.1rem;
+        height: 1.1rem;
+        padding-inline: 0.2rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary) 16%, transparent);
+        color: color-mix(in srgb, var(--primary) 88%, var(--text-strong));
+        font-size: 0.58rem;
+    }
+    .star-lead-line {
+        overflow: hidden;
+        color: var(--text-muted);
+        font-size: 0.68rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .star-lead-go {
+        display: inline-flex;
+        color: color-mix(in srgb, var(--primary) 70%, var(--text-muted));
+        transition: transform 0.26s cubic-bezier(0.22, 0.68, 0, 1);
+    }
+    .star-lead:hover .star-lead-go {
+        transform: translateX(0.22rem);
+    }
+    @keyframes star-lead-pulse {
+        0%,
+        100% {
+            opacity: 0.8;
+            transform: scale(1) rotate(0deg);
+        }
+        50% {
+            opacity: 1;
+            transform: scale(1.16) rotate(16deg);
+        }
+    }
+
+    /* ============================================================ 时间航线 */
+    .timeline {
+        --rail-x: 0.5rem;
+        position: relative;
+        padding-left: 1.9rem;
+    }
+    .timeline-rail {
+        position: absolute;
+        left: var(--rail-x);
+        top: 0.35rem;
+        bottom: 0.35rem;
+        width: 2px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary) 14%, transparent);
+    }
+    .timeline-fill {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--primary), color-mix(in srgb, var(--primary) 30%, transparent));
+        transform: scaleY(var(--progress, 0));
+        transform-origin: top center;
+        transition: transform 0.2s linear;
+    }
+    .year-group + .year-group {
+        margin-top: 0.9rem;
+    }
+    .year-chip {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin: 0 0 0.55rem;
+    }
+    .year-chip b {
+        color: var(--text-strong);
+        font-size: 1.02rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+    }
+    .year-chip small {
+        padding: 0.12rem 0.42rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary) 10%, transparent);
+        color: var(--text-muted);
+        font-size: 0.6rem;
+    }
+    .year-dot {
+        position: absolute;
+        left: calc(var(--rail-x) - 2.25rem);
+        top: 50%;
+        width: 0.75rem;
+        height: 0.75rem;
+        border: 2px solid color-mix(in srgb, var(--primary) 45%, transparent);
+        border-radius: 999px;
+        background: var(--glass-card);
+        transform: translateY(-50%);
+    }
+    .year-dot::after {
+        content: '';
+        position: absolute;
+        inset: -0.3rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
+        border-radius: 999px;
+        opacity: 0;
+        animation: pin-pulse 3.6s ease-out infinite;
+    }
+    .year-list {
+        display: grid;
+        gap: 0.4rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .timeline-stop {
+        position: relative;
+    }
+    .stop-dot {
+        position: absolute;
+        left: calc(var(--rail-x) - 2.2rem);
+        top: 1.1rem;
+        width: 0.6rem;
+        height: 0.6rem;
+        border: 2px solid color-mix(in srgb, var(--primary) 32%, transparent);
+        border-radius: 999px;
+        background: var(--glass-card);
+        transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .stop-link {
+        display: grid;
+        grid-template-columns: 3.4rem minmax(0, 1fr) 1.4rem;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.55rem 0.7rem;
+        border: 1px solid transparent;
+        border-radius: 0.95rem;
+        transition: transform 0.24s ease, background-color 0.24s ease, border-color 0.24s ease;
+    }
+    .stop-link:hover {
+        transform: translateX(0.22rem);
+        border-color: color-mix(in srgb, var(--primary) 16%, transparent);
+        background: color-mix(in srgb, var(--primary) 6%, transparent);
+    }
+    .stop-date {
+        display: flex;
+        flex-direction: column;
+        color: var(--text-muted);
+        font-size: 0.6rem;
+        line-height: 1.3;
+    }
+    .stop-date b {
+        color: color-mix(in srgb, var(--primary) 78%, var(--text-body));
+        font-size: 0.8rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+    .stop-main {
+        min-width: 0;
+    }
+    .stop-title {
+        display: block;
+        color: var(--text-body);
+        font-size: 0.85rem;
+        line-height: 1.5;
+    }
+    .stop-name {
+        font-weight: 650;
+    }
+    .stop-badge {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 0.35rem;
+        padding: 0.06rem 0.35rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary) 13%, transparent);
+        color: color-mix(in srgb, var(--primary) 88%, var(--text-strong));
+        font-size: 0.56rem;
+        font-style: normal;
+        font-weight: 700;
+        vertical-align: middle;
+    }
+    .stop-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.3rem;
+        margin-top: 0.14rem;
+        color: var(--text-muted);
+        font-size: 0.62rem;
+    }
+    .stop-tag {
+        padding: 0.04rem 0.32rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary) 8%, transparent);
+        color: color-mix(in srgb, var(--primary) 68%, var(--text-muted));
+        font-size: 0.58rem;
+    }
+    .stop-go {
+        display: grid;
+        place-items: center;
+        color: var(--primary);
+        opacity: 0;
+        transform: translateX(-0.3rem);
+        transition: opacity 0.24s ease, transform 0.24s ease;
+    }
+    .stop-link:hover .stop-go {
+        opacity: 1;
+        transform: none;
+    }
+    .timeline-stop.is-passed .stop-dot {
+        background: var(--primary);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--primary) 16%, transparent);
+    }
+    .timeline-stop.is-passed .stop-name {
+        color: var(--text-strong);
+        font-weight: 750;
+    }
+
+    /* ============================================================ 结尾注记 */
+    .map-outro {
+        margin-top: 1rem;
+        padding: 1.4rem 1.5rem;
+        border-radius: 1.5rem;
+        text-align: center;
+        background:
+            radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 62%),
+            var(--glass-card);
+    }
+    .outro-dash {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.55rem;
+        color: color-mix(in srgb, var(--primary) 62%, transparent);
+        font-size: 0.78rem;
+    }
+    .outro-dash i {
+        width: 4.2rem;
+        border-top: 1px dashed color-mix(in srgb, var(--primary) 30%, transparent);
+    }
+    .outro-text {
+        margin: 0.75rem 0 0;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        line-height: 1.8;
+    }
+    .outro-text strong {
+        color: var(--primary);
+        font-size: 0.95rem;
+        font-variant-numeric: tabular-nums;
+    }
+    .outro-links {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.9rem;
+    }
+    .outro-links a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.4rem 0.85rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--glass-border));
+        border-radius: 999px;
+        color: var(--text-body);
+        font-size: 0.72rem;
+        transition: transform 0.24s ease, border-color 0.24s ease, color 0.24s ease;
+    }
+    .outro-links a > :global(svg) {
+        color: var(--primary);
+    }
+    .outro-links a:hover {
+        transform: translateY(-0.16rem);
+        border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+        color: var(--primary);
+    }
+
+    /* ============================================================ 锚点定位 */
+    #map-start,
+    #map-routes,
+    #map-territory,
+    #map-timeline {
+        scroll-margin-top: 5.5rem;
+    }
+
+    /* ============================================================== 动效 */
+    @keyframes map-doodle-float {
+        0%,
+        100% {
+            transform: translate(-50%, -50%) rotate(var(--r)) translateY(0);
+        }
+        50% {
+            transform: translate(-50%, -50%) rotate(calc(var(--r) + 7deg)) translateY(-0.7rem);
+        }
+    }
+    @keyframes atlas-flow {
+        to {
+            stroke-dashoffset: -54;
+        }
+    }
+    @keyframes atlas-run {
+        from {
+            stroke-dashoffset: 0;
+        }
+        to {
+            stroke-dashoffset: -100.55;
+        }
+    }
+    @keyframes compass-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    @keyframes pin-pulse {
+        0% {
+            opacity: 0.7;
+            transform: scale(0.7);
+        }
+        70% {
+            opacity: 0;
+            transform: scale(1.8);
+        }
+        100% {
+            opacity: 0;
+            transform: scale(1.8);
+        }
+    }
+    @keyframes atlas-you-pulse {
+        0%,
+        100% {
+            opacity: 0.35;
+            transform: scale(0.8);
+        }
+        50% {
+            opacity: 1;
+            transform: scale(1.15);
+        }
+    }
+    @keyframes atlas-unknown {
+        0%,
+        100% {
+            opacity: 0.5;
+            transform: translate(-50%, -50%) scale(0.92);
+        }
+        50% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.06);
+        }
+    }
+    @keyframes station-travel {
+        0% {
+            left: 1.05rem;
+            opacity: 0;
+        }
+        14% {
+            opacity: 0.9;
+        }
+        78% {
+            opacity: 0.9;
+        }
+        100% {
+            left: calc(100% + 0.5rem);
+            opacity: 0;
+        }
+    }
+    @keyframes station-travel-end {
+        0% {
+            left: 1.05rem;
+            opacity: 0;
+        }
+        14% {
+            opacity: 0.9;
+        }
+        78% {
+            opacity: 0.9;
+        }
+        100% {
+            left: 3.2rem;
+            opacity: 0;
+        }
+    }
+    @keyframes shuffle-pop {
+        0% {
+            opacity: 1;
+            transform: none;
+        }
+        35% {
+            opacity: 0;
+            transform: translateY(0.35rem) scale(0.98);
+        }
+        100% {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    /* ============================================================ 响应式 */
+    @media (max-width: 1000px) {
+        .hero-grid {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 1.2rem;
+        }
+        .hero-atlas {
+            min-height: 14rem;
+        }
+    }
+    @media (max-width: 900px) {
+        .map-doodles {
+            display: none;
+        }
+    }
+    @media (max-width: 720px) {
+        .map-columns {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
     @media (max-width: 640px) {
-        .article-map { padding: 0.5rem 0 2rem; }
-        .map-hero { padding: 1.25rem; border-radius: 1.4rem; }
-        .map-hero h1 span { display: block; width: max-content; margin: 0.35rem 0 0; }
-        .map-subtitle { font-size: 0.75rem; }
-        .map-section { padding: 1rem; border-radius: 1.25rem; }
-        .section-heading > span { display: none; }
-        .series-group { grid-template-columns: 1fr; gap: 0.25rem; }
-        .series-category { min-height: 2rem; }
-        .map-columns { grid-template-columns: 1fr; gap: 0; }
-        .series-item > :global(svg) { opacity: 0.55; transform: none; }
+        .article-map {
+            padding: 0.5rem 0 2rem;
+        }
+        .map-hero {
+            padding: 1.2rem 1.15rem 1rem;
+            border-radius: 1.4rem;
+        }
+        .map-section,
+        .map-outro {
+            padding: 1.05rem;
+            border-radius: 1.25rem;
+        }
+        .hero-kaomoji {
+            display: block;
+            margin: 0.35rem 0 0;
+        }
+        .hero-lead br {
+            display: none;
+        }
+        .section-note,
+        .hero-legend em {
+            display: none;
+        }
+        .hero-legend {
+            gap: 0.35rem 0.7rem;
+        }
+        .start-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+        .start-go {
+            opacity: 1;
+            transform: none;
+        }
+        .line-track {
+            flex-direction: column;
+            padding: 0 0 0 1.5rem;
+        }
+        /* 窄屏换成竖线：轨道重新交回给整条线路 */
+        .line-stop {
+            flex: 0 0 auto;
+            width: 100%;
+            min-width: 0;
+        }
+        .line-stop::before,
+        .line-stop::after {
+            display: none;
+        }
+        .line-track::before {
+            display: block;
+            content: '';
+            position: absolute;
+            left: 0.5rem;
+            right: auto;
+            top: 0.45rem;
+            bottom: 0.45rem;
+            border-top: 0;
+            border-left: 2px dashed color-mix(in srgb, var(--tone) 42%, transparent);
+            transform-origin: top center;
+        }
+        .article-map.map-anim .line-track::before {
+            transform: scaleY(0);
+            transition: transform 1.1s cubic-bezier(0.22, 0.68, 0, 1) calc(var(--i, 0) * 90ms + 120ms);
+        }
+        .article-map.map-anim .route-card.is-visible .line-track::before {
+            transform: scaleY(1);
+        }
+        .stop-pin {
+            left: -0.9rem;
+            top: 1.1rem;
+        }
+        .stop-pin::after {
+            display: none;
+        }
+        .line-hint {
+            margin-left: 0;
+        }
+        .territory {
+            grid-template-columns: minmax(4rem, auto) minmax(0, 1fr) 1.6rem;
+        }
+        .territory-percent {
+            display: none;
+        }
+        .stop-link {
+            grid-template-columns: 2.9rem minmax(0, 1fr);
+            gap: 0.55rem;
+        }
+        .stop-go {
+            display: none;
+        }
+    }
+    @media (hover: none) {
+        .start-go,
+        .stop-go {
+            opacity: 0.85;
+            transform: none;
+        }
     }
     @media (prefers-reduced-motion: reduce) {
-        .map-stickers span:nth-child(1) { animation: none; }
-        .series-item, .category-list a, .tag-cloud a { transition: none; }
+        .map-doodles span,
+        .atlas-line,
+        .atlas-flow,
+        .atlas-runner,
+        .atlas-compass svg,
+        .pin-dot::after,
+        .year-dot::after,
+        .line-stop::after,
+        .atlas-unknown,
+        .atlas-you i,
+        .star-lead-glyph {
+            animation: none;
+        }
+        .article-map.map-anim [data-map-reveal],
+        .article-map.map-anim .line-stop,
+        .article-map.map-anim .tag-star {
+            opacity: 1;
+            transform: none;
+            transition: none;
+        }
+        .article-map.map-anim .line-stop::before,
+        .article-map.map-anim .line-track::before {
+            transform: none;
+            transition: none;
+        }
+        .article-map.map-anim .territory-bar i {
+            width: calc(var(--w) * 1%);
+            transition: none;
+        }
+        .start-card,
+        .stop-card,
+        .tag-star,
+        .territory,
+        .star-lead,
+        .hero-jump a {
+            transition: none;
+        }
     }
 </style>
