@@ -66,7 +66,7 @@ const { remarkPluginFrontmatter } = await entry.render();
     <a href={url} class="post-card-hit absolute inset-0 z-[1]" aria-label={title}></a>
 
     <!-- decorative stationery -->
-    <span class="post-card-sheen" aria-hidden="true"></span>
+    <span class="post-card-tint" aria-hidden="true"></span>
     <span class="post-card-sticker sticker-ribbon" aria-hidden="true">🎀</span>
     <span class="post-card-sticker sticker-flower" aria-hidden="true">🌸</span>
     <span class="post-card-sticker sticker-sparkles" aria-hidden="true">⋆｡˚</span>
@@ -195,21 +195,17 @@ const { remarkPluginFrontmatter } = await entry.render();
     .post-card:hover {
         border-color: color-mix(in srgb, var(--primary) 18%, var(--glass-border));
     }
-    /* a soft light sweep travelling across the card on hover */
-    .post-card-sheen {
+    /* the entry gets a warm paper tint instead of a light sweep */
+    .post-card-tint {
         position: absolute;
         inset: 0;
-        z-index: 2;
+        z-index: 0;
         pointer-events: none;
         opacity: 0;
-        background: linear-gradient(
-            104deg,
-            transparent 32%,
-            color-mix(in srgb, var(--primary) 11%, transparent) 48%,
-            rgb(255 255 255 / 0.22) 52%,
-            transparent 68%
-        );
-        transform: translateX(-115%);
+        background:
+            radial-gradient(120% 130% at 0% 0%, color-mix(in srgb, var(--primary) 12%, transparent), transparent 62%),
+            linear-gradient(180deg, color-mix(in srgb, var(--primary) 4%, transparent), transparent 70%);
+        transition: opacity 420ms ease;
     }
 
     /* ---------------- date stamp ---------------- */
@@ -259,10 +255,29 @@ const { remarkPluginFrontmatter } = await entry.render();
     }
     /* the dashed notebook margin between the stamp and the entry */
     .post-card-rail {
+        position: relative;
         flex: none;
         align-self: stretch;
         width: 0;
         border-left: 1px dashed color-mix(in srgb, var(--primary) 20%, transparent);
+    }
+    /* an ink line runs down the margin when the entry is hovered */
+    .post-card-rail::after {
+        content: "";
+        position: absolute;
+        left: -1px;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        border-radius: 999px;
+        background: linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--primary) 72%, transparent),
+            color-mix(in srgb, var(--primary) 10%, transparent)
+        );
+        transform: scaleY(0);
+        transform-origin: center top;
+        transition: transform 640ms cubic-bezier(0.22, 1, 0.36, 1);
     }
 
     /* ---------------- entry ---------------- */
@@ -296,6 +311,12 @@ const { remarkPluginFrontmatter } = await entry.render();
         text-wrap: balance;
         overflow-wrap: anywhere;
         padding-right: 3.25rem;
+        /* a highlighter stroke that hugs every line of the title */
+        text-decoration-line: underline;
+        text-decoration-color: transparent;
+        text-decoration-thickness: 0.15em;
+        text-underline-offset: 0.16em;
+        transition: text-decoration-color 460ms ease, text-decoration-thickness 460ms ease;
     }
     .post-card-title::before {
         content: "✦";
@@ -505,14 +526,10 @@ const { remarkPluginFrontmatter } = await entry.render();
             color-mix(in srgb, var(--glass-card) 96%, var(--primary) 3%);
         box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 0.8rem 2rem rgb(0 0 0 / 0.16) !important;
     }
-    :global(.dark) .post-card-sheen {
-        background: linear-gradient(
-            104deg,
-            transparent 32%,
-            color-mix(in srgb, var(--primary) 16%, transparent) 48%,
-            rgb(255 255 255 / 0.07) 52%,
-            transparent 68%
-        );
+    :global(.dark) .post-card-tint {
+        background:
+            radial-gradient(120% 130% at 0% 0%, color-mix(in srgb, var(--primary) 20%, transparent), transparent 62%),
+            linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, transparent), transparent 70%);
     }
     :global(.dark) .post-card-stamp {
         background:
@@ -632,10 +649,15 @@ const { remarkPluginFrontmatter } = await entry.render();
         :global(.dark) .post-card:hover {
             box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 1rem 2.4rem rgb(0 0 0 / 0.24) !important;
         }
-        .post-card:hover .post-card-sheen {
+        .post-card:hover .post-card-tint {
             opacity: 1;
-            transform: translateX(115%);
-            transition: transform 1000ms cubic-bezier(0.22, 1, 0.36, 1), opacity 120ms linear;
+        }
+        .post-card:hover .post-card-title {
+            text-decoration-color: color-mix(in srgb, var(--primary) 46%, transparent);
+            text-decoration-thickness: 0.17em;
+        }
+        .post-card:hover .post-card-rail::after {
+            transform: scaleY(1);
         }
         .post-card:hover .post-card-stamp {
             transform: rotate(0deg) translateY(-0.15rem);
@@ -687,14 +709,19 @@ const { remarkPluginFrontmatter } = await entry.render();
         .post-card,
         .post-card-stamp,
         .post-card-tag,
-        .post-card-sheen {
+        .post-card-tint,
+        .post-card-title,
+        .post-card-rail::after {
             transition: none !important;
         }
         .post-card:hover {
             transform: none;
         }
-        .post-card-sheen {
+        .post-card-tint {
             display: none;
+        }
+        .post-card:hover .post-card-title {
+            text-decoration-color: transparent;
         }
         .post-card-sticker,
         .post-card:hover .post-card-sticker {
