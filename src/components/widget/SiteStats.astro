@@ -19,75 +19,54 @@ const formatNumber = new Intl.NumberFormat("zh-CN");
 ---
 
 <WidgetLayout name="站点统计" id="site-stats" class={className} style={style} icon="material-symbols:analytics-outline-rounded">
-    <div class="flex flex-col gap-3 px-1">
+    <div class="stats-board">
         <!-- 运行时间 -->
-        <div class="flex items-start gap-2.5">
-            <Icon name="material-symbols:timer-outline-rounded" class="site-stats-icon text-[var(--tea)]" />
-            <div class="flex flex-col">
-                <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">已运行</span>
-                <span id="site-running-time" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
-                    加载中...
-                </span>
+        <div class="stats-live">
+            <span class="stats-live-pulse" aria-hidden="true"></span>
+            <div class="stats-live-text">
+                <span class="stats-label">已运行</span>
+                <span id="site-running-time" class="stats-live-value">加载中...</span>
+            </div>
+            <Icon name="material-symbols:timer-outline-rounded" class="stats-live-icon" />
+        </div>
+
+        <!-- 访问数据 -->
+        <div class="stats-tiles">
+            <div class="stats-tile">
+                <Icon name="material-symbols:today-outline-rounded" class="stats-tile-icon is-today" />
+                <span class="stats-tile-label">今日访问</span>
+                <span id="umami-site-today-visitors" class="stats-tile-value">--</span>
+            </div>
+            <div class="stats-tile">
+                <Icon name="material-symbols:group-outline-rounded" class="stats-tile-icon is-visitors" />
+                <span class="stats-tile-label">总访客</span>
+                <span id="umami-site-visitors" class="stats-tile-value">--</span>
+            </div>
+            <div class="stats-tile">
+                <Icon name="material-symbols:trending-up-rounded" class="stats-tile-icon is-pageviews" />
+                <span class="stats-tile-label">总访问</span>
+                <span id="umami-site-pageviews" class="stats-tile-value">--</span>
             </div>
         </div>
 
-        <div class="border-t border-dashed border-black/10 dark:border-white/10"></div>
+        <div class="stats-divider" aria-hidden="true"><span>内容</span></div>
 
-        <!-- 今日访客数 -->
-        <div class="flex items-start gap-2.5">
-            <Icon name="material-symbols:today-outline-rounded" class="site-stats-icon text-[var(--primary)]" />
-            <div class="flex flex-col">
-                <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">今日访问</span>
-                <span id="umami-site-today-visitors" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
-                    加载中...
-                </span>
-            </div>
-        </div>
-
-        <div class="border-t border-dashed border-black/10 dark:border-white/10"></div>
-
-        <!-- 总访客数 UV -->
-        <div class="flex items-start gap-2.5">
-            <Icon name="material-symbols:group-outline-rounded" class="site-stats-icon text-[var(--azusa-blue)]" />
-            <div class="flex flex-col">
-                <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">总访客</span>
-                <span id="umami-site-visitors" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
-                    加载中...
-                </span>
-            </div>
-        </div>
-
-        <div class="border-t border-dashed border-black/10 dark:border-white/10"></div>
-
-        <!-- 总访问量 PV -->
-        <div class="flex items-start gap-2.5">
-            <Icon name="material-symbols:trending-up-rounded" class="site-stats-icon text-[var(--mio-purple)]" />
-            <div class="flex flex-col">
-                <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">总访问</span>
-                <span id="umami-site-pageviews" class="text-sm font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
-                    加载中...
-                </span>
-            </div>
-        </div>
-
-        <div class="border-t border-dashed border-black/10 dark:border-white/10"></div>
-
-        <div class="grid grid-cols-2 gap-x-3 gap-y-3 pt-0.5">
-            <div class="site-content-stat">
+        <div class="stats-content">
+            <div class="stats-cell">
                 <span>文章字数</span>
-                <strong>{formatNumber.format(contentStats.wordCount)}</strong>
+                <strong data-count-to={contentStats.wordCount}>{formatNumber.format(contentStats.wordCount)}</strong>
             </div>
-            <div class="site-content-stat">
+            <div class="stats-cell">
                 <span>文章数量</span>
-                <strong>{formatNumber.format(contentStats.postCount)}</strong>
+                <strong data-count-to={contentStats.postCount}>{formatNumber.format(contentStats.postCount)}</strong>
             </div>
-            <div class="site-content-stat">
+            <div class="stats-cell">
                 <span>分类</span>
-                <strong>{formatNumber.format(contentStats.categoryCount)}</strong>
+                <strong data-count-to={contentStats.categoryCount}>{formatNumber.format(contentStats.categoryCount)}</strong>
             </div>
-            <div class="site-content-stat">
+            <div class="stats-cell">
                 <span>标签</span>
-                <strong>{formatNumber.format(contentStats.tagCount)}</strong>
+                <strong data-count-to={contentStats.tagCount}>{formatNumber.format(contentStats.tagCount)}</strong>
             </div>
         </div>
     </div>
@@ -97,6 +76,42 @@ const formatNumber = new Intl.NumberFormat("zh-CN");
 <script is:inline define:vars={{ SITE_START_DATE, UMAMI_API_BASE, UMAMI_SHARE_ID }}>
     (() => {
         const formatNumber = new Intl.NumberFormat('zh-CN');
+
+        function prefersReducedMotion() {
+            return typeof window.matchMedia === 'function'
+                && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        }
+
+        /* 数字滚动动画：让统计数字在出现时「滚」到目标值 */
+        function countUp(el, target, duration = 900) {
+            if (!el || !Number.isFinite(target)) return;
+            if (prefersReducedMotion() || typeof requestAnimationFrame !== 'function') {
+                el.textContent = formatNumber.format(target);
+                return;
+            }
+            if (el.dataset.counting === '1') return;
+            el.dataset.counting = '1';
+            const started = performance.now();
+            const step = (now) => {
+                const progress = Math.min((now - started) / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                el.textContent = formatNumber.format(Math.round(target * eased));
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    el.dataset.counting = '0';
+                }
+            };
+            requestAnimationFrame(step);
+        }
+
+        function animateStaticStats(root) {
+            root.querySelectorAll('[data-count-to]').forEach((el) => {
+                const target = Number(el.dataset.countTo);
+                if (!Number.isFinite(target)) return;
+                countUp(el, target, 1100);
+            });
+        }
 
         function updateRunningTime() {
             const startDate = new Date(SITE_START_DATE);
@@ -157,9 +172,9 @@ const formatNumber = new Intl.NumberFormat("zh-CN");
                 if (!statsResponse.ok || !todayResponse.ok) throw new Error('Umami stats request failed');
 
                 const [stats, todayStats] = await Promise.all([statsResponse.json(), todayResponse.json()]);
-                visitorsEl.textContent = formatNumber.format(Number(stats.visitors) || 0);
-                pageviewsEl.textContent = formatNumber.format(Number(stats.pageviews) || 0);
-                todayVisitorsEl.textContent = formatNumber.format(Number(todayStats.visitors) || 0);
+                countUp(visitorsEl, Number(stats.visitors) || 0, 900);
+                countUp(pageviewsEl, Number(stats.pageviews) || 0, 900);
+                countUp(todayVisitorsEl, Number(todayStats.visitors) || 0, 700);
                 root.dataset.statsState = 'loaded';
             } catch (error) {
                 console.error('[SiteStats] Failed to load Umami statistics.', error);
@@ -176,6 +191,7 @@ const formatNumber = new Intl.NumberFormat("zh-CN");
 
             root.dataset.statsState = 'loading';
             updateRunningTime();
+            animateStaticStats(root);
             if (window.__siteStatsTimer) clearInterval(window.__siteStatsTimer);
             window.__siteStatsTimer = setInterval(updateRunningTime, 1000);
             loadUmamiStats(root);
@@ -198,29 +214,176 @@ const formatNumber = new Intl.NumberFormat("zh-CN");
 </script>
 
 <style>
-    .site-stats-icon {
-        width: 1.35rem;
-        height: 1.35rem;
-        flex-shrink: 0;
-        margin-top: 0.1rem;
-    }
-    .tabular-nums {
-        font-variant-numeric: tabular-nums;
-    }
-    .site-content-stat {
+    .stats-board {
         display: flex;
         flex-direction: column;
+        gap: 0.6rem;
+        padding: 0 0.15rem 0.15rem;
+    }
+
+    /* ---- 运行时间 ---- */
+    .stats-live {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.6rem;
+        border-radius: 0.7rem;
+        border: 1px dashed color-mix(in srgb, var(--tea) 34%, transparent);
+        background: color-mix(in srgb, var(--tea) 7%, transparent);
+    }
+    .stats-live-pulse {
+        position: relative;
+        flex: none;
+        width: 0.44rem;
+        height: 0.44rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--tea) 82%, transparent);
+    }
+    .stats-live-pulse::after {
+        content: "";
+        position: absolute;
+        inset: -0.22rem;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--tea) 55%, transparent);
+        animation: stats-pulse 2.4s ease-out infinite;
+    }
+    .stats-live-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.05rem;
+        min-width: 0;
+    }
+    .stats-label {
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+    }
+    .stats-live-value {
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: var(--text-strong);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+    .stats-live-icon {
+        width: 1.15rem;
+        height: 1.15rem;
+        flex: none;
+        margin-left: auto;
+        color: color-mix(in srgb, var(--tea) 78%, transparent);
+    }
+
+    /* ---- 访问数据三宫格 ---- */
+    .stats-tiles {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.38rem;
+    }
+    .stats-tile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         gap: 0.1rem;
+        padding: 0.45rem 0.2rem 0.5rem;
+        border-radius: 0.68rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 12%, var(--glass-border));
+        background: linear-gradient(160deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.14));
+        transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.32s ease, box-shadow 0.32s ease;
     }
-    .site-content-stat span {
-        color: rgb(115 115 115 / 0.9);
-        font-size: 0.75rem;
+    .stats-tile-icon {
+        width: 1.05rem;
+        height: 1.05rem;
+    }
+    .stats-tile-icon.is-today { color: var(--primary); }
+    .stats-tile-icon.is-visitors { color: var(--azusa-blue); }
+    .stats-tile-icon.is-pageviews { color: var(--mio-purple); }
+    .stats-tile-label {
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+    .stats-tile-value {
+        font-size: 0.86rem;
+        font-weight: 800;
+        color: var(--text-strong);
+        font-variant-numeric: tabular-nums;
+        line-height: 1.2;
+    }
+    .stats-tile:hover {
+        transform: translateY(-0.14rem);
+        border-color: color-mix(in srgb, var(--primary) 30%, var(--glass-border));
+        box-shadow: 0 0.5rem 1rem color-mix(in srgb, var(--primary) 12%, transparent);
+    }
+
+    /* ---- 分隔 ---- */
+    .stats-divider {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.6rem;
+        letter-spacing: 0.2em;
+        color: color-mix(in srgb, var(--primary) 52%, transparent);
+    }
+    .stats-divider::before,
+    .stats-divider::after {
+        content: "";
+        flex: 1 1 auto;
+        height: 1px;
+        background: repeating-linear-gradient(
+            90deg,
+            color-mix(in srgb, var(--primary) 26%, transparent) 0 0.24rem,
+            transparent 0.24rem 0.48rem
+        );
+    }
+
+    /* ---- 内容统计 ---- */
+    .stats-content {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem 0.6rem;
+    }
+    .stats-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 0.06rem;
+    }
+    .stats-cell span {
+        font-size: 0.64rem;
         font-weight: 500;
+        color: var(--text-muted);
     }
-    .site-content-stat strong {
-        color: rgb(64 64 64);
-        font-size: 0.9rem;
+    .stats-cell strong {
+        font-size: 0.92rem;
+        font-weight: 800;
+        color: var(--text-strong);
         font-variant-numeric: tabular-nums;
     }
-    :global(.dark) .site-content-stat strong { color: rgb(229 229 229); }
+
+    @keyframes stats-pulse {
+        0% { opacity: 0.9; transform: scale(0.7); }
+        70% { opacity: 0; transform: scale(1.5); }
+        100% { opacity: 0; transform: scale(1.5); }
+    }
+
+    :global(.dark) .stats-tile {
+        background: linear-gradient(160deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.01));
+    }
+    :global(.dark) .stats-live {
+        background: color-mix(in srgb, var(--tea) 10%, transparent);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .stats-live-pulse::after {
+            animation: none;
+        }
+        .stats-tile,
+        .stats-tile:hover {
+            transition: none;
+            transform: none;
+        }
+    }
 </style>
