@@ -22,6 +22,8 @@ declare global {
 		__fuwariStatsGardenHookRegistered?: boolean;
 		__fuwariAboutHookRegistered?: boolean;
 		__fuwariAboutRailHookRegistered?: boolean;
+		/** SeriesPanel 的动画实例：切页前先清掉上一页的观察器与监听。 */
+		__fuwariSeriesMapCleanup?: () => void;
 	}
 }
 
