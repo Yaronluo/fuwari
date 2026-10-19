@@ -7,6 +7,42 @@ const contentStats = await getSiteContentStats();
 ---
 
 <MainGridLayout title="网站统计" description="收藏小站一路走来的访问足迹">
+	<script is:inline>
+		// Motion-capable browsers get the entrance choreography and the scroll
+		// reveals; a hard reload keeps the page still instead of replaying the
+		// entrance. `stats-motion` is added before the markup paints so revealed
+		// blocks never flash in place first, and `stats-reveal-pending` keeps
+		// them hidden until the panel script arms the observer — the timer below
+		// drops it again if that script never shows up, so nothing ever depends
+		// on JavaScript to become visible.
+		(() => {
+			const root = document.documentElement;
+			const navEntry = performance.getEntriesByType("navigation")[0];
+			const initialPaint = document.readyState === "loading";
+			root.classList.add("stats-motion");
+			if (initialPaint && navEntry && navEntry.type === "reload") {
+				root.classList.add("stats-no-enter");
+			} else {
+				root.classList.remove("stats-no-enter");
+			}
+			if (
+				window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+				!("IntersectionObserver" in window)
+			) {
+				return;
+			}
+			root.classList.add("stats-reveal-pending");
+			// Generous on purpose: the observer only takes over once the panel
+			// script has run, and a cold dev build can take a moment to serve it.
+			window.setTimeout(() => {
+				const garden = document.getElementById("stats-garden");
+				if (!garden || garden.dataset.revealArmed !== "true") {
+					root.classList.remove("stats-reveal-pending");
+				}
+			}, 4000);
+		})();
+	</script>
+
 	<div class="stats-page-shell">
 		<StatsPanel contentStats={contentStats} />
 	</div>
