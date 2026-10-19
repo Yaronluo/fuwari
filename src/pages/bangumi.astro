@@ -1,9 +1,7 @@
 ---
 import MainGridLayout from '../layouts/MainGridLayout.astro';
 import BangumiPanel from '@components/BangumiPanel.svelte';
-
-const BANGUMI_USER = import.meta.env.PUBLIC_BANGUMI_USER || "yaron";
-const BANGUMI_TOKEN = import.meta.env.BANGUMI_TOKEN || import.meta.env.PUBLIC_BANGUMI_TOKEN || "";
+import { getBangumiData } from '../data/bangumi';
 
 const COLLECTION_TYPES = [
     { id: 3, label: '正在心动', emoji: '♡' },
@@ -19,33 +17,6 @@ const GENRE_TAGS = new Set([
     '魔法', '机战', '后宫', '历史', '职场', '公路', '偶像', '美食'
 ]);
 
-interface BangumiSubject {
-    id: number;
-    name?: string;
-    name_cn?: string;
-    score?: number;
-    eps?: number;
-    total_episodes?: number;
-    images?: { large?: string; common?: string };
-    tags?: Array<{ name?: string }>;
-}
-
-interface BangumiCollection {
-    type: number;
-    rate?: number;
-    comment?: string;
-    updated_at?: string;
-    private?: boolean;
-    ep_status?: number;
-    subject?: BangumiSubject;
-}
-
-type BangumiCollectionWithSubject = BangumiCollection & { subject: BangumiSubject };
-
-function hasSubject(item: BangumiCollection): item is BangumiCollectionWithSubject {
-    return Boolean(item.subject);
-}
-
 function selectDisplayTags(tags: Array<{ name?: string }> | undefined) {
     const names = Array.from(new Set((tags || []).map((tag) => tag?.name?.trim()).filter(Boolean))) as string[];
     const genres = names.filter((name) => GENRE_TAGS.has(name));
@@ -60,51 +31,15 @@ function selectDisplayTags(tags: Array<{ name?: string }> | undefined) {
     return [...genres, ...fallback].slice(0, 5);
 }
 
-let allCollections: BangumiCollectionWithSubject[] = [];
+const bangumiData = await getBangumiData();
+const allCollections = bangumiData.collections;
 const statusCounts: Record<string, number> = { '3': 0, '2': 0, '1': 0, '4': 0, '5': 0 };
-let errorMessage: string | null = null;
-
-try {
-    const fetchPromises = COLLECTION_TYPES.map(async (collectionType) => {
-        const batchSize = 50;
-        let offset = 0;
-		const collections: BangumiCollection[] = [];
-
-        while (true) {
-            const url = `https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=${collectionType.id}&limit=${batchSize}&offset=${offset}`;
-            const response = await fetch(url, {
-                headers: {
-                    'User-Agent': 'Fuwari-Bangumi/1.0',
-                    ...(BANGUMI_TOKEN ? { 'Authorization': `Bearer ${BANGUMI_TOKEN}` } : {})
-                },
-                signal: AbortSignal.timeout(15000)
-            });
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`API 请求失败 (${response.status}): ${errorText}`);
-            }
-
-			const responseData = await response.json() as { data?: BangumiCollection[] };
-			const batch = responseData.data || [];
-			collections.push(...batch.map((item) => ({ ...item, type: collectionType.id })));
-
-            if (batch.length < batchSize) break;
-            offset += batchSize;
-        }
-
-        return collections;
-    });
-
-    const results = await Promise.all(fetchPromises);
-	allCollections = results.flat().filter(hasSubject).filter((item) => !item.private);
-
-	allCollections.forEach((item) => {
-        statusCounts[String(item.type)] = (statusCounts[String(item.type)] || 0) + 1;
-    });
-} catch (error) {
-    console.error("获取 Bangumi 数据失败:", error);
-    errorMessage = error instanceof Error ? error.message : "未知错误";
-}
+allCollections.forEach((item) => {
+    statusCounts[String(item.type)] = (statusCounts[String(item.type)] || 0) + 1;
+});
+const syncDate = new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Hong_Kong', dateStyle: 'medium', timeStyle: 'short'
+}).format(new Date(bangumiData.fetchedAt));
 
 const userRatings = allCollections
     .map((item) => Number(item.rate || 0))
@@ -209,13 +144,10 @@ const reviewDate = (value?: string) => value
             )}
         </header>
 
-		{errorMessage ? (
-            <div class="bangumi-state bangumi-state-error">
-                <span class="bangumi-state-icon">!</span>
-                <strong>数据加载失败</strong>
-                <span>{errorMessage}</span>
-            </div>
-        ) : allCollections.length === 0 ? (
+        {bangumiData.stale && (
+            <p class="bangumi-sync-notice" role="status">Bangumi 暂时连接不上，先展示上次同步的收藏。更新于 <time datetime={bangumiData.fetchedAt}>{syncDate}</time></p>
+        )}
+        {allCollections.length === 0 ? (
             <div class="bangumi-state">
                 <span class="bangumi-state-icon">✦</span>
                 <strong>此处空空如也</strong>
@@ -470,7 +402,7 @@ const reviewDate = (value?: string) => value
                             })}
                         </div>
                     )}
-                    <p class="bangumi-review-source">感想与评分来自我的 Bangumi 收藏 · <a href={`https://bgm.tv/anime/list/${encodeURIComponent(BANGUMI_USER)}/collect`} target="_blank" rel="noopener noreferrer">去 Bangumi 看看 ↗</a></p>
+                    <p class="bangumi-review-source">感想与评分来自我的 Bangumi 收藏 · <a href={`https://bgm.tv/anime/list/${encodeURIComponent(bangumiData.user)}/collect`} target="_blank" rel="noopener noreferrer">去 Bangumi 看看 ↗</a></p>
                 </section>
 
                 <nav id="bangumi-pagination" class="bangumi-pagination" aria-label="番剧列表分页">
@@ -2133,6 +2065,16 @@ const reviewDate = (value?: string) => value
     .bangumi-pagination button:disabled {
         opacity: 0.3;
         cursor: not-allowed;
+    }
+
+    .bangumi-sync-notice {
+        margin: 0 0 1.5rem;
+        padding: 0.85rem 1.1rem;
+        border-radius: 0.75rem;
+        background: color-mix(in srgb, var(--primary) 8%, transparent);
+        color: var(--text-body);
+        font-size: 0.875rem;
+        line-height: 1.7;
     }
 
     .bangumi-state {

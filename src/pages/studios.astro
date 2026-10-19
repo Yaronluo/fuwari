@@ -1,21 +1,7 @@
 ---
 import MainGridLayout from "../layouts/MainGridLayout.astro";
-
-const BANGUMI_USER = import.meta.env.PUBLIC_BANGUMI_USER || "yaron";
-const BANGUMI_TOKEN = import.meta.env.PUBLIC_BANGUMI_TOKEN || "";
-
-interface BangumiSubject {
-	id: number;
-	name?: string;
-	name_cn?: string;
-	images?: { large?: string; common?: string };
-}
-
-interface BangumiCollection {
-	type: number;
-	rate?: number;
-	subject?: BangumiSubject;
-}
+import { getBangumiData } from "../data/bangumi";
+import type { BangumiCollection, BangumiSubject } from "../utils/bangumi";
 
 const ARTICLE_LINKS: Record<number, string> = {
 	1424: "/posts/番剧观后感-轻音少女/",
@@ -112,37 +98,11 @@ const STUDIO_DEFINITIONS = [
 	},
 ] as const;
 
-let watchedCollections: BangumiCollection[] = [];
-let errorMessage: string | null = null;
-
-try {
-	if (!BANGUMI_TOKEN) throw new Error("未配置 Bangumi Token");
-
-	const batchSize = 50;
-	let offset = 0;
-	while (true) {
-		const response = await fetch(
-			`https://api.bgm.tv/v0/users/${BANGUMI_USER}/collections?subject_type=2&type=2&limit=${batchSize}&offset=${offset}`,
-			{
-				headers: {
-					"User-Agent": "Fuwari-Studios/1.0",
-					Authorization: `Bearer ${BANGUMI_TOKEN}`,
-				},
-			},
-		);
-		if (!response.ok)
-			throw new Error(`Bangumi API 请求失败 (${response.status})`);
-
-		const data = (await response.json()) as { data?: BangumiCollection[] };
-		const batch = data.data || [];
-		watchedCollections.push(...batch);
-		if (batch.length < batchSize) break;
-		offset += batchSize;
-	}
-} catch (error) {
-	console.error("获取动画会社数据失败:", error);
-	errorMessage = error instanceof Error ? error.message : "未知错误";
-}
+const bangumiData = await getBangumiData();
+const watchedCollections = bangumiData.collections.filter((item) => item.type === 2);
+const syncDate = new Intl.DateTimeFormat("zh-CN", {
+	timeZone: "Asia/Hong_Kong", dateStyle: "medium", timeStyle: "short",
+}).format(new Date(bangumiData.fetchedAt));
 
 const watchedById = new Map<number, BangumiCollection>();
 for (const item of watchedCollections) {
@@ -489,11 +449,11 @@ function getCover(subject: BangumiSubject) {
 			<a href="/bangumi/">查看番剧观测 <b aria-hidden="true">→</b></a>
 		</div>
 
-		{errorMessage ? (
-			<section class="studios-empty">
-				<span aria-hidden="true">!</span>
-				<div><strong>收藏册暂时没有同步成功</strong><p>{errorMessage}</p></div>
-			</section>
+		{bangumiData.stale && (
+			<p class="studios-sync-notice" role="status">Bangumi 暂时连接不上，先展示上次同步的收藏。更新于 <time datetime={bangumiData.fetchedAt}>{syncDate}</time></p>
+		)}
+		{studios.length === 0 ? (
+			<section class="studios-empty"><span aria-hidden="true">✦</span><div><strong>还没有可展示的作品</strong><p>看完相关作品后，下次同步就会出现在这里。</p></div></section>
 		) : (
 			<>
 				{studios.length > 1 && (
@@ -654,6 +614,16 @@ function getCover(subject: BangumiSubject) {
 
 
 <style>
+	.studios-sync-notice {
+		margin: 0 0 1.5rem;
+		padding: 0.85rem 1.1rem;
+		border-radius: 0.75rem;
+		background: color-mix(in srgb, var(--primary) 8%, transparent);
+		color: var(--text-body);
+		font-size: 0.875rem;
+		line-height: 1.7;
+	}
+
 	.studios-page {
 		position: relative;
 		isolation: isolate;
