@@ -200,8 +200,12 @@ class TableOfContents extends HTMLElement {
         if (!this.sections.length) return;
 
         for (let i = 0; i < this.sections.length; i++) {
-            let offsetTop = this.sections[i].getBoundingClientRect().top;
-            let offsetBottom = this.sections[i].getBoundingClientRect().bottom;
+            // 目录里可能有指不到正文的锚点（手写的 #xxx、脚注等），这里跳过空位，
+            // 否则碰到稀疏数组的空洞会在 getBoundingClientRect 上抛异常。
+            const section = this.sections[i];
+            if (!section) continue;
+            let offsetTop = section.getBoundingClientRect().top;
+            let offsetBottom = section.getBoundingClientRect().bottom;
 
             if (this.isInRange(offsetTop, 0, window.innerHeight)
                 || this.isInRange(offsetBottom, 0, window.innerHeight)
@@ -224,11 +228,7 @@ class TableOfContents extends HTMLElement {
         if (anchor) {
             const id = decodeURIComponent(anchor.hash?.substring(1));
             const idx = this.headingIdxMap.get(id);
-            if (idx !== undefined) {
-                this.anchorNavTarget = this.headings[idx];
-            } else {
-                this.anchorNavTarget = null;
-            }
+            this.anchorNavTarget = idx !== undefined ? this.headings[idx] ?? null : null;
         }
     };
 

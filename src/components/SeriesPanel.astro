@@ -786,6 +786,8 @@ const doodles = [
 
             /* 2. 数字滚动 */
             var counters = Array.prototype.slice.call(root.querySelectorAll('[data-map-count]'))
+            // 记录在飞的 rAF，离开页面时一并取消，免得动画还在往已经脱离文档的节点里写数字。
+            var counterFrames = new Set()
             var runCounter = function (el) {
                 var target = Number(el.getAttribute('data-map-count') || '0')
                 if (!isFinite(target) || target <= 0) return
@@ -799,10 +801,10 @@ const doodles = [
                     var progress = Math.min(1, (now - startTime) / duration)
                     var eased = 1 - Math.pow(1 - progress, 3)
                     el.textContent = numberFmt.format(Math.round(target * eased))
-                    if (progress < 1) requestAnimationFrame(step)
+                    if (progress < 1) counterFrames.add(requestAnimationFrame(step))
                     else el.textContent = numberFmt.format(target)
                 }
-                requestAnimationFrame(step)
+                counterFrames.add(requestAnimationFrame(step))
             }
             if (counters.length && 'IntersectionObserver' in window) {
                 var countObserver = new IntersectionObserver(function (entries) {
@@ -814,6 +816,10 @@ const doodles = [
                 }, { threshold: 0.35 })
                 counters.forEach(function (el) { countObserver.observe(el) })
                 cleanups.push(function () { countObserver.disconnect() })
+                cleanups.push(function () {
+                    counterFrames.forEach(function (id) { cancelAnimationFrame(id) })
+                    counterFrames.clear()
+                })
             }
 
             /* 3. 星图跟随鼠标轻轻浮动 */
@@ -906,6 +912,7 @@ const doodles = [
                     var shuffleTime = shuffleCard.querySelector('[data-map-shuffle-time]')
                     var shuffleButton = shuffleCard.querySelector('[data-map-shuffle-btn]')
                     var current = Math.min(pool.length - 1, Math.max(0, Number(shuffleCard.getAttribute('data-map-shuffle-index')) || 0))
+                    var shuffleTimer = 0
                     var onShuffle = function () {
                         var next = current
                         while (next === current) next = Math.floor(Math.random() * pool.length)
@@ -914,13 +921,19 @@ const doodles = [
                         shuffleCard.classList.remove('is-shuffling')
                         void shuffleCard.offsetWidth
                         shuffleCard.classList.add('is-shuffling')
-                        window.setTimeout(function () { shuffleCard.classList.remove('is-shuffling') }, 720)
+                        window.clearTimeout(shuffleTimer)
+                        shuffleTimer = window.setTimeout(function () { shuffleCard.classList.remove('is-shuffling') }, 720)
                         if (shuffleLink) shuffleLink.href = item.url
                         if (shuffleTitle) shuffleTitle.textContent = item.title
                         if (shuffleDesc) shuffleDesc.textContent = item.note
                         if (shuffleDate) shuffleDate.textContent = item.date
                         if (shuffleTime) shuffleTime.textContent = item.minutes + ' 分钟'
                     }
+                    // 定时器也要收进 cleanups：切页时还没跑完的 720ms 会落在已移除的卡片上。
+                    cleanups.push(function () {
+                        window.clearTimeout(shuffleTimer)
+                        shuffleCard.classList.remove('is-shuffling')
+                    })
                     if (shuffleButton) {
                         shuffleButton.addEventListener('click', onShuffle)
                         cleanups.push(function () { shuffleButton.removeEventListener('click', onShuffle) })

@@ -189,7 +189,7 @@ const RECENT_DAYS = 30;
 			<div class="stats-ledger stats-ledger--derived">
 				<div><span>人均翻页</span><strong id="stats-per-visitor">···</strong><small>页</small></div>
 				<div><span>平均每天</span><strong id="stats-per-day">···</strong><small>次</small></div>
-				<div><span>最热闹</span><strong id="stats-peak-day">···</strong><small>次</small></div>
+				<div><span>近半年最热闹</span><strong id="stats-peak-day">···</strong><small>次</small></div>
 				<div><span>相遇总长</span><strong id="stats-total-time">···</strong><small></small></div>
 				<div class="is-text"><span>惯用语言</span><strong id="stats-top-language">···</strong><small></small></div>
 				<div class="is-text"><span>常见屏幕</span><strong id="stats-top-screen">···</strong><small></small></div>
@@ -905,6 +905,23 @@ const RECENT_DAYS = 30;
 			return metricNames[type]?.[value.toLowerCase()] || value;
 		};
 
+		// 同一组百分比用「最大余数法」分配，保证加起来正好 100%：
+		// 各自四舍五入会出现 99% 或 101% 这种对不上的情况。
+		const sharePercents = (values, total) => {
+			if (!total || total <= 0) return values.map(() => 0);
+			const raw = values.map((value) => (value / total) * 100);
+			const result = raw.map((value) => Math.floor(value));
+			let rest = 100 - result.reduce((sum, value) => sum + value, 0);
+			const order = raw
+				.map((value, index) => ({ index, fraction: value - result[index] }))
+				.sort((a, b) => b.fraction - a.fraction);
+			for (let i = 0; i < order.length && rest > 0; i += 1) {
+				result[order[i].index] += 1;
+				rest -= 1;
+			}
+			return result;
+		};
+
 		/* ---------------- environment donut -------------------------------- */
 		const renderEnvironment = (points, totalVisitors, type) => {
 			const donut = $('stats-donut');
@@ -920,6 +937,10 @@ const RECENT_DAYS = 30;
 			const tail = list.slice(4).reduce((sum, item) => sum + (Number(item.y) || 0), 0);
 			if (tail > 0) head.push({ label: '其他', value: tail });
 			const sum = head.reduce((total, item) => total + item.value, 0) || 1;
+			const legendShares = sharePercents(
+				head.map((item) => item.value),
+				sum,
+			);
 
 			donut.innerHTML = `
 				<svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
@@ -957,7 +978,7 @@ const RECENT_DAYS = 30;
 					<div class="stats-legend-row">
 						<span class="stats-swatch is-swatch-${index % 5}"></span>
 						<span class="stats-legend-name">${escapeHtml(item.label)}</span>
-						<span class="stats-legend-count">${numberFormat.format(item.value)}<small>${Math.round((item.value / sum) * 100)}%</small></span>
+						<span class="stats-legend-count">${numberFormat.format(item.value)}<small>${legendShares[index]}%</small></span>
 					</div>`,
 				)
 				.join('');
@@ -976,7 +997,9 @@ const RECENT_DAYS = 30;
 			list.innerHTML = rows
 				.map((item, index) => {
 					const value = Number(item.y) || 0;
-					const share = totalVisitors > 0 ? Math.max(1, Math.round((value / totalVisitors) * 100)) : 0;
+					// 不足 1% 的小分项写成「<1」：既不会凭空抬成 1%，也不至于显示成 0%。
+					const ratio = totalVisitors > 0 ? (value / totalVisitors) * 100 : 0;
+					const share = value > 0 && ratio < 1 ? '<1' : String(Math.round(ratio));
 					const symbol = type === 'country' ? countryBadge(item.x) : '✦';
 					const symbolClass = type === 'country' ? ' is-code' : '';
 					return `
@@ -1059,9 +1082,9 @@ const RECENT_DAYS = 30;
 			(data) => `第 ${numberFormat.format(data.days)} 天的营业，${numberFormat.format(data.visitors)} 位旅人把这里放进了收藏夹。`,
 			(data) => `今天已经有 ${numberFormat.format(data.today)} 次翻页，小站把每一枚脚印都收好了。`,
 			(data) => `平均每天 ${numberFormat.format(data.perDay)} 次翻页，慢慢地，也热闹了起来。`,
-			(data) => `现在的停留率是 ${data.stayRate}%，有 ${data.stayRate}% 的相遇愿意多逛一会儿。`,
+			(data) => `现在的停留率是 ${data.stayRate}%，相遇之后，还有人愿意多坐一会儿。`,
 			(data) => `${numberFormat.format(data.pageviews)} 次翻页里，藏着 ${numberFormat.format(data.visitors)} 位朋友的好奇心。`,
-			(data) => `最热闹的那一天来过 ${numberFormat.format(data.peak)} 次，小站悄悄记下来了。`,
+			(data) => `近半年最热闹的那一天来过 ${numberFormat.format(data.peak)} 次，小站悄悄记下来了。`,
 			(data) => `已经写了 ${numberFormat.format(data.words)} 字，够铺满 ${Math.max(1, Math.round(data.words / 3000))} 张手帐纸。`,
 		];
 		const renderSlip = (data, offset) => {
