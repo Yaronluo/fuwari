@@ -1,0 +1,453 @@
+---
+import { Icon } from "astro-icon/components";
+import { getSortedPostsList } from "../../utils/content-utils";
+import { getPostUrlBySlug } from "../../utils/url-utils";
+import WidgetLayout from "./WidgetLayout.astro";
+
+interface Props {
+	class?: string;
+	style?: string;
+}
+const className = Astro.props.class;
+const style = Astro.props.style;
+
+const posts = await getSortedPostsList();
+const postPool = posts.map((post) => ({
+	url: getPostUrlBySlug(post.slug),
+	title: post.data.title,
+}));
+const fallbackUrl = postPool[0]?.url ?? "/archive/";
+
+const DAILY_LINES = [
+	"慢一点也没关系，日落会等你的。",
+	"把想说的话写下来，风会替你收好。",
+	"如果今天很难，就先抱抱自己。",
+	"平凡的一天，也值得被认真记下来。",
+	"愿你今天遇到的风，都是温柔的形状。",
+	"生活是一盒蜡笔，别忘了挑喜欢的颜色。",
+	"把烦恼折成纸飞机，让它飞向云的那边。",
+	"星星会在你睡着以后，替你数完今天的好天气。",
+	"别急，好事总是慢慢来的。",
+	"今天也要好好吃饭，好好睡觉呀。",
+	"就算只有一点点进步，也是今天的勋章。",
+	"把日子过成自己喜欢的样子。",
+];
+---
+
+<WidgetLayout
+	name="今日手账"
+	id="today-note"
+	class={className}
+	style={style}
+	icon="material-symbols:schedule-rounded"
+>
+	<div class="today-note" data-today-note>
+		<div class="tn-top">
+			<div class="tn-clock">
+				<span class="tn-time" data-tn-time>--:--</span>
+				<span class="tn-sec">:<span data-tn-sec>--</span></span>
+			</div>
+			<div class="tn-date">
+				<span class="tn-weekday" data-tn-weekday>加载中</span>
+				<span class="tn-day" data-tn-day>&nbsp;</span>
+			</div>
+		</div>
+
+		<div class="tn-progress">
+			<div class="tn-progress-head">
+				<span class="tn-progress-label" data-tn-year-label>今年</span>
+				<strong data-tn-year-percent>--%</strong>
+			</div>
+			<div class="tn-bar">
+				<i data-tn-year-bar></i>
+				<span class="tn-bar-dot" data-tn-year-dot aria-hidden="true"></span>
+			</div>
+			<div class="tn-progress-foot">
+				<span data-tn-year-left>正在计算…</span>
+				<span class="tn-today" data-tn-today>今日 --%</span>
+			</div>
+		</div>
+
+		<div class="tn-quote">
+			<span class="tn-quote-mark" aria-hidden="true">“</span>
+			<p data-tn-quote>{DAILY_LINES[0]}</p>
+			<button type="button" class="tn-swap" data-tn-swap aria-label="换一句" title="换一句">
+				<Icon name="material-symbols:restart-alt-rounded" />
+			</button>
+		</div>
+
+		<a class="tn-random" href={fallbackUrl} data-tn-random>
+			<Icon name="material-symbols:shuffle-rounded" />
+			<span>随便翻一页</span>
+			<em data-tn-random-title>手账</em>
+		</a>
+	</div>
+</WidgetLayout>
+
+<script is:inline define:vars={{ DAILY_LINES, postPool }}>
+	(() => {
+		const lines = Array.isArray(DAILY_LINES) ? DAILY_LINES : [];
+		const pool = Array.isArray(postPool) ? postPool : [];
+
+		const pad = (value) => String(value).padStart(2, "0");
+		const WEEKDAYS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+
+		function pickLine(offset) {
+			if (!lines.length) return "";
+			const now = new Date();
+			const start = new Date(now.getFullYear(), 0, 0);
+			const dayOfYear = Math.floor((now - start) / 86400000);
+			const index = (((dayOfYear + offset) % lines.length) + lines.length) % lines.length;
+			return lines[index];
+		}
+
+		function updateClock(root) {
+			const now = new Date();
+			const setText = (selector, text) => {
+				const el = root.querySelector(selector);
+				if (el && el.textContent !== text) el.textContent = text;
+			};
+
+			setText("[data-tn-time]", `${pad(now.getHours())}:${pad(now.getMinutes())}`);
+			setText("[data-tn-sec]", pad(now.getSeconds()));
+			setText("[data-tn-weekday]", WEEKDAYS[now.getDay()]);
+			setText("[data-tn-day]", `${now.getFullYear()} 年 ${now.getMonth() + 1} 月 ${now.getDate()} 日`);
+
+			const yearStart = new Date(now.getFullYear(), 0, 1);
+			const yearEnd = new Date(now.getFullYear() + 1, 0, 1);
+			const yearRatio = Math.min(Math.max((now - yearStart) / (yearEnd - yearStart), 0), 1);
+			const daysLeft = Math.max(Math.ceil((yearEnd - now) / 86400000), 0);
+			const percent = (yearRatio * 100).toFixed(1);
+
+			setText("[data-tn-year-label]", `${now.getFullYear()} 年已走过`);
+			setText("[data-tn-year-percent]", `${percent}%`);
+			setText("[data-tn-year-left]", `今年还剩 ${daysLeft} 天`);
+
+			const dayRatio = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400;
+			setText("[data-tn-today]", `今日 ${(dayRatio * 100).toFixed(0)}%`);
+
+			const bar = root.querySelector("[data-tn-year-bar]");
+			const dot = root.querySelector("[data-tn-year-dot]");
+			if (bar) bar.style.setProperty("--p", String(yearRatio));
+			if (dot) dot.style.setProperty("--p", String(yearRatio));
+		}
+
+		function rollQuote(root, offset) {
+			const el = root.querySelector("[data-tn-quote]");
+			if (!el) return;
+			el.classList.remove("is-swapping");
+			// Force a reflow so the swap animation restarts on every click.
+			void el.offsetWidth;
+			el.textContent = pickLine(offset);
+			el.classList.add("is-swapping");
+		}
+
+		function rollRandom(root) {
+			if (pool.length < 2) return;
+			const link = root.querySelector("[data-tn-random]");
+			if (!link) return;
+			const pick = pool[Math.floor(Math.random() * pool.length)];
+			link.setAttribute("href", pick.url);
+			const title = root.querySelector("[data-tn-random-title]");
+			if (title) title.textContent = pick.title;
+		}
+
+		function initTodayNote() {
+			const root = document.querySelector("[data-today-note]");
+			if (!root || root.dataset.ready === "1") return;
+			root.dataset.ready = "1";
+
+			updateClock(root);
+			rollQuote(root, 0);
+			rollRandom(root);
+
+			let offset = 0;
+			const swap = root.querySelector("[data-tn-swap]");
+			swap?.addEventListener("click", () => {
+				offset += 1;
+				rollQuote(root, offset);
+			});
+
+			if (window.__todayNoteTimer) clearInterval(window.__todayNoteTimer);
+			window.__todayNoteTimer = setInterval(() => updateClock(root), 1000);
+		}
+
+		initTodayNote();
+
+		if (window.swup && !window.__todayNoteHookRegistered) {
+			window.__todayNoteHookRegistered = true;
+			window.swup.hooks.on("page:view", () => {
+				document.querySelectorAll("[data-today-note]").forEach((el) => {
+					delete el.dataset.ready;
+				});
+				initTodayNote();
+			});
+		} else if (!window.swup) {
+			document.addEventListener(
+				"swup:enable",
+				() => {
+					if (!window.__todayNoteHookRegistered) {
+						window.__todayNoteHookRegistered = true;
+						window.swup.hooks.on("page:view", initTodayNote);
+					}
+				},
+				{ once: true },
+			);
+		}
+	})();
+</script>
+
+<style>
+	.today-note {
+		display: flex;
+		flex-direction: column;
+		gap: 0.85rem;
+		padding: 0 0.15rem 0.15rem;
+	}
+
+	.tn-top {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+	.tn-clock {
+		display: flex;
+		align-items: baseline;
+		gap: 0.15rem;
+		color: var(--text-strong);
+	}
+	.tn-time {
+		font-size: 1.95rem;
+		font-weight: 800;
+		line-height: 1;
+		letter-spacing: 0.01em;
+		font-variant-numeric: tabular-nums;
+	}
+	.tn-sec {
+		font-size: 0.78rem;
+		font-weight: 700;
+		color: color-mix(in srgb, var(--primary) 72%, transparent);
+		font-variant-numeric: tabular-nums;
+	}
+	.tn-date {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.05rem;
+		text-align: right;
+	}
+	.tn-weekday {
+		font-size: 0.72rem;
+		font-weight: 700;
+		color: color-mix(in srgb, var(--primary) 82%, var(--text-body));
+		letter-spacing: 0.06em;
+	}
+	.tn-day {
+		font-size: 0.66rem;
+		color: var(--text-muted);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.tn-progress {
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+	}
+	.tn-progress-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.5rem;
+		font-size: 0.68rem;
+		color: var(--text-muted);
+	}
+	.tn-progress-head strong {
+		font-size: 0.86rem;
+		font-weight: 800;
+		color: color-mix(in srgb, var(--primary) 82%, var(--text-strong));
+		font-variant-numeric: tabular-nums;
+	}
+	.tn-bar {
+		position: relative;
+		height: 0.42rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--primary) 12%, transparent);
+		box-shadow: inset 0 1px 2px rgb(119 80 69 / 0.06);
+		overflow: visible;
+	}
+	.tn-bar i {
+		position: absolute;
+		inset: 0 auto 0 0;
+		--p: 0;
+		width: calc(var(--p, 0) * 100%);
+		border-radius: 999px;
+		background: linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--primary) 42%, transparent),
+			color-mix(in srgb, var(--primary) 88%, transparent)
+		);
+		transition: width 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.tn-bar-dot {
+		position: absolute;
+		top: 50%;
+		--p: 0;
+		left: clamp(0.31rem, calc(var(--p, 0) * 100%), calc(100% - 0.31rem));
+		width: 0.62rem;
+		height: 0.62rem;
+		border-radius: 999px;
+		background: #fff;
+		border: 2px solid color-mix(in srgb, var(--primary) 72%, transparent);
+		box-shadow: 0 0.15rem 0.4rem rgb(119 80 69 / 0.18);
+		transform: translate(-50%, -50%);
+		transition: left 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.tn-progress-foot {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		font-size: 0.64rem;
+		color: var(--text-muted);
+		font-variant-numeric: tabular-nums;
+	}
+	.tn-today {
+		color: color-mix(in srgb, var(--primary) 55%, var(--text-muted));
+	}
+
+	.tn-quote {
+		position: relative;
+		padding: 0.6rem 1.9rem 0.6rem 1.5rem;
+		border-radius: 0.7rem;
+		background: linear-gradient(
+			120deg,
+			color-mix(in srgb, var(--primary) 8%, transparent),
+			color-mix(in srgb, var(--tea) 8%, transparent)
+		);
+		border: 1px dashed color-mix(in srgb, var(--primary) 22%, transparent);
+	}
+	.tn-quote-mark {
+		position: absolute;
+		top: 0.1rem;
+		left: 0.42rem;
+		font-size: 1.05rem;
+		line-height: 1;
+		color: color-mix(in srgb, var(--primary) 38%, transparent);
+	}
+	.tn-quote p {
+		margin: 0;
+		font-size: 0.78rem;
+		line-height: 1.6;
+		color: var(--text-body);
+	}
+	.tn-quote p.is-swapping {
+		animation: tn-quote-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.tn-swap {
+		position: absolute;
+		top: 50%;
+		right: 0.42rem;
+		display: grid;
+		place-items: center;
+		width: 1.4rem;
+		height: 1.4rem;
+		border: none;
+		border-radius: 999px;
+		background: transparent;
+		color: color-mix(in srgb, var(--primary) 58%, transparent);
+		cursor: pointer;
+		transform: translateY(-50%);
+		transition: color 0.3s ease, background 0.3s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.tn-swap :global(svg) {
+		width: 1rem;
+		height: 1rem;
+	}
+	.tn-swap:hover {
+		color: var(--primary);
+		background: color-mix(in srgb, var(--primary) 12%, transparent);
+		transform: translateY(-50%) rotate(-180deg);
+	}
+
+	.tn-random {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.42rem 0.62rem;
+		border-radius: 0.7rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--glass-border));
+		background: linear-gradient(120deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.12));
+		text-decoration: none;
+		color: var(--text-body);
+		font-size: 0.74rem;
+		font-weight: 600;
+		transition: border-color 0.35s ease, background 0.35s ease, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.tn-random :global(svg) {
+		width: 1rem;
+		height: 1rem;
+		flex: none;
+		color: color-mix(in srgb, var(--primary) 76%, transparent);
+	}
+	.tn-random em {
+		margin-left: auto;
+		max-width: 7rem;
+		font-style: normal;
+		font-size: 0.66rem;
+		color: var(--text-muted);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.tn-random:hover {
+		border-color: color-mix(in srgb, var(--primary) 42%, var(--glass-border));
+		background: linear-gradient(120deg, rgb(255 255 255 / 0.68), rgb(255 255 255 / 0.22));
+		transform: translateX(0.12rem);
+	}
+
+	@keyframes tn-quote-in {
+		from {
+			opacity: 0;
+			transform: translateY(0.32rem);
+			filter: blur(2px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+			filter: blur(0);
+		}
+	}
+
+	:global(.dark) .tn-random {
+		background: linear-gradient(120deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.01));
+	}
+	:global(.dark) .tn-random:hover {
+		background: linear-gradient(120deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.03));
+	}
+	:global(.dark) .tn-bar-dot {
+		background: #2b2226;
+	}
+	:global(.dark) .tn-quote {
+		background: linear-gradient(
+			120deg,
+			color-mix(in srgb, var(--primary) 12%, transparent),
+			color-mix(in srgb, var(--tea) 10%, transparent)
+		);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.tn-bar i,
+		.tn-bar-dot,
+		.tn-swap,
+		.tn-random {
+			transition: none;
+		}
+		.tn-quote p.is-swapping {
+			animation: none;
+		}
+		.tn-swap:hover {
+			transform: translateY(-50%);
+		}
+	}
+</style>

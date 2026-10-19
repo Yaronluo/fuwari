@@ -4,7 +4,7 @@ import path from "node:path";
 import { Icon } from "astro-icon/components";
 import I18nKey from "../i18n/i18nKey";
 import { i18n } from "../i18n/translation";
-import { getDir } from "../utils/url-utils";
+import { getDir, getTagUrl } from "../utils/url-utils";
 import ImageWrapper from "./misc/ImageWrapper.astro";
 import PostMetadata from "./PostMeta.astro";
 
@@ -46,45 +46,93 @@ const titleSuffix = titleCharacters.slice(-titleTailLength).join("");
 
 const coverWidth = "28%";
 
+/* The date stamp prints the same UTC calendar day as the article metadata. */
+const MONTH_LABELS = [
+	"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+	"JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
+];
+const WEEKDAY_LABELS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+const stampMonth = MONTH_LABELS[published.getUTCMonth()];
+const stampDay = String(published.getUTCDate()).padStart(2, "0");
+const stampYear = String(published.getUTCFullYear());
+const stampWeekday = WEEKDAY_LABELS[published.getUTCDay()];
+const stampDateTime = published.toISOString().substring(0, 10);
+
+const visibleTags = (tags || []).filter(Boolean).slice(0, 4);
+
 const { remarkPluginFrontmatter } = await entry.render();
 ---
-<div class:list={["post-card card-base flex flex-col-reverse md:flex-col w-full rounded-[var(--radius-large)] overflow-hidden relative transition-all duration-300", {"has-cover": hasCover, "is-pinned": pinned}, className]} style={style}>
-    <a href={url} class="absolute inset-0 z-0" aria-label={title}></a>
+<article class:list={["post-card card-base w-full rounded-[var(--radius-large)] overflow-hidden relative transition-all duration-300", {"has-cover": hasCover, "is-pinned": pinned}, className]} style={style}>
+    <a href={url} class="post-card-hit absolute inset-0 z-[1]" aria-label={title}></a>
+
+    <!-- decorative stationery -->
+    <span class="post-card-sheen" aria-hidden="true"></span>
     <span class="post-card-sticker sticker-ribbon" aria-hidden="true">🎀</span>
     <span class="post-card-sticker sticker-flower" aria-hidden="true">🌸</span>
     <span class="post-card-sticker sticker-sparkles" aria-hidden="true">⋆｡˚</span>
     <span class="post-card-sticker sticker-note" aria-hidden="true">(˶ᵔ ᵕ ᵔ˶)</span>
-    <div class:list={["pl-6 md:pl-9 pr-6 md:pr-9 pt-6 md:pt-7 pb-6 relative z-10", {"w-full": !hasCover, "w-full md:w-[calc(100%_-_var(--coverWidth)_-_12px)]": hasCover}]}>
-       {pinned && <div class="absolute top-2 right-2 text-[var(--primary)]">
-             <Icon name="mdi:pin" class="w-5 h-5" />
-         </div>}
-        <a href={url}
-           class="post-card-title transition group w-full block font-bold mb-3 text-[1.3rem] md:text-[1.7rem] leading-snug text-90
-        hover:text-[var(--primary)] dark:hover:text-[var(--primary)]
-        active:text-[var(--title-active)] dark:active:text-[var(--title-active)]
-        relative
-        ">
-            {titlePrefix}<span class="post-card-title-tail">{titleSuffix}<Icon class="post-card-mobile-arrow md:hidden text-[1.1rem] text-[var(--primary)]" name="material-symbols:chevron-right-rounded"></Icon><Icon class="post-card-desktop-arrow text-[var(--primary)]" name="material-symbols:chevron-right-rounded"></Icon></span>
-        </a>
 
-        <!-- metadata -->
-        <PostMetadata published={published} updated={updated} tags={tags} category={category} hideTagsForMobile={true} hideUpdateDate={true} class="mb-4 relative z-10"></PostMetadata>
-        <!-- description -->
-        <div class:list={["transition text-75 mb-3.5 pr-4", {"line-clamp-2 md:line-clamp-1": !description}]}>
-            { description || remarkPluginFrontmatter.excerpt }
-        </div>
+    <div class:list={["post-card-body relative z-10 flex px-5 md:px-8 pt-6 md:pt-8 pb-5 md:pb-7 gap-3.5 md:gap-5", {"w-full": !hasCover, "w-full md:w-[calc(100%_-_var(--coverWidth)_-_12px)]": hasCover}]}>
 
-        <!-- word count and read time  -->
-        <div class="post-card-reading text-sm text-black/30 dark:text-white/30 flex gap-3 transition">
-            <div>
-                {remarkPluginFrontmatter.words} {" " + i18n(remarkPluginFrontmatter.words === 1 ? I18nKey.wordCount : I18nKey.wordsCount)}
+        <!-- date stamp -->
+        <time datetime={stampDateTime} class="post-card-stamp">
+            <span class="stamp-month">{stampMonth}</span>
+            <span class="stamp-day">{stampDay}</span>
+            <span class="stamp-meta"><span class="stamp-weekday">{stampWeekday}</span><i aria-hidden="true">·</i><span class="stamp-year">{stampYear}</span></span>
+        </time>
+        <span class="post-card-rail" aria-hidden="true"></span>
+
+        <div class="post-card-main flex flex-col min-w-0 flex-1">
+            {pinned && (
+                <span class="post-card-pin">
+                    <Icon name="mdi:pin" class="w-3 h-3" />
+                    置顶
+                </span>
+            )}
+
+            <h2 class="post-card-heading">
+                <a href={url}
+                   class="post-card-title transition group w-full block font-bold mb-3 text-[1.22rem] md:text-[1.62rem] leading-snug text-90
+                hover:text-[var(--primary)] dark:hover:text-[var(--primary)]
+                active:text-[var(--title-active)] dark:active:text-[var(--title-active)]
+                relative
+                ">
+                    {titlePrefix}<span class="post-card-title-tail">{titleSuffix}<Icon class="post-card-mobile-arrow md:hidden text-[1.1rem] text-[var(--primary)]" name="material-symbols:chevron-right-rounded"></Icon><Icon class="post-card-desktop-arrow text-[var(--primary)]" name="material-symbols:chevron-right-rounded"></Icon></span>
+                </a>
+            </h2>
+
+            <!-- metadata (the date and the tags live in the stamp and footer) -->
+            <PostMetadata published={published} updated={updated} tags={tags} category={category} hideTagsForMobile={true} hideUpdateDate={true} hideDate={true} hideTags={true} class="mb-3.5 relative z-10"></PostMetadata>
+
+            <!-- description -->
+            <div class:list={["post-card-desc transition text-75 pr-1", {"line-clamp-2 md:line-clamp-1": !description}]}>
+                { description || remarkPluginFrontmatter.excerpt }
             </div>
-            <div>|</div>
-            <div>
-                {remarkPluginFrontmatter.minutes} {" " + i18n(remarkPluginFrontmatter.minutes === 1 ? I18nKey.minuteCount : I18nKey.minutesCount)}
+
+            <!-- footer: tags + reading time -->
+            <div class="post-card-foot">
+                <div class="post-card-tags">
+                    {visibleTags.map((tag) => (
+                        <a href={getTagUrl(tag)} class="post-card-tag" aria-label={`View all posts with the ${tag.trim()} tag`}>
+                            <span aria-hidden="true">#</span>{tag.trim()}
+                        </a>
+                    ))}
+                    {visibleTags.length === 0 && (
+                        <span class="post-card-tag post-card-tag--empty" aria-hidden="true">{i18n(I18nKey.noTags)}</span>
+                    )}
+                </div>
+
+                <div class="post-card-reading text-sm text-black/30 dark:text-white/30 flex gap-3 transition">
+                    <div>
+                        {remarkPluginFrontmatter.words} {" " + i18n(remarkPluginFrontmatter.words === 1 ? I18nKey.wordCount : I18nKey.wordsCount)}
+                    </div>
+                    <div aria-hidden="true">|</div>
+                    <div>
+                        {remarkPluginFrontmatter.minutes} {" " + i18n(remarkPluginFrontmatter.minutes === 1 ? I18nKey.minuteCount : I18nKey.minutesCount)}
+                    </div>
+                </div>
             </div>
         </div>
-
     </div>
 
     {hasCover && <a href={url} aria-label={title}
@@ -103,7 +151,7 @@ const { remarkPluginFrontmatter } = await entry.render();
         </ImageWrapper>
     </a>}
 
-</div>
+</article>
 
 <style define:vars={{coverWidth}}>
     .post-card {
@@ -116,10 +164,11 @@ const { remarkPluginFrontmatter } = await entry.render();
             inset 0 1px 0 rgb(255 255 255 / 0.72),
             0 0.8rem 2rem rgb(116 77 67 / 0.065) !important;
     }
+    /* washi tape on the top edge */
     .post-card::before {
         content: "";
         position: absolute;
-        z-index: 0;
+        z-index: 3;
         top: 0;
         left: 1.45rem;
         width: 2.8rem;
@@ -135,7 +184,7 @@ const { remarkPluginFrontmatter } = await entry.render();
     .post-card::after {
         content: "♡";
         position: absolute;
-        z-index: 0;
+        z-index: 3;
         right: 0.75rem;
         bottom: 0.55rem;
         color: color-mix(in srgb, var(--primary) 25%, transparent);
@@ -145,6 +194,102 @@ const { remarkPluginFrontmatter } = await entry.render();
     }
     .post-card:hover {
         border-color: color-mix(in srgb, var(--primary) 18%, var(--glass-border));
+    }
+    /* a soft light sweep travelling across the card on hover */
+    .post-card-sheen {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+        opacity: 0;
+        background: linear-gradient(
+            104deg,
+            transparent 32%,
+            color-mix(in srgb, var(--primary) 11%, transparent) 48%,
+            rgb(255 255 255 / 0.22) 52%,
+            transparent 68%
+        );
+        transform: translateX(-115%);
+    }
+
+    /* ---------------- date stamp ---------------- */
+    .post-card-stamp {
+        flex: none;
+        align-self: flex-start;
+        width: 4.15rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.05rem;
+        padding: 0.6rem 0.3rem 0.5rem;
+        border: 1px dashed color-mix(in srgb, var(--primary) 30%, transparent);
+        border-radius: 0.9rem 0.85rem 0.95rem 0.82rem;
+        background:
+            linear-gradient(158deg, color-mix(in srgb, var(--primary) 10%, transparent), transparent 74%),
+            color-mix(in srgb, var(--glass-card) 62%, transparent);
+        transform: rotate(-1.6deg);
+        transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1), border-color 320ms ease, background 320ms ease;
+    }
+    .stamp-month {
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-indent: 0.16em;
+        color: color-mix(in srgb, var(--primary) 82%, var(--text-muted));
+    }
+    .stamp-day {
+        font-size: 1.5rem;
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-strong);
+    }
+    .stamp-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.12rem;
+        font-size: 0.55rem;
+        letter-spacing: 0.02em;
+        color: var(--text-muted);
+    }
+    .stamp-meta i {
+        font-style: normal;
+        opacity: 0.6;
+    }
+    /* the dashed notebook margin between the stamp and the entry */
+    .post-card-rail {
+        flex: none;
+        align-self: stretch;
+        width: 0;
+        border-left: 1px dashed color-mix(in srgb, var(--primary) 20%, transparent);
+    }
+
+    /* ---------------- entry ---------------- */
+    .post-card-main {
+        position: relative;
+    }
+    .post-card-heading {
+        margin: 0;
+        font-size: inherit;
+        font-weight: inherit;
+    }
+    .post-card-pin {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.24rem;
+        width: max-content;
+        margin-bottom: 0.5rem;
+        padding: 0.1rem 0.52rem 0.12rem;
+        border: 1px dashed color-mix(in srgb, var(--primary) 42%, transparent);
+        border-radius: 0.4rem;
+        background: color-mix(in srgb, var(--primary) 15%, transparent);
+        color: color-mix(in srgb, var(--primary) 88%, var(--text-strong));
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-indent: 0.1em;
+        transform: rotate(-1.4deg);
     }
     .post-card-title {
         letter-spacing: -0.018em;
@@ -174,12 +319,62 @@ const { remarkPluginFrontmatter } = await entry.render();
     .post-card-desktop-arrow {
         display: none;
     }
+    .post-card-desc {
+        margin-bottom: 0.9rem;
+    }
+
+    /* ---------------- footer ---------------- */
+    .post-card-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        margin-top: auto;
+        padding-top: 0.7rem;
+        border-top: 1px dashed color-mix(in srgb, var(--primary) 15%, transparent);
+    }
+    .post-card-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        min-width: 0;
+    }
+    .post-card-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.1rem;
+        padding: 0.1rem 0.5rem 0.14rem;
+        border: 1px dashed color-mix(in srgb, var(--primary) 22%, transparent);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary) 6%, transparent);
+        color: color-mix(in srgb, var(--primary) 58%, var(--text-body));
+        font-size: 0.68rem;
+        font-weight: 600;
+        line-height: 1.5;
+        transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), background 220ms ease, border-color 220ms ease, color 220ms ease;
+    }
+    .post-card-tag span {
+        opacity: 0.55;
+        font-weight: 700;
+    }
+    .post-card-tag--empty {
+        border-style: dotted;
+        color: var(--text-muted);
+        background: none;
+    }
+    .post-card-reading {
+        margin-left: auto;
+        white-space: nowrap;
+    }
     .post-card-reading > div:first-child::before {
         content: "⌁";
         display: inline;
         margin-right: 0.25rem;
         color: color-mix(in srgb, var(--primary) 58%, transparent);
     }
+
+    /* ---------------- stickers ---------------- */
     .post-card-sticker {
         position: absolute;
         z-index: 20;
@@ -262,12 +457,85 @@ const { remarkPluginFrontmatter } = await entry.render();
         left: 0.62rem;
         top: 58%;
     }
+    /* each entry gets its own stationery rhythm */
+    :global(.post-list > :nth-child(2n)) .post-card-stamp {
+        transform: rotate(1.3deg);
+    }
+    :global(.post-list > :nth-child(3n)) .post-card-stamp {
+        border-radius: 0.8rem 0.95rem 0.78rem 0.92rem;
+        transform: rotate(-0.6deg);
+    }
+    :global(.post-list > :nth-child(2n)) .post-card-rail {
+        border-left-style: dotted;
+    }
+
+    /* pinned entry reads as the cover page of the notebook */
+    .is-pinned {
+        border-color: color-mix(in srgb, var(--primary) 26%, var(--glass-border));
+        background:
+            linear-gradient(138deg, rgb(255 255 255 / 0.42), transparent 44%),
+            color-mix(in srgb, var(--glass-card) 90%, var(--primary) 6%);
+    }
+    .is-pinned::before {
+        width: 4.6rem;
+        background:
+            repeating-linear-gradient(118deg, rgb(255 255 255 / 0.24) 0 0.3rem, transparent 0.3rem 0.58rem),
+            linear-gradient(90deg, color-mix(in srgb, var(--primary) 72%, transparent), color-mix(in srgb, var(--primary) 30%, transparent));
+    }
+    .is-pinned .post-card-stamp {
+        border-style: solid;
+        border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+        background:
+            linear-gradient(158deg, color-mix(in srgb, var(--primary) 88%, white), color-mix(in srgb, var(--primary) 68%, white));
+        box-shadow: 0 0.4rem 1rem color-mix(in srgb, var(--primary) 22%, transparent);
+    }
+    .is-pinned .stamp-month,
+    .is-pinned .stamp-meta {
+        color: rgb(255 255 255 / 0.86);
+    }
+    .is-pinned .stamp-day {
+        color: #fff;
+    }
+
+    /* ---------------- dark mode ---------------- */
     :global(.dark) .post-card {
         border-color: color-mix(in srgb, var(--primary) 17%, var(--glass-border));
         background:
             linear-gradient(138deg, rgb(255 255 255 / 0.035), transparent 45%),
             color-mix(in srgb, var(--glass-card) 96%, var(--primary) 3%);
         box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 0.8rem 2rem rgb(0 0 0 / 0.16) !important;
+    }
+    :global(.dark) .post-card-sheen {
+        background: linear-gradient(
+            104deg,
+            transparent 32%,
+            color-mix(in srgb, var(--primary) 16%, transparent) 48%,
+            rgb(255 255 255 / 0.07) 52%,
+            transparent 68%
+        );
+    }
+    :global(.dark) .post-card-stamp {
+        background:
+            linear-gradient(158deg, color-mix(in srgb, var(--primary) 14%, transparent), transparent 74%),
+            color-mix(in srgb, var(--glass-card) 82%, transparent);
+        border-color: color-mix(in srgb, var(--primary) 34%, transparent);
+    }
+    :global(.dark) .post-card-tag {
+        border-color: color-mix(in srgb, var(--primary) 26%, transparent);
+        background: color-mix(in srgb, var(--primary) 9%, transparent);
+        color: color-mix(in srgb, var(--primary) 52%, var(--text-body));
+    }
+    :global(.dark) .post-card-foot {
+        border-top-color: color-mix(in srgb, var(--primary) 18%, transparent);
+    }
+    :global(.dark) .post-card-rail {
+        border-left-color: color-mix(in srgb, var(--primary) 22%, transparent);
+    }
+    :global(.dark) .is-pinned {
+        border-color: color-mix(in srgb, var(--primary) 30%, var(--glass-border));
+        background:
+            linear-gradient(138deg, rgb(255 255 255 / 0.05), transparent 46%),
+            color-mix(in srgb, var(--glass-card) 92%, var(--primary) 8%);
     }
     :global(.dark) .sticker-ribbon {
         border-color: color-mix(in srgb, var(--primary) 32%, transparent);
@@ -282,6 +550,8 @@ const { remarkPluginFrontmatter } = await entry.render();
         background: color-mix(in srgb, var(--glass-card) 85%, transparent);
         color: color-mix(in srgb, var(--primary) 45%, white 35%);
     }
+
+    /* ---------------- desktop ---------------- */
     @media (min-width: 48rem) {
         .post-card-mobile-arrow { display: none; }
         .post-card-desktop-arrow {
@@ -307,10 +577,32 @@ const { remarkPluginFrontmatter } = await entry.render();
         .is-pinned .sticker-ribbon { right: 3.7rem; }
         .sticker-sparkles { left: 0.8rem; font-size: 0.82rem; }
         .sticker-note { left: calc(100% - 8.3rem); top: calc(100% - 1.3rem); width: 5.3rem; font-size: 0.64rem; }
+        .post-card-stamp { width: 4.9rem; padding: 0.75rem 0.3rem 0.62rem; }
+        .stamp-day { font-size: 1.72rem; }
+        .stamp-month { font-size: 0.66rem; }
+        .stamp-meta { flex-direction: column; gap: 0; font-size: 0.58rem; line-height: 1.35; }
+        .stamp-meta i { display: none; }
+        .post-card-pin { margin-bottom: 0.6rem; }
     }
+
+    /* ---------------- mobile ---------------- */
     @media (max-width: 47.999rem) {
         .post-card-mobile-arrow { display: inline-block; }
         .post-card-title { padding-right: 2.1rem; }
+        .post-card-body { flex-direction: column; gap: 0.8rem; }
+        .post-card-stamp {
+            flex-direction: row;
+            align-items: baseline;
+            width: max-content;
+            gap: 0.34rem;
+            padding: 0.24rem 0.62rem 0.3rem;
+            border-radius: 999px;
+            transform: none;
+        }
+        .stamp-day { font-size: 1rem; }
+        .stamp-meta { flex-direction: row; gap: 0.2rem; font-size: 0.55rem; }
+        .post-card-rail { display: none; }
+        .post-card-tag { font-size: 0.64rem; padding: 0.08rem 0.44rem 0.12rem; }
         .sticker-ribbon {
             top: 0.5rem;
             right: 0.7rem;
@@ -324,7 +616,12 @@ const { remarkPluginFrontmatter } = await entry.render();
         .sticker-sparkles { left: 0.38rem; font-size: 0.58rem; }
         .sticker-note { left: calc(100% - 6.15rem); top: calc(100% - 0.95rem); width: 4.25rem; font-size: 0.5rem; opacity: 0.62; }
     }
+
+    /* ---------------- hover motion ---------------- */
     @media (min-width: 48rem) and (hover: hover) {
+        .post-card {
+            transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1), border-color 320ms ease, box-shadow 380ms ease;
+        }
         .post-card:hover {
             border-color: color-mix(in srgb, var(--primary) 24%, var(--glass-border));
             box-shadow:
@@ -334,6 +631,74 @@ const { remarkPluginFrontmatter } = await entry.render();
         }
         :global(.dark) .post-card:hover {
             box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 1rem 2.4rem rgb(0 0 0 / 0.24) !important;
+        }
+        .post-card:hover .post-card-sheen {
+            opacity: 1;
+            transform: translateX(115%);
+            transition: transform 1000ms cubic-bezier(0.22, 1, 0.36, 1), opacity 120ms linear;
+        }
+        .post-card:hover .post-card-stamp {
+            transform: rotate(0deg) translateY(-0.15rem);
+            border-color: color-mix(in srgb, var(--primary) 46%, transparent);
+        }
+        .is-pinned:hover .post-card-stamp {
+            transform: rotate(0deg) translateY(-0.15rem);
+        }
+        .post-card:hover .sticker-ribbon { animation: post-card-sticker-wiggle 700ms cubic-bezier(0.16, 1, 0.3, 1); }
+        .post-card:hover .sticker-sparkles { animation: post-card-sparkle 1200ms ease-in-out; }
+        .post-card-tag:hover {
+            transform: translateY(-0.12rem);
+            background: color-mix(in srgb, var(--primary) 13%, transparent);
+            border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+            border-style: solid;
+            color: color-mix(in srgb, var(--primary) 80%, var(--text-strong));
+        }
+    }
+
+    /* ambient life: the stickers breathe even when nothing is hovered */
+    @keyframes post-card-sticker-wiggle {
+        0% { transform: rotate(7deg) scale(1); }
+        35% { transform: rotate(-9deg) scale(1.08); }
+        70% { transform: rotate(5deg) scale(0.98); }
+        100% { transform: rotate(7deg) scale(1); }
+    }
+    @keyframes post-card-sparkle {
+        0%, 100% { opacity: 0.54; transform: rotate(-13deg) scale(1); }
+        45% { opacity: 0.95; transform: rotate(-4deg) scale(1.22); }
+    }
+    @keyframes post-card-note-breathe {
+        0%, 100% { opacity: 0.6; transform: rotate(-3deg) translateY(0); }
+        50% { opacity: 0.85; transform: rotate(-1.5deg) translateY(-0.12rem); }
+    }
+    @media (min-width: 48rem) {
+        .sticker-note { animation: post-card-note-breathe 6.5s ease-in-out infinite; }
+        .sticker-sparkles { animation: post-card-sparkle 7s ease-in-out infinite; }
+        :global(.post-list > :nth-child(3n)) .sticker-sparkles { animation-delay: 2.2s; }
+        :global(.post-list > :nth-child(3n + 2)) .sticker-sparkles { animation-delay: 4.1s; }
+        .sticker-ribbon { animation: post-card-ribbon-sway 7.5s ease-in-out infinite; }
+        :global(.post-list > :nth-child(2n)) .sticker-ribbon { animation-delay: 3.4s; }
+    }
+    @keyframes post-card-ribbon-sway {
+        0%, 100% { transform: rotate(7deg); }
+        50% { transform: rotate(4.5deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .post-card,
+        .post-card-stamp,
+        .post-card-tag,
+        .post-card-sheen {
+            transition: none !important;
+        }
+        .post-card:hover {
+            transform: none;
+        }
+        .post-card-sheen {
+            display: none;
+        }
+        .post-card-sticker,
+        .post-card:hover .post-card-sticker {
+            animation: none !important;
         }
     }
 </style>

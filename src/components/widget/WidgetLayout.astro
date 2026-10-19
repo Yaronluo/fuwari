@@ -18,9 +18,10 @@ const className = Astro.props.class;
 ---
 <widget-layout data-id={id} data-is-collapsed={String(isCollapsed)} class:list={["pb-4", {"card-base widget-card": isCard}, className]} style={style}>
 	{isCard && <span class="widget-card-glass" aria-hidden="true"></span>}
-    <div class="widget-heading font-bold transition text-lg text-neutral-900 dark:text-neutral-100 flex items-center gap-2.5 ml-4 mt-4 mb-3">
+    <div class="widget-heading font-bold transition text-lg text-neutral-900 dark:text-neutral-100 flex items-center gap-2.5 ml-4 mr-4 mt-4 mb-3">
         {icon && <span class="widget-heading-icon"><Icon name={icon} /></span>}
-        {name}
+        <span class="widget-heading-name">{name}</span>
+        <span class="widget-heading-spark" aria-hidden="true"></span>
     </div>
     <div id={id} class:list={["collapse-wrapper px-4", {"collapsed overflow-hidden": isCollapsed}]}>
         <slot></slot>
@@ -73,17 +74,54 @@ const className = Astro.props.class;
     .widget-card::after {
         content: "✦";
         position: absolute;
-        top: 0.85rem;
+        bottom: 0.55rem;
         right: 1rem;
-        color: color-mix(in srgb, var(--primary) 48%, transparent);
+        color: color-mix(in srgb, var(--primary) 42%, transparent);
         font-size: 0.7rem;
-        text-shadow: -0.55rem 0.45rem 0 color-mix(in srgb, var(--primary) 20%, transparent);
+        text-shadow: -0.55rem -0.45rem 0 color-mix(in srgb, var(--primary) 18%, transparent);
         pointer-events: none;
+        transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), color 0.5s ease;
     }
     .widget-heading {
         position: relative;
         z-index: 1;
         letter-spacing: 0.01em;
+        padding-bottom: 0.6rem;
+        border-bottom: 1px dashed color-mix(in srgb, var(--primary) 22%, transparent);
+    }
+    .widget-heading-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .widget-heading-spark {
+        position: relative;
+        width: 1.9rem;
+        height: 0.6rem;
+        flex: none;
+        margin-left: auto;
+    }
+    .widget-heading-spark::before,
+    .widget-heading-spark::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        width: 0.3rem;
+        height: 0.3rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary) 40%, transparent);
+        transform: translateY(-50%);
+    }
+    .widget-heading-spark::before {
+        left: 0;
+        box-shadow: 0.62rem 0 0 color-mix(in srgb, var(--primary) 22%, transparent);
+    }
+    .widget-heading-spark::after {
+        right: 0.05rem;
+        width: 0.42rem;
+        height: 0.42rem;
+        background: color-mix(in srgb, var(--primary) 26%, transparent);
     }
     .widget-heading-icon {
         display: grid;
@@ -118,6 +156,44 @@ const className = Astro.props.class;
     }
     .collapsed {
         height: var(--collapsedHeight);
+    }
+    widget-layout {
+        display: block;
+    }
+    .widget-card {
+        transition:
+            transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+            box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+            border-color 0.45s ease;
+    }
+    @media (hover: hover) and (min-width: 64rem) {
+        .widget-card:hover {
+            transform: translateY(-0.16rem) rotate(-0.14deg);
+            border-color: color-mix(in srgb, var(--primary) 26%, var(--glass-border));
+            box-shadow:
+                inset 0 1px 0 rgb(255 255 255 / 0.8),
+                0 1.1rem 2.2rem rgb(119 80 69 / 0.1);
+        }
+        .widget-card:hover::after {
+            transform: rotate(24deg) scale(1.12);
+            color: color-mix(in srgb, var(--primary) 68%, transparent);
+        }
+    }
+    :global(.dark) .widget-card:hover {
+        border-color: color-mix(in srgb, var(--primary) 32%, var(--glass-border));
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.09), 0 1.1rem 2.2rem rgb(0 0 0 / 0.24);
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .widget-card,
+        .widget-card::after {
+            transition: none;
+        }
+        .widget-card:hover {
+            transform: none;
+        }
+        .widget-card:hover::after {
+            transform: none;
+        }
     }
 </style>
 

@@ -2,7 +2,6 @@
 import I18nKey from "../../i18n/i18nKey";
 import { i18n } from "../../i18n/translation";
 import { getCategoryList } from "../../utils/content-utils";
-import ButtonLink from "../control/ButtonLink.astro";
 import WidgetLayout from "./WidgetLayout.astro";
 
 const categories = await getCategoryList();
@@ -11,6 +10,9 @@ const COLLAPSED_HEIGHT = "7.5rem";
 const COLLAPSE_THRESHOLD = 5;
 
 const isCollapsed = categories.length >= COLLAPSE_THRESHOLD;
+
+const totalCount = categories.reduce((sum, c) => sum + c.count, 0);
+const maxCount = Math.max(...categories.map((c) => c.count), 1);
 
 interface Props {
 	class?: string;
@@ -23,13 +25,154 @@ const style = Astro.props.style;
 <WidgetLayout name={i18n(I18nKey.categories)} id="categories" isCollapsed={isCollapsed} collapsedHeight={COLLAPSED_HEIGHT}
                 class={className} style={style} icon="material-symbols:folder-outline-rounded"
 >
-    {categories.map((c) =>
-        <ButtonLink
-            url={c.url}
-            badge={String(c.count)}
-            label={`View all posts in the ${c.name.trim()} category`}
-        >
-            {c.name.trim()}
-        </ButtonLink>
-    )}
+    <div class="category-board">
+        <div class="category-board-head">
+            <span class="category-board-total"><strong>{totalCount}</strong> 篇手账</span>
+            <span class="category-board-tags">{categories.length} 个分类</span>
+        </div>
+        <ul class="category-list">
+            {categories.map((c, index) => (
+                <li>
+                    <a
+                        class="category-row"
+                        href={c.url}
+                        aria-label={`View all posts in the ${c.name.trim()} category`}
+                        style={`--fill: ${Math.round((c.count / maxCount) * 100)}%; --row-delay: ${120 + index * 70}ms;`}
+                    >
+                        <span class="category-row-main">
+                            <span class="category-name">{c.name.trim()}</span>
+                            <span class="category-count">{c.count}</span>
+                        </span>
+                        <span class="category-bar" aria-hidden="true"><i></i></span>
+                    </a>
+                </li>
+            ))}
+        </ul>
+    </div>
 </WidgetLayout>
+
+<style>
+    .category-board {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        padding: 0 0.15rem 0.1rem;
+    }
+    .category-board-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.5rem;
+        font-size: 0.66rem;
+        color: var(--text-muted);
+        letter-spacing: 0.02em;
+    }
+    .category-board-total strong {
+        font-size: 0.86rem;
+        font-weight: 800;
+        color: color-mix(in srgb, var(--primary) 78%, var(--text-strong));
+        font-variant-numeric: tabular-nums;
+    }
+    .category-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .category-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.22rem;
+        padding: 0.34rem 0.5rem 0.4rem;
+        border-radius: 0.62rem;
+        border: 1px solid transparent;
+        text-decoration: none;
+        transition:
+            background 0.35s ease,
+            border-color 0.35s ease,
+            transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .category-row-main {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+    .category-name {
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: var(--text-body);
+        letter-spacing: 0.01em;
+        transition: color 0.3s ease;
+    }
+    .category-count {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: color-mix(in srgb, var(--primary) 62%, var(--text-muted));
+        font-variant-numeric: tabular-nums;
+        transition: color 0.3s ease;
+    }
+    .category-bar {
+        position: relative;
+        display: block;
+        height: 0.28rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary) 10%, transparent);
+        overflow: hidden;
+    }
+    .category-bar i {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        transform-origin: left center;
+        transform: scaleX(var(--fill, 0));
+        background: linear-gradient(
+            90deg,
+            color-mix(in srgb, var(--primary) 34%, transparent),
+            color-mix(in srgb, var(--primary) 78%, transparent)
+        );
+        animation: category-fill 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+        animation-delay: var(--row-delay, 120ms);
+    }
+    .category-row:hover {
+        background: color-mix(in srgb, var(--primary) 7%, transparent);
+        border-color: color-mix(in srgb, var(--primary) 16%, transparent);
+        transform: translateX(0.16rem);
+    }
+    .category-row:hover .category-name {
+        color: color-mix(in srgb, var(--primary) 88%, var(--text-strong));
+    }
+    .category-row:hover .category-count {
+        color: var(--primary);
+    }
+    .category-row:hover .category-bar i {
+        background: linear-gradient(
+            90deg,
+            color-mix(in srgb, var(--primary) 48%, transparent),
+            color-mix(in srgb, var(--primary) 92%, transparent)
+        );
+    }
+    @keyframes category-fill {
+        from {
+            transform: scaleX(0);
+        }
+        to {
+            transform: scaleX(var(--fill, 0));
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .category-bar i {
+            animation: none;
+        }
+        .category-row,
+        .category-name,
+        .category-count {
+            transition: none;
+        }
+        .category-row:hover {
+            transform: none;
+        }
+    }
+</style>
