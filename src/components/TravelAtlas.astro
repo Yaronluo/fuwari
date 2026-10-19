@@ -2090,19 +2090,19 @@ const wishlistOverseas = travelWishlist.filter((item) => item.region === "国外
 
 	.tv-compass-needle {
 		position: absolute;
-		bottom: 50%;
+		top: 15%;
 		left: 50%;
-		width: 2px;
-		height: 44%;
-		margin-left: -1px;
-		border-radius: 2px;
+		width: 0.34rem;
+		height: 70%;
+		margin-left: -0.17rem;
+		clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
 		background: linear-gradient(
-			to top,
-			color-mix(in srgb, var(--tea) 72%, transparent) 0 45%,
-			var(--sakura) 45% 100%
+			to bottom,
+			var(--sakura) 0 50%,
+			color-mix(in srgb, var(--tea) 58%, transparent) 50% 100%
 		);
 		transform: rotate(var(--tv-needle, 0deg));
-		transform-origin: 50% 100%;
+		transform-origin: 50% 50%;
 		transition: transform 0.55s cubic-bezier(0.3, 1.25, 0.5, 1);
 	}
 
