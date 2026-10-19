@@ -1519,14 +1519,21 @@ const socialBrand = (name: string) => {
 
 			this.resize = () => {
 				if (!this.canvas) return;
-				this.canvas.width = this.offsetWidth;
-				this.canvas.height = this.offsetHeight;
+				// 逻辑坐标用 CSS 像素，画布缓冲按 devicePixelRatio 放大；
+				// 否则 2x / 3x 屏上花瓣和发丝线会糊成一片。
+				const dpr = Math.min(window.devicePixelRatio || 1, 2);
+				this.viewWidth = this.offsetWidth;
+				this.viewHeight = this.offsetHeight;
+				this.canvas.width = Math.max(1, Math.round(this.viewWidth * dpr));
+				this.canvas.height = Math.max(1, Math.round(this.viewHeight * dpr));
+				// 改 width/height 会重置绘图状态，缩放要在每次 resize 之后重新设一次。
+				this.ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
 			};
 			this.resize();
 			window.addEventListener("resize", this.resize);
 
 			for (let i = 0; i < 25; i++) {
-				this.sakuras.push(new Sakura(this.canvas.width, this.canvas.height));
+				this.sakuras.push(new Sakura(this.viewWidth, this.viewHeight));
 			}
 			this.animId = requestAnimationFrame(() => this.step());
 		}
@@ -1536,6 +1543,8 @@ const socialBrand = (name: string) => {
 		themeObserver?: MutationObserver;
 		sakuras: Sakura[] = [];
 		animId = 0;
+		viewWidth = 0;
+		viewHeight = 0;
 
 		disconnectedCallback() {
 			window.removeEventListener("resize", this.resize);
@@ -1547,9 +1556,11 @@ const socialBrand = (name: string) => {
 			const canvas = this.canvas;
 			const ctx = this.ctx;
 			if (!canvas || !ctx) return;
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			const width = this.viewWidth || canvas.width;
+			const height = this.viewHeight || canvas.height;
+			ctx.clearRect(0, 0, width, height);
 			for (const petal of this.sakuras) {
-				petal.update(canvas.width, canvas.height);
+				petal.update(width, height);
 				petal.draw(ctx, this.sakuraColor);
 			}
 			this.animId = requestAnimationFrame(() => this.step());

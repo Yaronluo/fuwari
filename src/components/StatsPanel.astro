@@ -736,15 +736,12 @@ const RECENT_DAYS = 30;
 			}
 
 			// Streaks run backwards from today so "连续" always means "right now".
+			// 今天还没人来的话从昨天起算（不断在第 0 天，否则连续 10 天会被说成「连续 1 天」）。
 			let current = 0;
 			for (let offset = 0; offset < CALENDAR_DAYS; offset += 1) {
 				const value = dailyMap.get(stampKey(shiftDays(end, -offset))) || 0;
 				if (value > 0) current += 1;
-				else if (offset > 0 || value === 0) break;
-			}
-			if (current === 0) {
-				const yesterday = dailyMap.get(stampKey(shiftDays(end, -1))) || 0;
-				if (yesterday > 0) current = 1;
+				else if (offset > 0) break;
 			}
 			let longest = 0;
 			let running = 0;
@@ -755,9 +752,11 @@ const RECENT_DAYS = 30;
 			}
 			// No point repeating "连续 70 天" twice when the run we are living in *is* the record.
 			const streakTail =
-				longest > current
-					? `最长连续 ${numberFormat.format(longest)} 天`
-					: `最长连续也就是现在这 ${numberFormat.format(current)} 天`;
+				longest === 0
+					? '暂时还没连成串'
+					: longest > current
+						? `最长连续 ${numberFormat.format(longest)} 天`
+						: `最长连续也就是现在这 ${numberFormat.format(current)} 天`;
 			const streakLead = current > 0 ? `连续 ${numberFormat.format(current)} 天有人路过 · ` : '';
 			setText(
 				'stats-heat-streak',
@@ -1375,10 +1374,22 @@ const RECENT_DAYS = 30;
 
 		initStatsGarden();
 
+		// 这个页面只在 /stats/ 里有意义：离开时注销 page:view 钩子，否则之后每次换页都会
+		// 对着已经被 swup 摘掉的旧 DOM 再跑一遍，白发一串 API 请求。
+		if (window.__fuwariStatsGardenHookOff) window.__fuwariStatsGardenHookOff();
 		const setupStatsHooks = () => {
-			if (window.__fuwariStatsGardenHookRegistered) return;
-			window.__fuwariStatsGardenHookRegistered = true;
-			window.swup.hooks.on('page:view', initStatsGarden);
+			if (!window.swup) return;
+			const offPageView = window.swup.hooks.on('page:view', initStatsGarden);
+			const offVisitStart = window.swup.hooks.on('visit:start', () => {
+				offPageView();
+				offVisitStart();
+				if (window.__fuwariStatsGardenHookOff === release) window.__fuwariStatsGardenHookOff = null;
+			});
+			const release = () => {
+				offPageView();
+				offVisitStart();
+			};
+			window.__fuwariStatsGardenHookOff = release;
 		};
 		if (window.swup) setupStatsHooks();
 		else document.addEventListener('swup:enable', setupStatsHooks, { once: true });

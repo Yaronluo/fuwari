@@ -157,13 +157,15 @@ function distanceKm(a: LonLat, b: LonLat) {
 	return 2 * EARTH_RADIUS * Math.asin(Math.sqrt(h));
 }
 
-const home = travelPlaces.find((place) => place.kind === "home") ?? travelPlaces[0];
+/* 一个坐标都没有时下面这些推导全部要能安全退化，blank 分支会渲染空状态。 */
+const hasPlaces = travelPlaces.length > 0;
+const home = travelPlaces.find((place) => place.kind === "home") ?? travelPlaces[0] ?? null;
 
 const markers = travelPlaces.map((place, index) => {
 	const [x, y] = mapProjection.project(place.coordinates);
 	const previous = travelPlaces[index - 1];
 	const segmentFromPrevious = previous ? Math.round(distanceKm(previous.coordinates, place.coordinates)) : 0;
-	const fromHome = Math.round(distanceKm(home.coordinates, place.coordinates));
+	const fromHome = home ? Math.round(distanceKm(home.coordinates, place.coordinates)) : 0;
 	const offsetX = place.zoomLabelOffset?.[0] ?? 6;
 	const offsetY = place.zoomLabelOffset?.[1] ?? 0;
 	const angle = (Math.atan2(x - MAP_WIDTH / 2, MAP_HEIGHT / 2 - y) * 180) / Math.PI;
@@ -193,27 +195,35 @@ const segments = markers.slice(1).map((marker) => ({
 const totalKm = segments.reduce((sum, segment) => sum + segment.km, 0);
 
 const cluster = {
-	x: markers.reduce((sum, marker) => sum + marker.x, 0) / markers.length,
-	y: markers.reduce((sum, marker) => sum + marker.y, 0) / markers.length,
+	x: markers.reduce((sum, marker) => sum + marker.x, 0) / Math.max(1, markers.length),
+	y: markers.reduce((sum, marker) => sum + marker.y, 0) / Math.max(1, markers.length),
 };
 
 const routePath = `M${markers
 	.map((marker) => `${marker.x.toFixed(1)},${marker.y.toFixed(1)}`)
 	.join("L")}`;
 
-const extremes = [
-	{ tag: "最北", marker: [...markers].sort((a, b) => b.coordinates[1] - a.coordinates[1])[0], value: (m: (typeof markers)[number]) => `${m.coordinates[1].toFixed(2)}°N` },
-	{ tag: "最南", marker: [...markers].sort((a, b) => a.coordinates[1] - b.coordinates[1])[0], value: (m: (typeof markers)[number]) => `${m.coordinates[1].toFixed(2)}°N` },
-	{ tag: "最东", marker: [...markers].sort((a, b) => b.coordinates[0] - a.coordinates[0])[0], value: (m: (typeof markers)[number]) => `${m.coordinates[0].toFixed(2)}°E` },
-	{ tag: "最西", marker: [...markers].sort((a, b) => a.coordinates[0] - b.coordinates[0])[0], value: (m: (typeof markers)[number]) => `${m.coordinates[0].toFixed(2)}°E` },
-].map((item) => ({ ...item, coordinate: item.value(item.marker) }));
+const extremes = markers.length
+	? [
+			{ tag: "最北", marker: [...markers].sort((a, b) => b.coordinates[1] - a.coordinates[1])[0], value: (m: (typeof markers)[number]) => `${m.coordinates[1].toFixed(2)}°N` },
+			{ tag: "最南", marker: [...markers].sort((a, b) => a.coordinates[1] - b.coordinates[1])[0], value: (m: (typeof markers)[number]) => `${m.coordinates[1].toFixed(2)}°N` },
+			{ tag: "最东", marker: [...markers].sort((a, b) => b.coordinates[0] - a.coordinates[0])[0], value: (m: (typeof markers)[number]) => `${m.coordinates[0].toFixed(2)}°E` },
+			{ tag: "最西", marker: [...markers].sort((a, b) => a.coordinates[0] - b.coordinates[0])[0], value: (m: (typeof markers)[number]) => `${m.coordinates[0].toFixed(2)}°E` },
+		].map((item) => ({ ...item, coordinate: item.value(item.marker) }))
+	: [];
 
 const driveHours = (totalKm / 80).toFixed(1);
 const remainingProvinces = provincePaths.length - visitedProvinces.size;
 
-const longestSegment = segments.reduce((longest, segment) => (segment.km > longest.km ? segment : longest));
+const longestSegment = segments.reduce((longest, segment) => (segment.km > longest.km ? segment : longest), {
+	from: "",
+	to: "",
+	km: 0,
+});
 const averageSegment = Math.round(totalKm / Math.max(1, segments.length));
-const farthestMarker = markers.reduce((far, marker) => (marker.fromHome > far.fromHome ? marker : far));
+const farthestMarker = markers.length
+	? markers.reduce((far, marker) => (marker.fromHome > far.fromHome ? marker : far))
+	: { name: "", fromHome: 0 };
 
 /* -------------------------------------------------------- 南海诸岛小图 */
 
@@ -258,6 +268,7 @@ const wishlistOverseas = travelWishlist.filter((item) => item.region === "国外
 	})();
 </script>
 
+{hasPlaces ? (
 <section class="tv-page" aria-labelledby="travel-title" data-tv-root>
 	<!-- 00 · 抬头 ------------------------------------------------------- -->
 	<header class="tv-hero">
@@ -778,6 +789,21 @@ const wishlistOverseas = travelWishlist.filter((item) => item.region === "国外
 		</div>
 	</footer>
 </section>
+) : (
+<section class="tv-page tv-page--empty" aria-labelledby="travel-title">
+	<header class="tv-hero tv-empty">
+		<div class="tv-hero-copy">
+			<p class="tv-eyebrow">
+				<Icon name="material-symbols:map-outline-rounded" />
+				<span>TRAVEL FOOTPRINTS</span>
+				<span class="tv-eyebrow-cn">旅行足迹册</span>
+			</p>
+			<h1 class="tv-title" id="travel-title">还没有盖下第一枚脚印</h1>
+			<p class="tv-subtitle">等下一次出发，地图上就会亮起第一站。</p>
+		</div>
+	</header>
+</section>
+)}
 
 <script>
 	type Box = { x: number; y: number; w: number; h: number };
@@ -1896,6 +1922,8 @@ const wishlistOverseas = travelWishlist.filter((item) => item.region === "国外
 		opacity: 0;
 		animation: none;
 		pointer-events: none;
+		/* 放大之后这个「放大」按钮已经看不见了，别再让它进 Tab 顺序。 */
+		visibility: hidden;
 	}
 
 	.tv-map-card.is-zoomed .tv-pins--full {
@@ -1918,17 +1946,36 @@ const wishlistOverseas = travelWishlist.filter((item) => item.region === "国外
 	.tv-pins--zoom {
 		opacity: 0;
 		pointer-events: none;
-		transition: opacity 0.45s ease 0.1s;
+		/* visibility 让未放大时这 8 个 pin 既看不见也进不了 Tab 顺序；
+		   延迟到淡出结束再隐藏，放大时立刻恢复。 */
+		visibility: hidden;
+		transition:
+			opacity 0.45s ease 0.1s,
+			visibility 0s linear 0.55s;
 	}
 
 	.tv-map-card.is-zoomed .tv-pins--zoom {
 		opacity: 1;
 		pointer-events: auto;
+		visibility: visible;
+		transition:
+			opacity 0.45s ease 0.1s,
+			visibility 0s linear 0s;
 	}
 
 	.tv-pin {
 		cursor: pointer;
 		outline: none;
+	}
+
+	/* 图标只在「看得见」的时候才该有焦点环，键盘用户依然读得到位置。 */
+	.tv-pin:focus-visible .tv-pin-halo {
+		opacity: 1;
+		fill: color-mix(in srgb, var(--sakura) 34%, transparent);
+	}
+
+	.tv-pin:focus-visible .tv-pin-dot {
+		fill: var(--primary);
 	}
 
 	.tv-pin-hit {

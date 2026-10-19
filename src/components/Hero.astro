@@ -117,7 +117,7 @@ import { Icon } from "astro-icon/components";
 
     <!-- Bottom: Pure Love Quote & Scroll Down -->
     <div class="hero-bottom absolute bottom-8 left-0 w-full flex flex-col items-center justify-center space-y-3 z-10 onload-animation" style="animation-delay: 620ms;">
-        <pure-love-quote class="hero-quote block text-black/60 dark:text-white/60 text-sm md:text-base font-serif font-medium tracking-wide cursor-pointer text-center" title="点击刷新台词">
+        <pure-love-quote class="hero-quote block text-black/60 dark:text-white/60 text-sm md:text-base font-serif font-medium tracking-wide cursor-pointer text-center" role="button" tabindex="0" title="点击刷新台词" aria-label="换一句台词">
             <span class="hero-quote-heart" aria-hidden="true">♡</span>
             <span class="hero-quote-content">「<span class="quote-text">正在寻找灵魂深处的共鸣...</span>」</span>
             <span class="quote-author text-xs font-normal ml-2 opacity-70 hidden md:inline-block"></span>
@@ -822,6 +822,13 @@ import { Icon } from "astro-icon/components";
         transform: translateY(-0.12rem);
     }
 
+    /* 键盘用户也需要看到「这里可以按」的提示。 */
+    .hero-quote:focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--primary) 55%, transparent);
+        outline-offset: 4px;
+        opacity: 0.88;
+    }
+
     /* A slow sheen breathes inside the quote pill. */
     .hero-quote::after {
         position: absolute;
@@ -1242,11 +1249,19 @@ import { Icon } from "astro-icon/components";
     class PureLoveQuote extends HTMLElement {
         constructor() {
             super();
-            this.addEventListener('click', () => {
-                const textEl = this.querySelector('.quote-text');
-                if (textEl) textEl.textContent = "获取中...";
-                this.fetchQuote();
+            this.addEventListener('click', () => this.refresh());
+            // 键盘上和点击等价：Enter / 空格都能换一句。
+            this.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                this.refresh();
             });
+        }
+
+        refresh() {
+            const textEl = this.querySelector('.quote-text');
+            if (textEl) textEl.textContent = "获取中...";
+            this.fetchQuote();
         }
 
         connectedCallback() {

@@ -267,11 +267,9 @@ const shufflePool = posts.map((post) => ({
 	minutes: minutesOf(post),
 }));
 // 初始那篇不要和上面几张推荐卡重复，否则会出现两张一模一样的卡片。
-const shuffleSeedIndex = Math.max(
-	0,
-	shufflePool.findIndex((item) => !usedSlugs.has(item.slug)),
-);
-const shuffleSeed = shufflePool[shuffleSeedIndex];
+// 一篇文章都没有（或推荐卡已经把所有文章用光）时不渲染这张卡，避免读到 undefined。
+const shuffleSeedIndex = shufflePool.findIndex((item) => !usedSlugs.has(item.slug));
+const shuffleSeed = shuffleSeedIndex >= 0 ? shufflePool[shuffleSeedIndex] : null;
 
 /* -------------------------------------------------------------- timeline */
 const timeline = (() => {
@@ -522,6 +520,7 @@ const doodles = [
                 </a>
             ))}
 
+            {shuffleSeed && (
             <div
                 class="start-card start-card--shuffle"
                 data-map-shuffle
@@ -542,6 +541,7 @@ const doodles = [
                     <Icon name="material-symbols:shuffle-rounded" />换一篇
                 </button>
             </div>
+            )}
         </div>
 
         <script type="application/json" id="map-shuffle-pool" is:inline set:html={JSON.stringify(shufflePool).replace(/</g, '\\u003c')}></script>
@@ -939,11 +939,32 @@ const doodles = [
                 jumps.forEach(function (anchor) { anchor.removeEventListener('click', onJump) })
             })
 
+            var unregisterLeave = null
             window.__fuwariSeriesMapCleanup = function () {
                 cleanups.forEach(function (fn) {
                     try { fn() } catch (error) { /* 忽略 */ }
                 })
                 cleanups = []
+                if (unregisterLeave) {
+                    unregisterLeave()
+                    unregisterLeave = null
+                }
+            }
+
+            // 离开这一页时立刻释放 window 监听与 observer：只靠「下次进地图页再清」
+            // 的话，跳到别的页面之后旧监听会一直活着。
+            if (window.swup && window.swup.hooks) {
+                unregisterLeave = window.swup.hooks.on('visit:start', function () {
+                    window.__fuwariSeriesMapCleanup()
+                })
+            } else {
+                document.addEventListener('swup:enable', function () {
+                    if (window.swup && window.swup.hooks && !unregisterLeave) {
+                        unregisterLeave = window.swup.hooks.on('visit:start', function () {
+                            window.__fuwariSeriesMapCleanup()
+                        })
+                    }
+                }, { once: true })
             }
         })()
     </script>
