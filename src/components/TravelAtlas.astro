@@ -1,0 +1,3434 @@
+---
+import { Icon } from "astro-icon/components";
+import type { FeatureCollection, Geometry, Position } from "geojson";
+import provincesJson from "cn-atlas/provinces.json";
+import { travelPlaces, travelWishlist } from "../data/travel-places";
+
+/* ------------------------------------------------------------------ 投影 */
+
+const MAP_WIDTH = 900;
+const MAP_HEIGHT = 640;
+
+type Bounds = { minLon: number; maxLon: number; minLat: number; maxLat: number };
+type LonLat = [longitude: number, latitude: number];
+
+const mercatorY = (latitude: number) =>
+	Math.log(Math.tan(Math.PI / 4 + (latitude * Math.PI) / 360));
+
+function createProjection(width: number, height: number, padding: number, bounds: Bounds) {
+	const minY = mercatorY(bounds.minLat);
+	const maxY = mercatorY(bounds.maxLat);
+	const lonSpan = ((bounds.maxLon - bounds.minLon) * Math.PI) / 180;
+	const mercSpan = maxY - minY;
+	const scale = Math.min(
+		(width - padding * 2) / lonSpan,
+		(height - padding * 2) / mercSpan,
+	);
+	const contentWidth = lonSpan * scale;
+	const contentHeight = mercSpan * scale;
+	const offsetX = (width - contentWidth) / 2;
+	const offsetY = (height - contentHeight) / 2;
+
+	return {
+		scale,
+		contentWidth,
+		contentHeight,
+		offsetX,
+		offsetY,
+		project([longitude, latitude]: LonLat): [number, number] {
+			return [
+				offsetX + (((longitude - bounds.minLon) * Math.PI) / 180) * scale,
+				offsetY + (maxY - mercatorY(latitude)) * scale,
+			];
+		},
+	};
+}
+
+const mapProjection = createProjection(MAP_WIDTH, MAP_HEIGHT, 26, {
+	minLon: 73.5,
+	maxLon: 135.1,
+	minLat: 17.5,
+	maxLat: 53.6,
+});
+
+function ringToPath(ring: Position[], project: (p: LonLat) => [number, number]) {
+	return `${ring
+		.map((position, index) => {
+			const [x, y] = project(position as LonLat);
+			return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
+		})
+		.join("")}Z`;
+}
+
+function geometryToPath(
+	geometry: Geometry,
+	project: (p: LonLat) => [number, number],
+) {
+	if (geometry.type === "Polygon") {
+		return geometry.coordinates.map((ring) => ringToPath(ring, project)).join("");
+	}
+	if (geometry.type === "MultiPolygon") {
+		return geometry.coordinates
+			.flatMap((polygon) => polygon.map((ring) => ringToPath(ring, project)))
+			.join("");
+	}
+	return "";
+}
+
+/** 把任意 GeoJSON 几何体摊平成坐标点集合，用来量外接框。 */
+function collectPositions(geometry: Geometry): Position[] {
+	if (!("coordinates" in geometry)) return [];
+	const positions: Position[] = [];
+	const stack: unknown[] = [geometry.coordinates as unknown];
+	while (stack.length > 0) {
+		const value = stack.pop();
+		if (!Array.isArray(value)) continue;
+		if (typeof value[0] === "number") positions.push(value as Position);
+		else stack.push(...value);
+	}
+	return positions;
+}
+
+/* -------------------------------------------------------------- 省份数据 */
+
+const provinces = provincesJson as FeatureCollection<Geometry>;
+const visitedProvinces = new Set(travelPlaces.map((place) => place.province));
+const placesPerProvince = new Map<string, number>();
+for (const place of travelPlaces) {
+	placesPerProvince.set(place.province, (placesPerProvince.get(place.province) ?? 0) + 1);
+}
+
+const provinceName = (feature: (typeof provinces.features)[number]) => {
+	const properties = feature.properties as { 地名?: string; name?: string } | null;
+	return properties?.地名 || properties?.name || "未命名地点";
+};
+
+const provincePaths = provinces.features.map((feature) => {
+	const name = provinceName(feature);
+	const count = placesPerProvince.get(name) ?? 0;
+	return {
+		name,
+		d: geometryToPath(feature.geometry, mapProjection.project),
+		visited: visitedProvinces.has(name),
+		label: count
+			? `${name.replace(/(省|市)$/, "")} · 已点亮 ${count} 站`
+			: `${name.replace(/(省|市|壮族自治区|回族自治区|维吾尔自治区|自治区|特别行政区)$/, "")} · 待点亮`,
+	};
+});
+
+/** 省份名字写在手挑的位置上，避开东南角的脚印堆积。 */
+const provinceLabels = [
+	{ name: "湖南", x: 528, y: 487, visited: true },
+	{ name: "江西", x: 611, y: 466, visited: true },
+	{ name: "福建", x: 638, y: 494, visited: true },
+	{ name: "广东", x: 594, y: 565, visited: true },
+	{ name: "湖北", x: 551, y: 402, visited: false },
+	{ name: "浙江", x: 654, y: 447, visited: false },
+	{ name: "台湾", x: 664, y: 530, visited: false },
+	{ name: "广西", x: 504, y: 528, visited: false },
+];
+
+/* ---------------------------------------------------------------- 经纬网 */
+
+const graticule: { x1: number; y1: number; x2: number; y2: number }[] = [];
+for (let longitude = 80; longitude <= 130; longitude += 10) {
+	const [x] = mapProjection.project([longitude, 30]);
+	const [, y1] = mapProjection.project([longitude, 53.6]);
+	const [, y2] = mapProjection.project([longitude, 17.5]);
+	graticule.push({ x1: x, y1, x2: x, y2 });
+}
+for (let latitude = 20; latitude <= 50; latitude += 10) {
+	const [x1, y] = mapProjection.project([73.5, latitude]);
+	const [x2] = mapProjection.project([135.1, latitude]);
+	graticule.push({ x1, y1: y, x2, y2: y });
+}
+
+/* ------------------------------------------------------------------ 行程 */
+
+const EARTH_RADIUS = 6371;
+const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+
+function distanceKm(a: LonLat, b: LonLat) {
+	const deltaLat = toRadians(b[1] - a[1]);
+	const deltaLon = toRadians(b[0] - a[0]);
+	const h =
+		Math.sin(deltaLat / 2) ** 2 +
+		Math.cos(toRadians(a[1])) * Math.cos(toRadians(b[1])) * Math.sin(deltaLon / 2) ** 2;
+	return 2 * EARTH_RADIUS * Math.asin(Math.sqrt(h));
+}
+
+const home = travelPlaces.find((place) => place.kind === "home") ?? travelPlaces[0];
+
+const markers = travelPlaces.map((place, index) => {
+	const [x, y] = mapProjection.project(place.coordinates);
+	const previous = travelPlaces[index - 1];
+	const segmentFromPrevious = previous ? Math.round(distanceKm(previous.coordinates, place.coordinates)) : 0;
+	const fromHome = Math.round(distanceKm(home.coordinates, place.coordinates));
+	const offsetX = place.zoomLabelOffset?.[0] ?? 6;
+	const offsetY = place.zoomLabelOffset?.[1] ?? 0;
+	const angle = (Math.atan2(x - MAP_WIDTH / 2, MAP_HEIGHT / 2 - y) * 180) / Math.PI;
+	const label = `${place.name} · ${place.province} · ${place.note ?? ""}${
+		place.kind === "home" ? "" : ` · 离家 ${fromHome} km`
+	}`;
+	return {
+		...place,
+		index,
+		x,
+		y,
+		label,
+		angle,
+		segmentFromPrevious,
+		fromHome,
+		offsetX,
+		offsetY,
+		anchor: place.zoomLabelAnchor ?? "start",
+	};
+});
+
+const segments = markers.slice(1).map((marker) => ({
+	from: travelPlaces[marker.index - 1].name,
+	to: marker.name,
+	km: marker.segmentFromPrevious,
+}));
+const totalKm = segments.reduce((sum, segment) => sum + segment.km, 0);
+
+const cluster = {
+	x: markers.reduce((sum, marker) => sum + marker.x, 0) / markers.length,
+	y: markers.reduce((sum, marker) => sum + marker.y, 0) / markers.length,
+};
+
+const routePath = `M${markers
+	.map((marker) => `${marker.x.toFixed(1)},${marker.y.toFixed(1)}`)
+	.join("L")}`;
+
+const extremes = [
+	{ tag: "最北", marker: [...markers].sort((a, b) => b.coordinates[1] - a.coordinates[1])[0], value: (m: (typeof markers)[number]) => `${m.coordinates[1].toFixed(2)}°N` },
+	{ tag: "最南", marker: [...markers].sort((a, b) => a.coordinates[1] - b.coordinates[1])[0], value: (m: (typeof markers)[number]) => `${m.coordinates[1].toFixed(2)}°N` },
+	{ tag: "最东", marker: [...markers].sort((a, b) => b.coordinates[0] - a.coordinates[0])[0], value: (m: (typeof markers)[number]) => `${m.coordinates[0].toFixed(2)}°E` },
+	{ tag: "最西", marker: [...markers].sort((a, b) => a.coordinates[0] - b.coordinates[0])[0], value: (m: (typeof markers)[number]) => `${m.coordinates[0].toFixed(2)}°E` },
+].map((item) => ({ ...item, coordinate: item.value(item.marker) }));
+
+const driveHours = (totalKm / 80).toFixed(1);
+const remainingProvinces = provincePaths.length - visitedProvinces.size;
+
+const longestSegment = segments.reduce((longest, segment) => (segment.km > longest.km ? segment : longest));
+const averageSegment = Math.round(totalKm / Math.max(1, segments.length));
+const farthestMarker = markers.reduce((far, marker) => (marker.fromHome > far.fromHome ? marker : far));
+
+/* -------------------------------------------------------- 南海诸岛小图 */
+
+const hainanFeature = provinces.features.find((feature) => provinceName(feature) === "海南省");
+let insetBounds: Bounds = { minLon: 106, maxLon: 122, minLat: 2.5, maxLat: 23 };
+if (hainanFeature) {
+	let minLon = Number.POSITIVE_INFINITY;
+	let maxLon = Number.NEGATIVE_INFINITY;
+	let minLat = Number.POSITIVE_INFINITY;
+	let maxLat = Number.NEGATIVE_INFINITY;
+	const positions = collectPositions(hainanFeature.geometry);
+	for (const position of positions) {
+		const [longitude, latitude] = position as LonLat;
+		minLon = Math.min(minLon, longitude);
+		maxLon = Math.max(maxLon, longitude);
+		minLat = Math.min(minLat, latitude);
+		maxLat = Math.max(maxLat, latitude);
+	}
+	insetBounds = { minLon: minLon - 0.6, maxLon: maxLon + 0.6, minLat: minLat - 0.4, maxLat: maxLat + 0.4 };
+}
+const insetProjection = createProjection(92, 116, 4, insetBounds);
+const hainanPath = hainanFeature
+	? geometryToPath(hainanFeature.geometry, insetProjection.project)
+	: "";
+
+const visitedLabel = `${visitedProvinces.size} / ${provincePaths.length}`;
+const wishlistDomestic = travelWishlist.filter((item) => item.region === "国内");
+const wishlistOverseas = travelWishlist.filter((item) => item.region === "国外");
+---
+
+<script is:inline>
+	/* 第一帧之前就把「准备入场」的状态挂在 <html> 上，避免内容先闪一下。 */
+	(() => {
+		const root = document.documentElement;
+		root.classList.add("tv-boot", "tv-motion");
+		const navigation = performance.getEntriesByType?.("navigation")?.[0];
+		if (navigation && navigation.type === "reload") root.classList.add("tv-no-enter");
+		window.setTimeout(() => {
+			const page = document.querySelector(".tv-page");
+			if (!page || page.dataset.tvArmed !== "true") root.classList.remove("tv-boot");
+		}, 3200);
+	})();
+</script>
+
+<section class="tv-page" aria-labelledby="travel-title" data-tv-root>
+	<!-- 00 · 抬头 ------------------------------------------------------- -->
+	<header class="tv-hero">
+		<div class="tv-hero-copy">
+			<p class="tv-eyebrow tv-enter" style="--d: 0ms">
+				<Icon name="material-symbols:map-outline-rounded" />
+				<span>TRAVEL FOOTPRINTS</span>
+				<span class="tv-eyebrow-cn">旅行足迹册</span>
+				<span class="tv-eyebrow-face" aria-hidden="true">₍ᐢ. ̫.ᐢ₎</span>
+			</p>
+
+			<h1 class="tv-title tv-enter" id="travel-title" style="--d: 70ms">
+				把<span class="tv-title-mark">走过的路<svg
+						class="tv-underline"
+						viewBox="0 0 200 12"
+						preserveAspectRatio="none"
+						aria-hidden="true"
+					><path d="M2 8.4C34 3.6 70 3.2 101 5.4c31 2.2 63 3.4 96 1.1" pathLength="1"></path></svg
+					></span>，慢慢标在地图上
+			</h1>
+
+			<p class="tv-lead tv-enter" style="--d: 140ms">
+				去过的城市、看过的风景，还有想一直记住的小瞬间。<br />
+				地图还空着很多格，先从这里开始数。
+			</p>
+
+			<div class="tv-meta tv-enter" style="--d: 200ms">
+				<span><b>{visitedProvinces.size}</b> 个省份</span>
+				<i aria-hidden="true"></i>
+				<span><b>{travelPlaces.length}</b> 个地点</span>
+				<i aria-hidden="true"></i>
+				<span><b>1</b> 个家乡</span>
+			</div>
+
+			<div class="tv-actions tv-enter" style="--d: 260ms">
+				<button class="tv-btn tv-btn--primary" type="button" data-random>
+					<Icon name="material-symbols:shuffle-rounded" />
+					<span>随机重温一站</span>
+				</button>
+				<a class="tv-btn tv-btn--ghost" href="#tv-wishlist">
+					<Icon name="material-symbols:favorite-outline-rounded" />
+					<span>看看想去的地方</span>
+				</a>
+			</div>
+		</div>
+
+		<aside class="tv-pass tv-enter" style="--d: 240ms" aria-label="旅行登机牌">
+			<div class="tv-pass-inner" data-tilt>
+				<div class="tv-pass-head">
+					<span class="tv-pass-brand">
+						<Icon name="material-symbols:flight-rounded" />
+						YARON AIRWAYS
+					</span>
+					<span class="tv-pass-kind">BOARDING PASS</span>
+				</div>
+
+				<div class="tv-pass-route">
+					<div class="tv-pass-port">
+						<span>FROM · 起点</span>
+						<strong>平江县</strong>
+						<em>湖南 · 家</em>
+					</div>
+					<span class="tv-pass-arrow" aria-hidden="true">
+						<svg viewBox="0 0 60 16" preserveAspectRatio="none">
+							<path d="M1 8h52" stroke-dasharray="3 4"></path>
+							<path d="M49 3l7 5-7 5"></path>
+						</svg>
+					</span>
+					<div class="tv-pass-port tv-pass-port--to">
+						<span>TO · 下一站</span>
+						<strong>还没定</strong>
+						<em>留一张空白</em>
+					</div>
+				</div>
+
+				<div class="tv-pass-perf" aria-hidden="true"></div>
+
+				<dl class="tv-pass-fields">
+					<div><dt>PASSENGER</dt><dd>Yaron</dd></div>
+					<div><dt>STOPS</dt><dd>{String(travelPlaces.length).padStart(2, "0")}</dd></div>
+					<div><dt>PROVINCES</dt><dd>{String(visitedProvinces.size).padStart(2, "0")}</dd></div>
+					<div><dt>DISTANCE</dt><dd>{totalKm.toLocaleString("en-US")} km</dd></div>
+				</dl>
+
+				<div class="tv-pass-tail">
+					<span class="tv-barcode" aria-hidden="true"></span>
+					<span class="tv-pass-stamp" aria-hidden="true">
+						<b>{travelPlaces.length}</b>
+						<small>STOPS</small>
+					</span>
+				</div>
+				<p class="tv-pass-foot">NO. 0008 · 旅行足迹 · 一页一页攒起来</p>
+			</div>
+		</aside>
+	</header>
+
+	<!-- 01 · 地图 + 手账 ------------------------------------------------ -->
+	<section class="tv-section tv-atlas" aria-labelledby="tv-atlas-title" data-reveal style="--d: 40ms">
+		<header class="tv-section-head">
+			<p class="tv-kicker"><span>01</span> ATLAS · 地图册</p>
+			<h2 id="tv-atlas-title">把脚印摊开来看</h2>
+			<p class="tv-section-sub">
+				四个省份已经点亮，八个脚印挤在东南这一角——放大一点才看得清。
+			</p>
+		</header>
+
+		<div class="tv-atlas-grid">
+			<article class="tv-map-card" data-map-card
+				data-caption-default="把鼠标放到地图上，看看是哪一站"
+				data-caption-cluster="八个脚印都藏在东南这一角 · 点开放大"
+				data-hint-full="点击东南角 · 放大查看"
+				data-hint-zoom="点右边的手账，也能跳过来">
+				<div class="tv-map-head">
+					<div class="tv-map-title">
+						<p>CHINA · 中国</p>
+						<h3>中国旅行地图</h3>
+					</div>
+					<ul class="tv-legend" aria-label="地图图例">
+						<li><i class="tv-legend-dot is-visited"></i>去过</li>
+						<li><i class="tv-legend-dot is-home"></i>家乡</li>
+						<li><i class="tv-legend-dot"></i>待点亮</li>
+					</ul>
+				</div>
+
+				<div class="tv-map-stage">
+					<svg
+						class="tv-map"
+						viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+						preserveAspectRatio="xMidYMid meet"
+						role="group"
+						aria-labelledby="tv-map-title tv-map-desc"
+						data-map
+					>
+						<title id="tv-map-title">中国旅行地图</title>
+						<desc id="tv-map-desc">
+							中国地图，湖南、江西、福建、广东四个省份已经点亮，八个旅行地点集中在东南部。
+						</desc>
+
+						<defs>
+							<radialGradient id="tv-cluster-glow" cx="50%" cy="50%" r="50%">
+								<stop offset="0%" stop-color="var(--sakura)" stop-opacity="0.34"></stop>
+								<stop offset="70%" stop-color="var(--sakura)" stop-opacity="0.1"></stop>
+								<stop offset="100%" stop-color="var(--sakura)" stop-opacity="0"></stop>
+							</radialGradient>
+							<filter id="tv-soften" x="-40%" y="-40%" width="180%" height="180%">
+								<feGaussianBlur stdDeviation="3.2"></feGaussianBlur>
+							</filter>
+						</defs>
+
+						<g class="tv-graticule" aria-hidden="true">
+							{graticule.map((line) => (
+								<line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} />
+							))}
+						</g>
+
+						<g class="tv-provinces" aria-hidden="true" data-provinces>
+							{provincePaths.map((province) => (
+								<path
+									class:list={["tv-province", { "is-visited": province.visited }]}
+									d={province.d}
+									data-label={province.label}
+									data-visited={province.visited ? "true" : "false"}
+								/>
+							))}
+						</g>
+
+						<g class="tv-province-labels" aria-hidden="true">
+							{provinceLabels.map((label) => (
+								<text
+									class:list={["tv-province-label", { "is-visited": label.visited }]}
+									x={label.x}
+									y={label.y}
+								>
+									{label.name}
+								</text>
+							))}
+						</g>
+
+						<g class="tv-route" aria-hidden="true" data-route>
+							<path class="tv-route-case" d={routePath}></path>
+							<path class="tv-route-line" d={routePath}></path>
+							<circle
+								class="tv-route-comet"
+								r="1.15"
+								style={`offset-path: path('${routePath}');`}
+							></circle>
+						</g>
+
+						<g class="tv-pins tv-pins--full" aria-hidden="true">
+							<ellipse
+								class="tv-cluster-glow"
+								cx={cluster.x}
+								cy={cluster.y}
+								rx="30"
+								ry="44"
+								fill="url(#tv-cluster-glow)"
+							></ellipse>
+							<ellipse
+								class="tv-cluster-ring"
+								cx={cluster.x}
+								cy={cluster.y}
+								rx="27"
+								ry="40"
+							></ellipse>
+							{markers.map((marker) => (
+								<circle
+									class:list={["tv-dot", { "is-home": marker.kind === "home" }]}
+									cx={marker.x}
+									cy={marker.y}
+									r={marker.kind === "home" ? 2.7 : 2.1}
+								></circle>
+							))}
+						</g>
+
+						<circle
+							class="tv-cluster-hit"
+							cx={cluster.x}
+							cy={cluster.y}
+							r="26"
+							role="button"
+							tabindex="0"
+							aria-label="放大东南角的八个地点"
+							data-cluster
+						></circle>
+
+						<g class="tv-pins tv-pins--zoom">
+							{markers.map((marker) => (
+								<g
+									class:list={["tv-pin", { "is-home": marker.kind === "home" }]}
+									transform={`translate(${marker.x.toFixed(1)} ${marker.y.toFixed(1)})`}
+									data-index={marker.index}
+									data-label={marker.label}
+									data-angle={marker.angle.toFixed(1)}
+									role="button"
+									tabindex="0"
+									aria-label={`${marker.name} · ${marker.province} · ${
+										marker.kind === "home" ? "家乡" : `离家 ${marker.fromHome} 公里`
+									}`}
+								>
+									<circle class="tv-pin-hit" r="7.4"></circle>
+									{marker.kind === "home" ? (
+										<circle class="tv-pin-pulse" r="1.5"></circle>
+									) : null}
+									<circle class="tv-pin-halo" r="3"></circle>
+									<circle class="tv-pin-dot" r="1.3"></circle>
+									<line
+										class="tv-pin-leader"
+										x1="0"
+										y1="0"
+										x2={marker.offsetX}
+										y2={marker.offsetY}
+									></line>
+									<text
+										class="tv-pin-name"
+										x={marker.offsetX + (marker.anchor === "end" ? -0.9 : 0.9)}
+										y={marker.offsetY}
+										text-anchor={marker.anchor}
+										dominant-baseline="central"
+									>
+										{marker.name}
+									</text>
+								</g>
+							))}
+						</g>
+					</svg>
+
+					<button class="tv-zoom" type="button" data-zoom aria-pressed="false">
+						<Icon name="material-symbols:zoom-in-map-rounded" />
+						<span data-zoom-text>放大东南八站</span>
+					</button>
+
+					<div class="tv-compass" aria-hidden="true" data-compass>
+						<span class="tv-compass-sway">
+							<span class="tv-compass-needle"></span>
+						</span>
+						<span class="tv-compass-n">N</span>
+					</div>
+
+					<figure class="tv-inset">
+						<svg viewBox="0 0 92 116" aria-hidden="true">
+							<path d={hainanPath}></path>
+						</svg>
+						<figcaption>南海诸岛</figcaption>
+					</figure>
+				</div>
+
+				<div class="tv-caption">
+					<span class="tv-caption-mark" aria-hidden="true"></span>
+					<p data-caption>把鼠标放到地图上，看看是哪一站"</p>
+					<span class="tv-caption-hint" data-hint>点击东南角 · 放大查看</span>
+				</div>
+				<p class="tv-sr" aria-live="polite" data-live></p>
+
+				<div class="tv-map-foot">
+					<span class="tv-map-foot-label">省份点亮</span>
+					<ol class="tv-ticks" aria-hidden="true">
+						{provincePaths.map((province) => (
+							<li class:list={{ "is-on": province.visited }}></li>
+						))}
+					</ol>
+					<b>{visitedLabel}</b>
+					<small>含港澳台地区 · 还有 {remainingProvinces} 个省份等你点亮</small>
+				</div>
+			</article>
+
+			<aside class="tv-journal" aria-labelledby="tv-journal-title" data-journal>
+				<div class="tv-journal-head">
+					<p class="tv-kicker">ITINERARY · 行程</p>
+					<h3 id="tv-journal-title">旅行手账</h3>
+					<p class="tv-journal-sub">按记录顺序排好，点一下，地图会替你找到它。</p>
+					<ul class="tv-journal-stats">
+						<li><b>{travelPlaces.length}</b><span>站</span></li>
+						<li><b>{visitedProvinces.size}</b><span>省</span></li>
+						<li><b>{totalKm.toLocaleString("en-US")}</b><span>km</span></li>
+					</ul>
+				</div>
+
+				<ol class="tv-stops">
+					{markers.map((marker) => (
+						<li>
+							<button
+								class:list={["tv-stop", { "is-home": marker.kind === "home" }]}
+								type="button"
+								data-stop={marker.index}
+								data-index={marker.index}
+								data-label={marker.label}
+								data-angle={marker.angle.toFixed(1)}
+								aria-label={`在地图上查看 ${marker.name} · ${marker.province}`}
+							>
+								<span class="tv-stop-index">{String(marker.index + 1).padStart(2, "0")}</span>
+								<span class="tv-stop-main">
+									<span class="tv-stop-name">
+										{marker.name}
+										{marker.kind === "home" ? <i>家乡</i> : null}
+									</span>
+									<span class="tv-stop-note">{marker.province} · {marker.note}</span>
+								</span>
+								<span class="tv-stop-distance">
+									{marker.kind === "home" ? (
+										<b>家</b>
+									) : (
+										<>
+											<b>{marker.fromHome}</b>
+											<small>km</small>
+										</>
+									)}
+								</span>
+							</button>
+						</li>
+					))}
+				</ol>
+
+				<p class="tv-journal-foot">
+					右侧为离家的直线距离 · 数据来自手写记录
+				</p>
+			</aside>
+		</div>
+	</section>
+
+	<!-- 02 · 数字 ------------------------------------------------------- -->
+	<section class="tv-section tv-facts" aria-labelledby="tv-facts-title" data-reveal style="--d: 60ms">
+		<header class="tv-section-head">
+			<p class="tv-kicker"><span>02</span> BY THE NUMBERS · 数字</p>
+			<h2 id="tv-facts-title">数字里的旅途</h2>
+			<p class="tv-section-sub">把八站连成一条线，大概就是这么远。</p>
+		</header>
+
+		<div class="tv-facts-grid">
+			<article class="tv-mileage" data-count-host>
+				<div class="tv-mileage-main">
+					<p class="tv-kicker">ON THE ROAD</p>
+					<p class="tv-mileage-num">
+						<span data-count={totalKm}>{totalKm.toLocaleString("en-US")}</span><em>km</em>
+					</p>
+					<p class="tv-mileage-sub">按记录顺序，把这八站一站一站连起来。</p>
+					<p class="tv-mileage-note">
+						以 80 km/h 一直开，大约要开 {driveHours} 小时；地图上还留着 {remainingProvinces} 个省份的空位。
+					</p>
+				</div>
+				<ul class="tv-mileage-facts">
+					<li>
+						<span>最长一段</span>
+						<b>{longestSegment.km}<em>km</em></b>
+						<small>{longestSegment.from} → {longestSegment.to}</small>
+					</li>
+					<li>
+						<span>平均一段</span>
+						<b>{averageSegment}<em>km</em></b>
+						<small>七段路程的平均值</small>
+					</li>
+					<li>
+						<span>离家最远</span>
+						<b>{farthestMarker.fromHome}<em>km</em></b>
+						<small>{farthestMarker.name} · 直线距离</small>
+					</li>
+				</ul>
+			</article>
+
+			<ul class="tv-extremes">
+				{extremes.map((extreme) => (
+					<li>
+						<span class="tv-extreme-tag">{extreme.tag}</span>
+						<strong>{extreme.marker.name}</strong>
+						<span class="tv-extreme-meta">{extreme.coordinate} · 离家 {extreme.marker.fromHome} km</span>
+					</li>
+				))}
+			</ul>
+		</div>
+
+		<div class="tv-route-card">
+			<div class="tv-route-head">
+				<span>行程顺序</span>
+				<small>每段为两点之间的直线距离</small>
+			</div>
+			<ol class="tv-route-stops">
+				{markers.map((marker, index) => (
+					<>
+						{index > 0 ? (
+							<li class="tv-route-seg" aria-hidden="true">
+								<span>{marker.segmentFromPrevious}</span>
+							</li>
+						) : null}
+						<li class="tv-route-stop">
+							<i class:list={{ "is-home": marker.kind === "home" }}></i>
+							<b>{marker.name}</b>
+						</li>
+					</>
+				))}
+			</ol>
+		</div>
+	</section>
+
+	<!-- 03 · 想去的地方 -------------------------------------------------- -->
+	<section class="tv-section tv-wish" id="tv-wishlist" aria-labelledby="tv-wish-title" data-reveal style="--d: 60ms">
+		<header class="tv-section-head">
+			<p class="tv-kicker"><span>03</span> WISHLIST · 想去</p>
+			<h2 id="tv-wish-title">想去的地方，先悄悄收藏</h2>
+			<p class="tv-section-sub">
+				等真的抵达，再从那里寄一张明信片回来。
+				<span class="tv-wish-count">{wishlistDomestic.length} 个国内 · {wishlistOverseas.length} 个国外</span>
+			</p>
+		</header>
+
+		<div class="tv-postcards">
+			{travelWishlist.map((wish, index) => (
+				<article class={`tv-postcard tv-tone-${wish.tone}`} style={`--tilt: ${(index % 2 === 0 ? -1.2 : 1.1).toFixed(1)}deg; --d: ${index * 60}ms`}>
+					<div class="tv-postcard-photo">
+						{wish.scene === "wave" ? (
+							<svg class="tv-postcard-scene" viewBox="0 0 160 52" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+								<circle class="tv-scene-sun" cx="124" cy="14" r="6.4"></circle>
+								<path
+									class="tv-scene-far"
+									d="M0 36C18 29 34 29 52 36C70 43 86 43 104 36C122 29 138 29 160 36L160 52L0 52Z"
+								></path>
+								<path
+									class="tv-scene-near"
+									d="M0 45C20 38 36 38 56 45C76 52 92 52 112 45C130 39 144 39 160 42L160 52L0 52Z"
+								></path>
+							</svg>
+						) : (
+							<svg class="tv-postcard-scene" viewBox="0 0 160 52" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+								<circle class="tv-scene-sun" cx="124" cy="14" r="6.4"></circle>
+								<path
+									class="tv-scene-far"
+									d="M0 35L16 24L30 30L46 17L62 30L78 22L96 33L112 25L130 32L146 26L160 31L160 52L0 52Z"
+								></path>
+								<path
+									class="tv-scene-near"
+									d="M0 43L18 35L34 42L50 34L68 44L84 37L102 45L118 38L136 44L160 40L160 52L0 52Z"
+								></path>
+							</svg>
+						)}
+						<span class="tv-postcard-region">{wish.region}</span>
+						<span class="tv-postcard-seal" aria-hidden="true">航</span>
+					</div>
+					<div class="tv-postcard-body">
+						<h3>
+							<i class="tv-postcard-icon" aria-hidden="true">{wish.glyph}</i>
+							{wish.name}
+						</h3>
+						<p>{wish.note}</p>
+						<span class="tv-postcard-stamp" aria-hidden="true">待寄出</span>
+					</div>
+				</article>
+			))}
+
+			<article class="tv-postcard tv-postcard--blank">
+				<div class="tv-postcard-photo">
+					<span class="tv-postcard-plus" aria-hidden="true">＋</span>
+				</div>
+				<div class="tv-postcard-body">
+					<h3>下一站</h3>
+					<p>位置留白，等下一次出发再填上。</p>
+				</div>
+			</article>
+		</div>
+	</section>
+
+	<!-- 04 · 收尾 ------------------------------------------------------- -->
+	<footer class="tv-outro" data-reveal style="--d: 40ms">
+		<div class="tv-outro-lead">
+			<p class="tv-kicker">NEXT STOP · 下一站</p>
+			<h2>地图还空着 {remainingProvinces} 个省份</h2>
+			<p>下次出发，记得把新的脚印带回来。</p>
+		</div>
+
+		<div class="tv-outro-track" aria-hidden="true">
+			<span class="tv-outro-line"></span>
+			<span class="tv-outro-plane">✈</span>
+			<span class="tv-outro-chips">
+				{travelWishlist.map((wish) => <i>{wish.name}</i>)}
+			</span>
+		</div>
+
+		<div class="tv-outro-foot">
+			<p class="tv-sign">✎ Yaron · 手账 Vol.08</p>
+			<p class="tv-credit">地图数据 cn-atlas · 省级边界仅作示意 · 距离为直线估算</p>
+		</div>
+	</footer>
+</section>
+
+<script>
+	type Box = { x: number; y: number; w: number; h: number };
+
+	const TV_FULL: Box = { x: 0, y: 0, w: 900, h: 640 };
+	const TV_ZOOM: Box = { x: 487.2, y: 419.6, w: 212.6, h: 151.18 };
+	const TV_EASE = (t: number) =>
+		t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+	const tvReduced = () =>
+		window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	const tvFormat = (value: number) => value.toLocaleString("en-US");
+	const tvBox = (box: Box) =>
+		`${box.x.toFixed(2)} ${box.y.toFixed(2)} ${box.w.toFixed(2)} ${box.h.toFixed(2)}`;
+
+	let tvCleanup: (() => void) | null = null;
+
+	const setupTravel = () => {
+		const root = document.querySelector<HTMLElement>("[data-tv-root]");
+		if (!root) return;
+		tvCleanup?.();
+		tvCleanup = null;
+		if (root.dataset.tvReady === "true") return;
+		root.dataset.tvReady = "true";
+
+		const card = root.querySelector<HTMLElement>("[data-map-card]");
+		const svg = root.querySelector<SVGSVGElement>("[data-map]");
+		const caption = root.querySelector<HTMLElement>("[data-caption]");
+		const hint = root.querySelector<HTMLElement>("[data-hint]");
+		const live = root.querySelector<HTMLElement>("[data-live]");
+		const zoomButton = root.querySelector<HTMLButtonElement>("[data-zoom]");
+		const zoomText = root.querySelector<HTMLElement>("[data-zoom-text]");
+		const randomButton = root.querySelector<HTMLButtonElement>("[data-random]");
+		const compass = root.querySelector<HTMLElement>("[data-compass]");
+		const cluster = root.querySelector<SVGElement>("[data-cluster]");
+		const provinces = root.querySelector<SVGGElement>("[data-provinces]");
+		const pins = Array.from(root.querySelectorAll<SVGGElement>(".tv-pin[data-index]"));
+		const rows = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-stop]"));
+		if (!card || !svg || !caption) return;
+
+		const captionDefault = card.dataset.captionDefault ?? "";
+		const captionCluster = card.dataset.captionCluster ?? "";
+		const hintFull = card.dataset.hintFull ?? "";
+		const hintZoom = card.dataset.hintZoom ?? "";
+
+		let zoomed = false;
+		let active = -1;
+		let hovering: number | null = null;
+		let provinceHover: { label: string; node: SVGPathElement } | null = null;
+		let frame = 0;
+
+		/* ---------------------------------------------------------- 地图缩放 */
+
+		const currentBox = (): Box => {
+			const viewBox = svg.viewBox.baseVal;
+			return { x: viewBox.x, y: viewBox.y, w: viewBox.width, h: viewBox.height };
+		};
+
+		const stopTween = () => {
+			if (frame) window.cancelAnimationFrame(frame);
+			frame = 0;
+		};
+
+		const tweenTo = (target: Box, done?: () => void) => {
+			stopTween();
+			const from = currentBox();
+			const start = performance.now();
+			const duration = 640;
+			const step = (now: number) => {
+				const progress = Math.min(1, (now - start) / duration);
+				const eased = TV_EASE(progress);
+				svg.setAttribute(
+					"viewBox",
+					tvBox({
+						x: from.x + (target.x - from.x) * eased,
+						y: from.y + (target.y - from.y) * eased,
+						w: from.w + (target.w - from.w) * eased,
+						h: from.h + (target.h - from.h) * eased,
+					}),
+				);
+				if (progress < 1) {
+					frame = window.requestAnimationFrame(step);
+				} else {
+					frame = 0;
+					done?.();
+				}
+			};
+			frame = window.requestAnimationFrame(step);
+		};
+
+		const setZoom = (
+			next: boolean,
+			options: { animate?: boolean; done?: () => void } = {},
+		) => {
+			if (zoomed === next) {
+				options.done?.();
+				return;
+			}
+			zoomed = next;
+			card.classList.toggle("is-zoomed", next);
+			card.dataset.zoomed = next ? "true" : "false";
+			zoomButton?.setAttribute("aria-pressed", next ? "true" : "false");
+			if (zoomText) zoomText.textContent = next ? "看全图" : "放大东南八站";
+			if (hint) hint.textContent = next ? hintZoom : hintFull;
+			if (!next) {
+				active = -1;
+				hovering = null;
+			}
+			const target = next ? TV_ZOOM : TV_FULL;
+			if (options.animate === false || tvReduced()) {
+				applyBox(target);
+				options.done?.();
+				return;
+			}
+			tweenTo(target, options.done);
+		};
+
+		const applyBox = (box: Box) => {
+			stopTween();
+			svg.setAttribute("viewBox", tvBox(box));
+		};
+
+		/* ------------------------------------------------------------ 高亮 */
+
+		const render = () => {
+			const index = hovering ?? (active >= 0 ? active : null);
+			for (const pin of pins) {
+				const pinIndex = Number(pin.dataset.index);
+				pin.classList.toggle("is-hot", pinIndex === index);
+				pin.classList.toggle("is-active", pinIndex === active);
+			}
+			for (const row of rows) {
+				const rowIndex = Number(row.dataset.index);
+				row.classList.toggle("is-hot", rowIndex === index);
+				row.classList.toggle("is-active", rowIndex === active);
+			}
+
+			if (index !== null) {
+				const row = rows[index];
+				caption.textContent = row.dataset.label ?? captionDefault;
+				compass?.classList.add("is-pointing");
+				compass?.style.setProperty("--tv-needle", `${row.dataset.angle ?? 0}deg`);
+				return;
+			}
+			if (provinceHover) {
+				caption.textContent = provinceHover.label;
+				compass?.classList.remove("is-pointing");
+				return;
+			}
+			caption.textContent = zoomed ? captionCluster : captionDefault;
+			compass?.classList.remove("is-pointing");
+		};
+
+		const flash = (index: number) => {
+			const pin = pins.find((item) => Number(item.dataset.index) === index);
+			if (!pin || tvReduced()) return;
+			pin.classList.remove("is-flash");
+			void pin.getBoundingClientRect();
+			pin.classList.add("is-flash");
+		};
+
+		const activate = (index: number, options: { scroll?: boolean } = {}) => {
+			active = index;
+			hovering = null;
+			if (!zoomed) setZoom(true);
+			render();
+			flash(index);
+			if (live) live.textContent = rows[index]?.dataset.label ?? "";
+			if (options.scroll && card) {
+				const rect = card.getBoundingClientRect();
+				if (rect.top < 0 || rect.bottom > window.innerHeight * 1.02) {
+					card.scrollIntoView({
+						behavior: tvReduced() ? "auto" : "smooth",
+						block: "center",
+					});
+				}
+			}
+		};
+
+		/* ------------------------------------------------------------ 事件 */
+
+		const onZoomClick = () => setZoom(!zoomed);
+		zoomButton?.addEventListener("click", onZoomClick);
+
+		const onCluster = () => setZoom(true);
+		cluster?.addEventListener("click", onCluster);
+		cluster?.addEventListener("keydown", (event) => {
+			const key = (event as KeyboardEvent).key;
+			if (key !== "Enter" && key !== " ") return;
+			event.preventDefault();
+			setZoom(true);
+		});
+
+		const onRandom = () => {
+			if (!rows.length) return;
+			let next = Math.floor(Math.random() * rows.length);
+			if (rows.length > 1 && next === active) next = (next + 1) % rows.length;
+			activate(next, { scroll: true });
+		};
+		randomButton?.addEventListener("click", onRandom);
+
+		const pinHandlers: Array<[SVGGElement, (event: Event) => void]> = [];
+		for (const pin of pins) {
+			const index = Number(pin.dataset.index);
+			const enter = () => {
+				hovering = index;
+				render();
+			};
+			const leave = () => {
+				hovering = null;
+				render();
+			};
+			const click = () => activate(index);
+			const keydown = (event: Event) => {
+				const key = (event as KeyboardEvent).key;
+				if (key !== "Enter" && key !== " ") return;
+				event.preventDefault();
+				activate(index);
+			};
+			pin.addEventListener("pointerenter", enter);
+			pin.addEventListener("pointerleave", leave);
+			pin.addEventListener("focus", enter);
+			pin.addEventListener("blur", leave);
+			pin.addEventListener("click", click);
+			pin.addEventListener("keydown", keydown);
+			pinHandlers.push([pin, enter]);
+		}
+
+		for (const row of rows) {
+			const index = Number(row.dataset.index);
+			const enter = () => {
+				hovering = index;
+				render();
+			};
+			const leave = () => {
+				hovering = null;
+				render();
+			};
+			const click = () => activate(index);
+			row.addEventListener("pointerenter", enter);
+			row.addEventListener("pointerleave", leave);
+			row.addEventListener("focus", enter);
+			row.addEventListener("blur", leave);
+			row.addEventListener("click", click);
+		}
+
+		let hoveredProvince: SVGPathElement | null = null;
+		const onProvinceOver = (event: Event) => {
+			const target = event.target as Element | null;
+			const path = target?.closest?.<SVGPathElement>(".tv-province");
+			if (!path || path === hoveredProvince) return;
+			hoveredProvince?.classList.remove("is-hover");
+			hoveredProvince = path;
+			path.classList.add("is-hover");
+			provinceHover = { label: path.dataset.label ?? "", node: path };
+			render();
+		};
+		const onProvinceOut = (event: Event) => {
+			const target = event.target as Element | null;
+			const path = target?.closest?.<SVGPathElement>(".tv-province");
+			if (!path || path !== hoveredProvince) return;
+			path.classList.remove("is-hover");
+			hoveredProvince = null;
+			provinceHover = null;
+			render();
+		};
+		provinces?.addEventListener("pointerover", onProvinceOver);
+		provinces?.addEventListener("pointerout", onProvinceOut);
+
+		/* ------------------------------------------------------------ 入场 */
+
+		const revealTargets = Array.from(
+			root.querySelectorAll<HTMLElement>("[data-reveal]"),
+		);
+
+		let observer: IntersectionObserver | null = null;
+		if ("IntersectionObserver" in window && !tvReduced()) {
+			root.classList.add("tv-armed");
+			document.documentElement.classList.remove("tv-boot");
+			root.dataset.tvArmed = "true";
+			observer = new IntersectionObserver(
+				(entries) => {
+					for (const entry of entries) {
+						if (!entry.isIntersecting) continue;
+						entry.target.classList.add("is-in");
+						observer?.unobserve(entry.target);
+					}
+				},
+				{ rootMargin: "0px 0px -6% 0px", threshold: 0.06 },
+			);
+			window.requestAnimationFrame(() => {
+				for (const target of revealTargets) {
+					const rect = target.getBoundingClientRect();
+					if (rect.top < window.innerHeight * 0.94 && rect.bottom > 0) {
+						target.classList.add("is-in");
+					}
+				}
+			});
+			for (const target of revealTargets) observer.observe(target);
+		} else {
+			document.documentElement.classList.remove("tv-boot");
+			root.dataset.tvArmed = "true";
+			for (const target of revealTargets) target.classList.add("is-in");
+		}
+
+		/* ------------------------------------------------------------ 计数 */
+
+		const counters = Array.from(root.querySelectorAll<HTMLElement>("[data-count]"));
+		const runCounter = (element: HTMLElement) => {
+			const target = Number(element.dataset.count ?? 0);
+			if (!Number.isFinite(target)) return;
+			if (tvReduced()) {
+				element.textContent = tvFormat(target);
+				return;
+			}
+			const start = performance.now();
+			const duration = 1100;
+			const step = (now: number) => {
+				const progress = Math.min(1, (now - start) / duration);
+				const eased = 1 - (1 - progress) ** 3;
+				element.textContent = tvFormat(Math.round(target * eased));
+				if (progress < 1) window.requestAnimationFrame(step);
+			};
+			window.requestAnimationFrame(step);
+		};
+
+		let counterObserver: IntersectionObserver | null = null;
+		if (counters.length) {
+			if ("IntersectionObserver" in window) {
+				counterObserver = new IntersectionObserver(
+					(entries) => {
+						for (const entry of entries) {
+							if (!entry.isIntersecting) continue;
+							runCounter(entry.target as HTMLElement);
+							counterObserver?.unobserve(entry.target);
+						}
+					},
+					{ threshold: 0.4 },
+				);
+				for (const counter of counters) counterObserver.observe(counter);
+			} else {
+				for (const counter of counters) runCounter(counter);
+			}
+		}
+
+		/* ------------------------------------------------------------ 倾斜 */
+
+		const tiltTarget = root.querySelector<HTMLElement>("[data-tilt]");
+		const canTilt =
+			tiltTarget &&
+			window.matchMedia("(pointer: fine)").matches &&
+			!tvReduced();
+		const onTiltMove = (event: PointerEvent) => {
+			if (!tiltTarget) return;
+			const rect = tiltTarget.getBoundingClientRect();
+			if (!rect.width || !rect.height) return;
+			const px = (event.clientX - rect.left) / rect.width - 0.5;
+			const py = (event.clientY - rect.top) / rect.height - 0.5;
+			tiltTarget.style.setProperty("--tilt-y", `${(px * 9).toFixed(2)}deg`);
+			tiltTarget.style.setProperty("--tilt-x", `${(-py * 7).toFixed(2)}deg`);
+		};
+		const onTiltLeave = () => {
+			tiltTarget?.style.removeProperty("--tilt-x");
+			tiltTarget?.style.removeProperty("--tilt-y");
+		};
+		if (canTilt && tiltTarget) {
+			tiltTarget.addEventListener("pointermove", onTiltMove);
+			tiltTarget.addEventListener("pointerleave", onTiltLeave);
+		}
+
+		/* ------------------------------------------------------------ 清理 */
+
+		tvCleanup = () => {
+			stopTween();
+			observer?.disconnect();
+			counterObserver?.disconnect();
+		};
+
+		render();
+	};
+
+	setupTravel();
+
+	const setupTravelHooks = () => {
+		if (window.__fuwariTravelHookRegistered) return;
+		window.__fuwariTravelHookRegistered = true;
+		window.swup.hooks.on("page:view", setupTravel);
+	};
+	if (window.swup) setupTravelHooks();
+	else document.addEventListener("swup:enable", setupTravelHooks, { once: true });
+</script>
+
+<style>
+	/* ==================================================================
+	   旅行足迹 · 地图
+	   ================================================================== */
+
+	.tv-page {
+		--tv-ink: var(--text-strong);
+		--tv-body: var(--text-body);
+		--tv-quiet: var(--text-muted);
+		--tv-line: color-mix(in srgb, var(--tea) 17%, transparent);
+		--tv-line-soft: color-mix(in srgb, var(--tea) 9%, transparent);
+		--tv-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		position: relative;
+		isolation: isolate;
+		overflow: clip;
+		width: 100%;
+		max-width: 74rem;
+		margin: 0 auto;
+		padding: clamp(1.35rem, 2.6vw, 2.35rem) clamp(1rem, 2.4vw, 2.35rem) clamp(1.5rem, 2.4vw, 2.1rem);
+		border-radius: clamp(1.15rem, 1.9vw, 1.75rem);
+		border: 1px solid var(--tv-line);
+		background:
+			radial-gradient(88% 58% at 4% -8%, color-mix(in srgb, var(--sakura) 13%, transparent), transparent 62%),
+			radial-gradient(70% 52% at 102% 2%, color-mix(in srgb, var(--azusa-blue) 10%, transparent), transparent 60%),
+			var(--cream-base);
+		box-shadow: 0 30px 80px -56px color-mix(in srgb, var(--tea) 70%, transparent);
+		color: var(--tv-body);
+	}
+
+	.tv-page::before {
+		content: "";
+		position: absolute;
+		inset: 0.55rem;
+		z-index: 0;
+		border: 1px dashed color-mix(in srgb, var(--tea) 20%, transparent);
+		border-radius: calc(clamp(1.15rem, 1.9vw, 1.75rem) - 0.4rem);
+		pointer-events: none;
+		opacity: 0.75;
+	}
+
+	.tv-page > * {
+		position: relative;
+		z-index: 1;
+	}
+
+	/* 00 · 抬头 -------------------------------------------------------- */
+
+	.tv-hero {
+		display: grid;
+		grid-template-columns: minmax(0, 1.3fr) minmax(0, 20.25rem);
+		align-items: center;
+		gap: clamp(1.3rem, 3vw, 2.5rem);
+		padding: clamp(0.3rem, 1vw, 0.9rem) clamp(0.1rem, 0.6vw, 0.45rem) clamp(1.4rem, 2.8vw, 2.1rem);
+	}
+
+	.tv-eyebrow {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.45rem;
+		margin: 0;
+		font-family: var(--tv-mono);
+		font-size: 0.65rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: color-mix(in srgb, var(--sakura) 76%, var(--tea));
+	}
+
+	.tv-eyebrow :global(svg) {
+		width: 1.1em;
+		height: 1.1em;
+	}
+
+	.tv-eyebrow-cn {
+		font-family: inherit;
+		letter-spacing: 0.12em;
+		color: color-mix(in srgb, var(--tea) 72%, var(--tv-quiet));
+	}
+
+	.tv-eyebrow-face {
+		font-size: 0.78rem;
+		letter-spacing: 0;
+		text-transform: none;
+		color: color-mix(in srgb, var(--tea) 46%, transparent);
+	}
+
+	.tv-title {
+		margin: 0.45rem 0 0;
+		font-size: clamp(1.9rem, 3.5vw, 3rem);
+		font-weight: 700;
+		line-height: 1.26;
+		letter-spacing: 0.01em;
+		color: var(--tv-ink);
+	}
+
+	.tv-title-mark {
+		position: relative;
+		display: inline-block;
+		white-space: nowrap;
+	}
+
+	.tv-underline {
+		position: absolute;
+		left: -0.05em;
+		bottom: -0.14em;
+		width: calc(100% + 0.1em);
+		height: 0.3em;
+		fill: none;
+		stroke: color-mix(in srgb, var(--sakura) 60%, transparent);
+		stroke-linecap: round;
+		pointer-events: none;
+	}
+
+	.tv-underline path {
+		stroke-width: 3.4;
+		stroke-dasharray: 1;
+		stroke-dashoffset: 0;
+		vector-effect: non-scaling-stroke;
+	}
+
+	.tv-lead {
+		margin: 0.7rem 0 0;
+		font-size: clamp(0.84rem, 1.1vw, 0.94rem);
+		line-height: 1.9;
+		color: var(--tv-body);
+	}
+
+	.tv-meta {
+		display: flex;
+		align-items: center;
+		gap: 0.7rem;
+		margin-top: 1.1rem;
+		font-size: 0.75rem;
+		color: var(--tv-quiet);
+	}
+
+	.tv-meta b {
+		margin-right: 0.12rem;
+		font-family: var(--tv-mono);
+		font-size: 1rem;
+		font-weight: 700;
+		color: var(--tv-ink);
+	}
+
+	.tv-meta i {
+		width: 1px;
+		height: 0.8rem;
+		background: var(--tv-line);
+	}
+
+	.tv-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.55rem;
+		margin-top: 1.2rem;
+	}
+
+	.tv-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.4rem;
+		height: 2.45rem;
+		padding: 0 1.05rem;
+		border: 1px solid transparent;
+		border-radius: 999px;
+		font-family: inherit;
+		font-size: 0.82rem;
+		font-weight: 600;
+		letter-spacing: 0.01em;
+		text-decoration: none;
+		cursor: pointer;
+		transition: transform 0.25s ease, box-shadow 0.3s ease, background-color 0.3s ease,
+			border-color 0.3s ease, color 0.3s ease;
+	}
+
+	.tv-btn :global(svg) {
+		width: 1.06em;
+		height: 1.06em;
+	}
+
+	.tv-btn--primary {
+		background: var(--sakura);
+		color: color-mix(in srgb, #fff 92%, var(--sakura));
+		box-shadow: 0 12px 26px -15px color-mix(in srgb, var(--sakura) 85%, transparent);
+	}
+
+	.tv-btn--primary:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 16px 30px -15px color-mix(in srgb, var(--sakura) 95%, transparent);
+	}
+
+	.tv-btn--ghost {
+		border-color: var(--tv-line);
+		background: color-mix(in srgb, var(--cream-base) 55%, transparent);
+		color: var(--tv-body);
+	}
+
+	.tv-btn--ghost:hover {
+		border-color: color-mix(in srgb, var(--sakura) 42%, transparent);
+		background: color-mix(in srgb, var(--sakura) 8%, transparent);
+		color: var(--tv-ink);
+	}
+
+	.tv-btn:focus-visible {
+		outline: 2px solid color-mix(in srgb, var(--sakura) 62%, transparent);
+		outline-offset: 3px;
+	}
+
+	/* 登机牌 ------------------------------------------------------------ */
+
+	.tv-pass {
+		justify-self: end;
+		width: 100%;
+		max-width: 20.25rem;
+	}
+
+	.tv-pass-inner {
+		position: relative;
+		padding: 0.95rem 1.05rem 0.85rem;
+		border: 1px solid var(--tv-line);
+		border-radius: 1.1rem;
+		background:
+			radial-gradient(120% 80% at 106% -12%, color-mix(in srgb, var(--sakura) 14%, transparent), transparent 62%),
+			color-mix(in srgb, var(--cream-base) 62%, var(--cream-soft));
+		box-shadow:
+			0 20px 44px -34px color-mix(in srgb, var(--tea) 85%, transparent),
+			inset 0 1px 0 color-mix(in srgb, #fff 38%, transparent);
+		transform: perspective(820px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+		transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
+	}
+
+	.tv-pass-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.tv-pass-brand {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.32rem;
+		font-family: var(--tv-mono);
+		font-size: 0.59rem;
+		letter-spacing: 0.19em;
+		color: var(--tv-ink);
+	}
+
+	.tv-pass-brand :global(svg) {
+		width: 1em;
+		height: 1em;
+		color: var(--sakura);
+	}
+
+	.tv-pass-kind {
+		font-family: var(--tv-mono);
+		font-size: 0.5rem;
+		letter-spacing: 0.22em;
+		color: var(--tv-quiet);
+	}
+
+	.tv-pass-route {
+		display: grid;
+		grid-template-columns: auto minmax(2rem, 1fr) auto;
+		align-items: end;
+		gap: 0.5rem;
+		margin-top: 0.95rem;
+	}
+
+	.tv-pass-port {
+		display: flex;
+		flex-direction: column;
+		gap: 0.08rem;
+		min-width: 0;
+	}
+
+	.tv-pass-port span {
+		font-family: var(--tv-mono);
+		font-size: 0.46rem;
+		letter-spacing: 0.16em;
+		color: var(--tv-quiet);
+	}
+
+	.tv-pass-port strong {
+		font-size: 1.12rem;
+		line-height: 1.3;
+		letter-spacing: 0.02em;
+		color: var(--tv-ink);
+	}
+
+	.tv-pass-port em {
+		font-style: normal;
+		font-size: 0.6rem;
+		color: color-mix(in srgb, var(--tea) 74%, var(--tv-quiet));
+	}
+
+	.tv-pass-port--to {
+		align-items: flex-end;
+		text-align: right;
+	}
+
+	.tv-pass-arrow {
+		display: block;
+		margin-bottom: 1.15rem;
+	}
+
+	.tv-pass-arrow svg {
+		display: block;
+		width: 100%;
+		height: 12px;
+		fill: none;
+		stroke: color-mix(in srgb, var(--tea) 44%, transparent);
+		stroke-width: 1.2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		overflow: visible;
+	}
+
+	.tv-pass-perf {
+		height: 1px;
+		margin: 0.85rem -0.05rem 0.75rem;
+		background: repeating-linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--tea) 28%, transparent) 0 5px,
+			transparent 5px 10px
+		);
+	}
+
+	.tv-pass-fields {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.55rem 0.7rem;
+		margin: 0;
+	}
+
+	.tv-pass-fields dt {
+		font-family: var(--tv-mono);
+		font-size: 0.45rem;
+		letter-spacing: 0.17em;
+		color: var(--tv-quiet);
+	}
+
+	.tv-pass-fields dd {
+		margin: 0.1rem 0 0;
+		font-family: var(--tv-mono);
+		font-size: 0.76rem;
+		font-weight: 600;
+		color: var(--tv-ink);
+	}
+
+	.tv-pass-tail {
+		display: flex;
+		align-items: center;
+		gap: 0.7rem;
+		margin-top: 0.8rem;
+	}
+
+	.tv-barcode {
+		flex: 1 1 auto;
+		height: 23px;
+		color: color-mix(in srgb, var(--tea) 62%, transparent);
+		background: repeating-linear-gradient(
+			90deg,
+			currentColor 0 1px,
+			transparent 1px 4px,
+			currentColor 4px 5px,
+			transparent 5px 8px,
+			currentColor 8px 11px,
+			transparent 11px 13px
+		);
+		opacity: 0.72;
+	}
+
+	.tv-pass-stamp {
+		flex: 0 0 auto;
+		display: grid;
+		place-content: center;
+		gap: 0.05rem;
+		width: 3.1rem;
+		height: 3.1rem;
+		border: 1.4px dashed color-mix(in srgb, var(--sakura) 62%, transparent);
+		border-radius: 50%;
+		color: var(--sakura);
+		transform: rotate(-9deg);
+	}
+
+	.tv-pass-stamp b {
+		font-family: var(--tv-mono);
+		font-size: 0.9rem;
+		line-height: 1;
+		text-align: center;
+	}
+
+	.tv-pass-stamp small {
+		font-family: var(--tv-mono);
+		font-size: 0.38rem;
+		letter-spacing: 0.13em;
+		text-align: center;
+	}
+
+	.tv-pass-foot {
+		margin: 0.7rem 0 0;
+		padding-top: 0.55rem;
+		border-top: 1px dashed var(--tv-line-soft);
+		font-family: var(--tv-mono);
+		font-size: 0.47rem;
+		letter-spacing: 0.1em;
+		color: var(--tv-quiet);
+	}
+
+	/* 章节抬头 ---------------------------------------------------------- */
+
+	.tv-section {
+		margin-top: clamp(1.6rem, 3.2vw, 2.6rem);
+	}
+
+	.tv-section-head {
+		margin-bottom: 1.1rem;
+	}
+
+	.tv-kicker {
+		display: flex;
+		align-items: center;
+		gap: 0.42rem;
+		margin: 0;
+		font-family: var(--tv-mono);
+		font-size: 0.61rem;
+		font-weight: 600;
+		letter-spacing: 0.2em;
+		color: color-mix(in srgb, var(--sakura) 72%, var(--tea));
+	}
+
+	.tv-kicker > span {
+		display: grid;
+		place-items: center;
+		width: 1.45rem;
+		height: 1.45rem;
+		border: 1px solid color-mix(in srgb, var(--sakura) 34%, transparent);
+		border-radius: 50%;
+		font-size: 0.55rem;
+		letter-spacing: 0;
+		color: color-mix(in srgb, var(--sakura) 88%, var(--tea));
+	}
+
+	.tv-section-head h2 {
+		margin: 0.4rem 0 0.28rem;
+		font-size: clamp(1.3rem, 2.1vw, 1.7rem);
+		font-weight: 700;
+		line-height: 1.38;
+		letter-spacing: 0.01em;
+		color: var(--tv-ink);
+	}
+
+	.tv-section-sub {
+		max-width: 44rem;
+		margin: 0;
+		font-size: 0.82rem;
+		line-height: 1.8;
+		color: var(--tv-quiet);
+	}
+
+	.tv-wish-count {
+		margin-left: 0.4rem;
+		font-family: var(--tv-mono);
+		font-size: 0.66rem;
+		color: color-mix(in srgb, var(--tea) 74%, var(--tv-quiet));
+	}
+
+	/* 01 · 地图 -------------------------------------------------------- */
+
+	.tv-atlas-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 19.5rem);
+		align-items: stretch;
+		gap: 0.9rem;
+	}
+
+	.tv-map-card {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		overflow: hidden;
+		border: 1px solid var(--tv-line);
+		border-radius: 1.3rem;
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--cream-base) 62%, var(--cream-soft)),
+			var(--cream-soft) 72%
+		);
+		box-shadow: 0 22px 48px -40px color-mix(in srgb, var(--tea) 90%, transparent);
+	}
+
+	.tv-map-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 0.8rem;
+		padding: 0.85rem 1rem 0.05rem;
+	}
+
+	.tv-map-title p {
+		margin: 0;
+		font-family: var(--tv-mono);
+		font-size: 0.49rem;
+		letter-spacing: 0.3em;
+		color: color-mix(in srgb, var(--tea) 60%, var(--tv-quiet));
+	}
+
+	.tv-map-title h3 {
+		margin: 0.18rem 0 0;
+		font-size: 1rem;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		color: var(--tv-ink);
+	}
+
+	.tv-legend {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.15rem 0.6rem;
+		margin: 0.15rem 0 0;
+		padding: 0;
+		list-style: none;
+		font-size: 0.64rem;
+		color: var(--tv-quiet);
+	}
+
+	.tv-legend li {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+	}
+
+	.tv-legend-dot {
+		width: 0.48rem;
+		height: 0.48rem;
+		border: 1px solid var(--tv-line);
+		border-radius: 50%;
+	}
+
+	.tv-legend-dot.is-visited {
+		border-color: color-mix(in srgb, var(--sakura) 55%, transparent);
+		background: color-mix(in srgb, var(--sakura) 55%, transparent);
+	}
+
+	.tv-legend-dot.is-home {
+		border-color: var(--tea);
+		background: var(--tea);
+	}
+
+	.tv-map-stage {
+		position: relative;
+		flex: 1 1 auto;
+		display: flex;
+		align-items: center;
+		padding: 0 0.3rem;
+	}
+
+	.tv-map {
+		display: block;
+		width: 100%;
+		height: auto;
+		aspect-ratio: 900 / 640;
+	}
+
+	/* 省级路径 */
+
+	.tv-provinces,
+	.tv-graticule {
+		transform-origin: 50% 46%;
+	}
+
+	.tv-graticule line {
+		stroke: color-mix(in srgb, var(--tea) 13%, transparent);
+		stroke-width: 0.5;
+		stroke-dasharray: 2 4;
+		vector-effect: non-scaling-stroke;
+	}
+
+	.tv-province {
+		fill: color-mix(in srgb, var(--tea) 9%, var(--cream-base));
+		stroke: color-mix(in srgb, var(--tea) 40%, transparent);
+		stroke-width: 0.8;
+		stroke-linejoin: round;
+		vector-effect: non-scaling-stroke;
+		transition: fill 0.35s ease, stroke 0.35s ease;
+	}
+
+	.tv-province.is-visited {
+		fill: color-mix(in srgb, var(--sakura) 34%, var(--cream-base));
+		stroke: color-mix(in srgb, var(--sakura) 58%, var(--tea));
+	}
+
+	.tv-province.is-hover {
+		fill: color-mix(in srgb, var(--sakura) 46%, var(--cream-base));
+	}
+
+	.tv-province.is-visited.is-hover {
+		fill: color-mix(in srgb, var(--sakura) 54%, var(--cream-base));
+	}
+
+	.tv-province-label {
+		font-size: 10.5px;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-anchor: middle;
+		dominant-baseline: central;
+		fill: color-mix(in srgb, var(--tea) 52%, var(--tv-quiet));
+		paint-order: stroke;
+		stroke: color-mix(in srgb, var(--cream-base) 86%, transparent);
+		stroke-width: 2.6;
+		stroke-linejoin: round;
+		opacity: 0.78;
+		pointer-events: none;
+		transition: opacity 0.3s ease;
+	}
+
+	.tv-province-label.is-visited {
+		font-size: 11.5px;
+		fill: color-mix(in srgb, var(--sakura) 46%, var(--tea));
+		opacity: 0.95;
+	}
+
+	/* 路线 */
+
+	.tv-route {
+		opacity: 0.34;
+		pointer-events: none;
+		transition: opacity 0.4s ease;
+	}
+
+	.tv-map-card.is-zoomed .tv-route {
+		opacity: 1;
+	}
+
+	.tv-route-case {
+		fill: none;
+		stroke: color-mix(in srgb, var(--cream-base) 78%, transparent);
+		stroke-width: 2.2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		vector-effect: non-scaling-stroke;
+	}
+
+	.tv-route-line {
+		fill: none;
+		stroke: color-mix(in srgb, var(--sakura) 78%, var(--tea));
+		stroke-width: 1.05;
+		stroke-dasharray: 2.2 2.4;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		opacity: 0.92;
+		vector-effect: non-scaling-stroke;
+	}
+
+	.tv-route-comet {
+		fill: var(--sakura);
+		opacity: 0;
+	}
+
+	@supports (offset-path: path("M0 0")) {
+		.tv-map-card.is-zoomed .tv-route-comet {
+			opacity: 1;
+		}
+	}
+
+	/* 全图状态：光点 + 聚光 */
+
+	.tv-pins--full {
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	:global(html:not(.tv-motion)) .tv-pins--full {
+		opacity: 1;
+	}
+
+	.tv-cluster-glow {
+		pointer-events: none;
+	}
+
+	.tv-cluster-ring {
+		fill: none;
+		stroke: color-mix(in srgb, var(--sakura) 52%, transparent);
+		stroke-width: 1;
+		stroke-dasharray: 3 3;
+		opacity: 0.8;
+		transform-box: fill-box;
+		transform-origin: center;
+		pointer-events: none;
+		transition: opacity 0.3s ease;
+	}
+
+	.tv-dot {
+		fill: var(--sakura);
+		stroke: color-mix(in srgb, var(--cream-base) 85%, var(--sakura));
+		stroke-width: 0.35;
+	}
+
+	.tv-dot.is-home {
+		fill: var(--tea);
+		stroke: color-mix(in srgb, var(--cream-base) 80%, var(--tea));
+	}
+
+	.tv-cluster-hit {
+		fill: transparent;
+		cursor: zoom-in;
+		transition: fill 0.3s ease;
+	}
+
+	.tv-cluster-hit:hover {
+		fill: color-mix(in srgb, var(--sakura) 10%, transparent);
+	}
+
+	.tv-cluster-hit:focus-visible {
+		outline: none;
+		stroke: var(--sakura);
+		stroke-width: 1.6;
+	}
+
+	.tv-map-card.is-zoomed .tv-cluster-hit,
+	.tv-map-card.is-zoomed .tv-cluster-ring {
+		opacity: 0;
+		animation: none;
+		pointer-events: none;
+	}
+
+	.tv-map-card.is-zoomed .tv-pins--full {
+		opacity: 0;
+		animation: none;
+	}
+
+	.tv-map-card.is-zoomed .tv-graticule,
+	.tv-map-card.is-zoomed .tv-province-labels {
+		opacity: 0;
+	}
+
+	.tv-graticule,
+	.tv-province-labels {
+		transition: opacity 0.4s ease;
+	}
+
+	/* 放大状态：图钉 */
+
+	.tv-pins--zoom {
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 0.45s ease 0.1s;
+	}
+
+	.tv-map-card.is-zoomed .tv-pins--zoom {
+		opacity: 1;
+		pointer-events: auto;
+	}
+
+	.tv-pin {
+		cursor: pointer;
+		outline: none;
+	}
+
+	.tv-pin-hit {
+		fill: transparent;
+	}
+
+	.tv-pin-halo {
+		fill: color-mix(in srgb, var(--sakura) 20%, transparent);
+		opacity: 0;
+		transform-box: fill-box;
+		transform-origin: center;
+		transition: opacity 0.3s ease;
+	}
+
+	.tv-pin.is-hot .tv-pin-halo {
+		opacity: 1;
+	}
+
+	.tv-pin.is-active .tv-pin-halo {
+		opacity: 1;
+		fill: color-mix(in srgb, var(--sakura) 30%, transparent);
+	}
+
+	.tv-pin-dot {
+		fill: var(--sakura);
+		stroke: color-mix(in srgb, var(--cream-base) 94%, transparent);
+		stroke-width: 0.72;
+		transform-box: fill-box;
+		transform-origin: center;
+		transition: fill 0.3s ease, stroke 0.3s ease, transform 0.3s ease;
+	}
+
+	.tv-pin.is-home .tv-pin-dot {
+		fill: var(--tea);
+		stroke: color-mix(in srgb, var(--cream-base) 94%, transparent);
+	}
+
+	.tv-pin.is-hot .tv-pin-dot,
+	.tv-pin.is-active .tv-pin-dot {
+		fill: color-mix(in srgb, var(--sakura) 76%, var(--tea));
+		transform: scale(1.32);
+	}
+
+	.tv-pin-pulse {
+		fill: none;
+		stroke: color-mix(in srgb, var(--tea) 65%, transparent);
+		stroke-width: 0.45;
+		opacity: 0;
+		transform-box: fill-box;
+		transform-origin: center;
+		pointer-events: none;
+	}
+
+	.tv-pin-leader {
+		stroke: color-mix(in srgb, var(--sakura) 52%, transparent);
+		stroke-width: 0.28;
+		stroke-dasharray: 0.7 0.8;
+		opacity: 0.8;
+		pointer-events: none;
+	}
+
+	.tv-pin-name {
+		font-size: 3.05px;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+		fill: var(--tv-ink);
+		paint-order: stroke;
+		stroke: color-mix(in srgb, var(--cream-base) 92%, transparent);
+		stroke-width: 1.4;
+		stroke-linejoin: round;
+		pointer-events: none;
+	}
+
+	/* 控件 */
+
+	.tv-zoom {
+		position: absolute;
+		top: 0.55rem;
+		right: 0.55rem;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		height: 1.95rem;
+		padding: 0 0.7rem;
+		border: 1px solid color-mix(in srgb, var(--sakura) 26%, var(--tv-line));
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--cream-base) 86%, transparent);
+		backdrop-filter: blur(8px);
+		color: var(--tv-body);
+		font-family: inherit;
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+		cursor: pointer;
+		box-shadow: 0 8px 20px -16px color-mix(in srgb, var(--tea) 90%, transparent);
+		transition: color 0.25s ease, border-color 0.25s ease, background-color 0.25s ease,
+			transform 0.25s ease;
+	}
+
+	.tv-zoom :global(svg) {
+		width: 1.05em;
+		height: 1.05em;
+		color: var(--sakura);
+	}
+
+	.tv-zoom:hover {
+		color: var(--tv-ink);
+		border-color: color-mix(in srgb, var(--sakura) 54%, transparent);
+		transform: translateY(-1px);
+	}
+
+	.tv-zoom[aria-pressed="true"] {
+		border-color: color-mix(in srgb, var(--sakura) 46%, transparent);
+		background: color-mix(in srgb, var(--sakura) 16%, var(--cream-base));
+		color: var(--tv-ink);
+	}
+
+	.tv-zoom:focus-visible {
+		outline: 2px solid color-mix(in srgb, var(--sakura) 62%, transparent);
+		outline-offset: 2px;
+	}
+
+	.tv-compass {
+		position: absolute;
+		bottom: 0.6rem;
+		left: 0.7rem;
+		width: 2.45rem;
+		height: 2.45rem;
+		border: 1px dashed color-mix(in srgb, var(--tea) 44%, transparent);
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--cream-base) 78%, transparent);
+		backdrop-filter: blur(4px);
+		pointer-events: none;
+	}
+
+	.tv-compass::after {
+		content: "";
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 3px;
+		height: 3px;
+		margin: -1.5px 0 0 -1.5px;
+		border-radius: 50%;
+		background: var(--tv-quiet);
+	}
+
+	.tv-compass-sway {
+		position: absolute;
+		inset: 0.12rem;
+		border-radius: 50%;
+		transform-origin: 50% 50%;
+		animation: tv-sway 7s ease-in-out infinite;
+	}
+
+	.tv-compass.is-pointing .tv-compass-sway {
+		animation: none;
+	}
+
+	.tv-compass-needle {
+		position: absolute;
+		top: 15%;
+		left: 50%;
+		width: 0.34rem;
+		height: 70%;
+		margin-left: -0.17rem;
+		clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+		background: linear-gradient(
+			to bottom,
+			var(--sakura) 0 50%,
+			color-mix(in srgb, var(--tea) 58%, transparent) 50% 100%
+		);
+		transform: rotate(var(--tv-needle, 0deg));
+		transform-origin: 50% 50%;
+		transition: transform 0.55s cubic-bezier(0.3, 1.25, 0.5, 1);
+	}
+
+	.tv-compass-n {
+		position: absolute;
+		top: 0.08rem;
+		left: 50%;
+		font-family: var(--tv-mono);
+		font-size: 0.38rem;
+		letter-spacing: 0.1em;
+		color: color-mix(in srgb, var(--sakura) 70%, transparent);
+		transform: translateX(-50%);
+	}
+
+	.tv-inset {
+		position: absolute;
+		right: 0.5rem;
+		bottom: 0.5rem;
+		width: 4.6rem;
+		margin: 0;
+		padding: 0.26rem 0.26rem 0.1rem;
+		border: 1px solid var(--tv-line);
+		border-radius: 0.5rem;
+		background: color-mix(in srgb, var(--cream-base) 82%, transparent);
+		backdrop-filter: blur(6px);
+	}
+
+	.tv-inset svg {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+
+	.tv-inset path {
+		fill: color-mix(in srgb, var(--sakura) 24%, var(--cream-base));
+		stroke: color-mix(in srgb, var(--tea) 45%, transparent);
+		stroke-width: 0.5;
+		vector-effect: non-scaling-stroke;
+	}
+
+	.tv-inset figcaption {
+		margin-top: 0.08rem;
+		font-size: 0.42rem;
+		letter-spacing: 0.12em;
+		text-align: center;
+		color: var(--tv-quiet);
+	}
+
+	.tv-caption {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0 1rem;
+		padding: 0.55rem 0 0.5rem;
+		border-top: 1px dashed var(--tv-line-soft);
+	}
+
+	.tv-caption-mark {
+		flex: 0 0 auto;
+		width: 0.38rem;
+		height: 0.38rem;
+		border-radius: 50%;
+		background: var(--sakura);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--sakura) 16%, transparent);
+	}
+
+	.tv-caption p {
+		flex: 1 1 auto;
+		min-width: 0;
+		margin: 0;
+		font-size: 0.77rem;
+		line-height: 1.5;
+		color: var(--tv-body);
+	}
+
+	.tv-caption-hint {
+		flex: 0 0 auto;
+		font-family: var(--tv-mono);
+		font-size: 0.57rem;
+		letter-spacing: 0.04em;
+		color: var(--tv-quiet);
+	}
+
+	.tv-map-foot {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		margin: 0 1rem;
+		padding: 0.55rem 0 0.8rem;
+		border-top: 1px dashed var(--tv-line-soft);
+		font-size: 0.63rem;
+		color: var(--tv-quiet);
+	}
+
+	.tv-map-foot-label {
+		flex: 0 0 auto;
+	}
+
+	.tv-ticks {
+		display: flex;
+		gap: 2px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.tv-ticks li {
+		width: 4px;
+		height: 0.6rem;
+		border-radius: 1px;
+		background: color-mix(in srgb, var(--tea) 14%, transparent);
+	}
+
+	.tv-ticks li.is-on {
+		background: color-mix(in srgb, var(--sakura) 78%, transparent);
+	}
+
+	.tv-map-foot b {
+		font-family: var(--tv-mono);
+		font-size: 0.65rem;
+		color: var(--tv-ink);
+	}
+
+	.tv-map-foot small {
+		margin-left: auto;
+		font-size: 0.55rem;
+		text-align: right;
+	}
+
+	/* 旅行手账 ---------------------------------------------------------- */
+
+	.tv-journal {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		padding: 0.95rem 0.85rem 0.8rem;
+		border: 1px solid var(--tv-line);
+		border-radius: 1.3rem;
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--cream-base) 46%, var(--cream-soft)),
+			var(--cream-soft)
+		);
+		box-shadow: 0 22px 48px -42px color-mix(in srgb, var(--tea) 90%, transparent);
+	}
+
+	.tv-journal-head .tv-kicker {
+		font-size: 0.53rem;
+		letter-spacing: 0.18em;
+	}
+
+	.tv-journal-head h3 {
+		margin: 0.3rem 0 0.2rem;
+		font-size: 1.06rem;
+		font-weight: 700;
+		color: var(--tv-ink);
+		letter-spacing: 0.02em;
+	}
+
+	.tv-journal-sub {
+		margin: 0;
+		font-size: 0.69rem;
+		line-height: 1.65;
+		color: var(--tv-quiet);
+	}
+
+	.tv-journal-stats {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 0.3rem;
+		margin: 0.65rem 0 0;
+		padding: 0.5rem 0;
+		list-style: none;
+		border-top: 1px dashed var(--tv-line-soft);
+		border-bottom: 1px dashed var(--tv-line-soft);
+	}
+
+	.tv-journal-stats li {
+		display: flex;
+		align-items: baseline;
+		justify-content: center;
+		gap: 0.15rem;
+	}
+
+	.tv-journal-stats b {
+		font-family: var(--tv-mono);
+		font-size: 1rem;
+		font-weight: 700;
+		color: var(--tv-ink);
+	}
+
+	.tv-journal-stats span {
+		font-size: 0.6rem;
+		color: var(--tv-quiet);
+	}
+
+	.tv-stops {
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+		margin: 0.6rem 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.tv-stop {
+		display: grid;
+		grid-template-columns: 1.1rem minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 0.42rem;
+		width: 100%;
+		padding: 0.36rem 0.4rem;
+		border: 1px solid transparent;
+		border-radius: 0.6rem;
+		background: transparent;
+		color: inherit;
+		font-family: inherit;
+		text-align: left;
+		cursor: pointer;
+		transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+	}
+
+	.tv-stop:hover,
+	.tv-stop.is-hot {
+		border-color: color-mix(in srgb, var(--sakura) 22%, transparent);
+		background: color-mix(in srgb, var(--sakura) 7%, transparent);
+		transform: translateX(2px);
+	}
+
+	.tv-stop.is-active {
+		border-color: color-mix(in srgb, var(--sakura) 36%, transparent);
+		background: color-mix(in srgb, var(--sakura) 12%, transparent);
+	}
+
+	.tv-stop:focus-visible {
+		outline: 2px solid color-mix(in srgb, var(--sakura) 55%, transparent);
+		outline-offset: 1px;
+	}
+
+	.tv-stop-index {
+		font-family: var(--tv-mono);
+		font-size: 0.55rem;
+		letter-spacing: 0.04em;
+		color: color-mix(in srgb, var(--tea) 62%, transparent);
+	}
+
+	.tv-stop.is-home .tv-stop-index {
+		color: color-mix(in srgb, var(--sakura) 85%, transparent);
+	}
+
+	.tv-stop-main {
+		display: flex;
+		flex-direction: column;
+		gap: 0.05rem;
+		min-width: 0;
+	}
+
+	.tv-stop-name {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.85rem;
+		font-weight: 600;
+		letter-spacing: 0.01em;
+		color: var(--tv-ink);
+	}
+
+	.tv-stop-name i {
+		padding: 0.16rem 0.28rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--tea) 13%, transparent);
+		font-style: normal;
+		font-size: 0.48rem;
+		line-height: 1;
+		color: color-mix(in srgb, var(--tea) 85%, var(--tv-body));
+	}
+
+	.tv-stop-note {
+		overflow: hidden;
+		font-size: 0.61rem;
+		line-height: 1.4;
+		color: var(--tv-quiet);
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+
+	.tv-stop-distance {
+		display: flex;
+		align-items: baseline;
+		gap: 0.1rem;
+		font-family: var(--tv-mono);
+		font-size: 0.54rem;
+		color: var(--tv-quiet);
+	}
+
+	.tv-stop-distance b {
+		font-size: 0.74rem;
+		font-weight: 600;
+		color: var(--tv-body);
+	}
+
+	.tv-journal-foot {
+		margin: auto 0 0;
+		padding-top: 0.55rem;
+		border-top: 1px dashed var(--tv-line-soft);
+		font-size: 0.55rem;
+		line-height: 1.5;
+		text-align: center;
+		color: var(--tv-quiet);
+	}
+
+	/* 02 · 数字 -------------------------------------------------------- */
+
+	.tv-facts-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+		gap: 0.8rem;
+	}
+
+	.tv-mileage {
+		position: relative;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 1rem 1.6rem;
+		align-items: end;
+		overflow: hidden;
+		padding: 1.05rem 1.15rem;
+		border: 1px solid var(--tv-line);
+		border-radius: 1.25rem;
+		background:
+			radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--sakura) 15%, transparent), transparent 62%),
+			var(--cream-soft);
+	}
+
+	.tv-mileage-main {
+		align-self: center;
+	}
+
+	.tv-mileage-facts {
+		display: grid;
+		gap: 0.1rem;
+		margin: 0;
+		padding: 0 0 0 1.1rem;
+		border-left: 1px dashed var(--tv-line-soft);
+		list-style: none;
+	}
+
+	.tv-mileage-facts li {
+		display: grid;
+		grid-template-columns: auto auto;
+		align-items: baseline;
+		gap: 0.1rem 0.5rem;
+		padding: 0.34rem 0;
+	}
+
+	.tv-mileage-facts li + li {
+		border-top: 1px dotted color-mix(in srgb, var(--tv-line-soft) 70%, transparent);
+	}
+
+	.tv-mileage-facts span {
+		font-family: var(--tv-mono);
+		font-size: 0.5rem;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: var(--tv-quiet);
+	}
+
+	.tv-mileage-facts b {
+		justify-self: end;
+		font-family: var(--tv-mono);
+		font-size: 0.95rem;
+		font-weight: 700;
+		line-height: 1;
+		color: var(--tv-ink);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.tv-mileage-facts b em {
+		margin-left: 0.16rem;
+		font-style: normal;
+		font-size: 0.55rem;
+		font-weight: 500;
+		letter-spacing: 0.1em;
+		color: var(--tv-quiet);
+	}
+
+	.tv-mileage-facts small {
+		grid-column: 1 / -1;
+		font-size: 0.6rem;
+		line-height: 1.4;
+		color: var(--tv-quiet);
+	}
+
+	.tv-mileage .tv-kicker {
+		font-size: 0.51rem;
+		letter-spacing: 0.24em;
+	}
+
+	.tv-mileage-num {
+		display: flex;
+		align-items: baseline;
+		gap: 0.28rem;
+		margin: 0.55rem 0 0.1rem;
+		font-family: var(--tv-mono);
+		font-size: clamp(2rem, 4.2vw, 3rem);
+		font-weight: 700;
+		line-height: 1;
+		letter-spacing: -0.02em;
+		color: var(--tv-ink);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.tv-mileage-num em {
+		font-style: normal;
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.16em;
+		color: color-mix(in srgb, var(--sakura) 80%, var(--tea));
+	}
+
+	.tv-mileage-sub {
+		margin: 0.4rem 0 0;
+		font-size: 0.77rem;
+		color: var(--tv-body);
+	}
+
+	.tv-mileage-note {
+		margin: 0.3rem 0 0;
+		font-size: 0.67rem;
+		line-height: 1.7;
+		color: var(--tv-quiet);
+	}
+
+	.tv-extremes {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.55rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.tv-extremes li {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		gap: 0.16rem;
+		padding: 0.7rem 0.8rem;
+		border: 1px solid var(--tv-line);
+		border-radius: 0.9rem;
+		background: var(--cream-soft);
+		transition: border-color 0.3s ease, transform 0.3s ease;
+	}
+
+	.tv-extremes li:hover {
+		border-color: color-mix(in srgb, var(--sakura) 34%, transparent);
+		transform: translateY(-2px);
+	}
+
+	.tv-extreme-tag {
+		font-family: var(--tv-mono);
+		font-size: 0.51rem;
+		letter-spacing: 0.18em;
+		color: color-mix(in srgb, var(--sakura) 80%, var(--tea));
+	}
+
+	.tv-extremes strong {
+		font-size: 1rem;
+		font-weight: 700;
+		color: var(--tv-ink);
+	}
+
+	.tv-extreme-meta {
+		font-family: var(--tv-mono);
+		font-size: 0.54rem;
+		letter-spacing: 0.02em;
+		color: var(--tv-quiet);
+	}
+
+	.tv-route-card {
+		margin-top: 0.8rem;
+		padding: 0.8rem 1rem 0.7rem;
+		border: 1px solid var(--tv-line);
+		border-radius: 1.15rem;
+		background: var(--cream-soft);
+	}
+
+	.tv-route-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.6rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.tv-route-head span {
+		font-size: 0.68rem;
+		font-weight: 600;
+		letter-spacing: 0.1em;
+		color: var(--tv-body);
+	}
+
+	.tv-route-head small {
+		font-size: 0.55rem;
+		color: var(--tv-quiet);
+	}
+
+	.tv-route-stops {
+		display: flex;
+		align-items: flex-start;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.tv-route-stop {
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.35rem;
+		width: 2.9rem;
+	}
+
+	.tv-route-stop i {
+		width: 0.46rem;
+		height: 0.46rem;
+		border: 1.4px solid color-mix(in srgb, var(--sakura) 74%, transparent);
+		border-radius: 50%;
+		background: var(--cream-soft);
+	}
+
+	.tv-route-stop i.is-home {
+		border-color: var(--tea);
+		background: var(--tea);
+	}
+
+	.tv-route-stop b {
+		font-size: 0.59rem;
+		font-weight: 600;
+		color: var(--tv-body);
+		white-space: nowrap;
+	}
+
+	.tv-route-seg {
+		position: relative;
+		flex: 1 1 0;
+		min-width: 0.8rem;
+		height: 2rem;
+	}
+
+	.tv-route-seg::before {
+		content: "";
+		position: absolute;
+		top: 0.2rem;
+		right: 0;
+		left: 0;
+		border-top: 1px dashed color-mix(in srgb, var(--sakura) 42%, transparent);
+		transform: scaleX(0);
+		transform-origin: left center;
+	}
+
+	.tv-route-seg span {
+		position: absolute;
+		top: 0.42rem;
+		left: 50%;
+		font-family: var(--tv-mono);
+		font-size: 0.49rem;
+		color: var(--tv-quiet);
+		transform: translateX(-50%);
+	}
+
+	.tv-facts.is-in .tv-route-seg::before {
+		transform: scaleX(1);
+		transition: transform 0.6s cubic-bezier(0.3, 0.7, 0.3, 1) 0.15s;
+	}
+
+	/* 03 · 明信片 ------------------------------------------------------ */
+
+	.tv-postcards {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.75rem;
+	}
+
+	.tv-postcard {
+		--tone: var(--sakura);
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		overflow: hidden;
+		border: 1px solid var(--tv-line);
+		border-radius: 0.95rem;
+		background: var(--cream-soft);
+		box-shadow: 0 16px 32px -30px color-mix(in srgb, var(--tea) 90%, transparent);
+		transform: rotate(var(--tilt, 0deg));
+		transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.35), box-shadow 0.4s ease,
+			border-color 0.3s ease;
+	}
+
+	.tv-postcard:hover {
+		border-color: color-mix(in srgb, var(--tone) 42%, transparent);
+		box-shadow: 0 22px 40px -28px color-mix(in srgb, var(--tea) 95%, transparent);
+		transform: rotate(0deg) translateY(-4px);
+	}
+
+	.tv-tone-sakura {
+		--tone: var(--sakura);
+	}
+
+	.tv-tone-sky {
+		--tone: var(--azusa-blue);
+	}
+
+	.tv-tone-tea {
+		--tone: var(--tea);
+	}
+
+	.tv-tone-violet {
+		--tone: var(--mio-purple);
+	}
+
+	.tv-tone-mint {
+		--tone: color-mix(in srgb, var(--azusa-blue) 42%, var(--tea));
+	}
+
+	.tv-postcard-photo {
+		position: relative;
+		display: grid;
+		place-items: center;
+		height: 7.4rem;
+		overflow: hidden;
+		background: linear-gradient(
+			176deg,
+			color-mix(in srgb, var(--tone) 10%, var(--cream-base)) 0%,
+			color-mix(in srgb, var(--tone) 26%, var(--cream-soft)) 52%,
+			color-mix(in srgb, var(--tone) 40%, var(--cream-soft)) 100%
+		);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 30%, transparent);
+	}
+
+	.tv-postcard-scene {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+	}
+
+	.tv-scene-sun {
+		fill: color-mix(in srgb, #fff 64%, var(--tone));
+		opacity: 0.94;
+		transform-box: fill-box;
+		transform-origin: center;
+		transition: transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+	}
+
+	.tv-scene-far {
+		fill: color-mix(in srgb, var(--tone) 44%, var(--cream-soft));
+		transition: transform 0.55s ease;
+	}
+
+	.tv-scene-near {
+		fill: color-mix(in srgb, var(--tone) 72%, var(--cream-soft));
+		transition: transform 0.55s ease;
+	}
+
+	.tv-postcard:hover .tv-scene-sun {
+		transform: translateY(-2px) scale(1.09);
+	}
+
+	.tv-postcard:hover .tv-scene-far {
+		transform: translateY(-1.5px);
+	}
+
+	.tv-postcard:hover .tv-scene-near {
+		transform: translateY(0.5px);
+	}
+
+	.tv-postcard-region {
+		position: absolute;
+		top: 0.55rem;
+		left: 0.55rem;
+		z-index: 1;
+		padding: 0.16rem 0.38rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--cream-base) 84%, transparent);
+		font-size: 0.51rem;
+		letter-spacing: 0.08em;
+		color: color-mix(in srgb, var(--tea) 80%, var(--tv-ink));
+		backdrop-filter: blur(4px);
+	}
+
+	.tv-postcard-seal {
+		position: absolute;
+		top: 0.5rem;
+		right: 0.5rem;
+		z-index: 1;
+		display: grid;
+		place-items: center;
+		width: 1.35rem;
+		height: 1.35rem;
+		border: 1px solid color-mix(in srgb, #fff 60%, transparent);
+		border-radius: 0.2rem;
+		font-size: 0.6rem;
+		color: color-mix(in srgb, #fff 84%, transparent);
+		transform: rotate(6deg);
+	}
+
+	.tv-postcard-body {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		gap: 0.16rem;
+		padding: 0.6rem 0.7rem 0.95rem;
+	}
+
+	.tv-postcard-body h3 {
+		display: flex;
+		align-items: center;
+		gap: 0.34rem;
+		margin: 0;
+		font-size: 0.94rem;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		color: var(--tv-ink);
+	}
+
+	.tv-postcard-icon {
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: 1.2rem;
+		height: 1.2rem;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--tone) 20%, var(--cream-base));
+		color: color-mix(in srgb, var(--tone) 74%, var(--tea));
+		font-size: 0.66rem;
+		font-style: normal;
+		line-height: 1;
+	}
+
+	.tv-postcard-body p {
+		margin: 0;
+		font-size: 0.65rem;
+		line-height: 1.65;
+		color: var(--tv-quiet);
+	}
+
+	.tv-postcard-stamp {
+		position: absolute;
+		right: 0.55rem;
+		bottom: 0.5rem;
+		padding: 0.16rem 0.3rem;
+		border: 1px dashed color-mix(in srgb, var(--sakura) 55%, transparent);
+		border-radius: 0.22rem;
+		font-size: 0.45rem;
+		letter-spacing: 0.14em;
+		color: color-mix(in srgb, var(--sakura) 78%, var(--tea));
+		transform: rotate(-7deg);
+		opacity: 0.9;
+	}
+
+	.tv-postcard--blank {
+		border-width: 1.4px;
+		border-style: dashed;
+		background: color-mix(in srgb, var(--cream-base) 55%, transparent);
+		box-shadow: none;
+	}
+
+	.tv-postcard--blank .tv-postcard-photo {
+		background: none;
+	}
+
+	.tv-postcard-plus {
+		display: grid;
+		place-items: center;
+		width: 2.7rem;
+		height: 2.7rem;
+		border: 1px dashed color-mix(in srgb, var(--tea) 38%, transparent);
+		border-radius: 50%;
+		font-size: 1.15rem;
+		line-height: 1;
+		color: color-mix(in srgb, var(--tea) 52%, transparent);
+		transition: transform 0.35s ease, color 0.3s ease, border-color 0.3s ease;
+	}
+
+	.tv-postcard--blank:hover .tv-postcard-plus {
+		border-color: color-mix(in srgb, var(--sakura) 58%, transparent);
+		color: color-mix(in srgb, var(--sakura) 68%, transparent);
+		transform: rotate(90deg);
+	}
+
+	/* 04 · 收尾 -------------------------------------------------------- */
+
+	.tv-outro {
+		display: grid;
+		grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+		align-items: center;
+		gap: 1rem 1.6rem;
+		margin-top: clamp(1.6rem, 3vw, 2.5rem);
+		padding: 1.15rem 1.2rem 0.9rem;
+		border: 1px dashed color-mix(in srgb, var(--tea) 28%, transparent);
+		border-radius: 1.25rem;
+		background: color-mix(in srgb, var(--cream-soft) 62%, transparent);
+	}
+
+	.tv-outro-lead h2 {
+		margin: 0.35rem 0 0.2rem;
+		font-size: 1.18rem;
+		font-weight: 700;
+		color: var(--tv-ink);
+	}
+
+	.tv-outro-lead p:last-child {
+		margin: 0;
+		font-size: 0.71rem;
+		color: var(--tv-quiet);
+	}
+
+	.tv-outro-track {
+		position: relative;
+		padding-top: 2.1rem;
+	}
+
+	.tv-outro-line {
+		position: absolute;
+		top: 1.35rem;
+		right: 0;
+		left: 0;
+		height: 0;
+		border-top: 1px dashed color-mix(in srgb, var(--tea) 30%, transparent);
+	}
+
+	.tv-outro-plane {
+		position: absolute;
+		top: 0.92rem;
+		left: 0;
+		font-size: 0.76rem;
+		line-height: 1;
+		color: color-mix(in srgb, var(--sakura) 70%, transparent);
+	}
+
+	.tv-outro-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem;
+		margin: 0;
+	}
+
+	.tv-outro-chips i {
+		padding: 0.16rem 0.44rem;
+		border: 1px dashed color-mix(in srgb, var(--tea) 26%, transparent);
+		border-radius: 999px;
+		font-style: normal;
+		font-size: 0.57rem;
+		color: var(--tv-quiet);
+	}
+
+	.tv-outro-foot {
+		grid-column: 1 / -1;
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+		padding-top: 0.65rem;
+		border-top: 1px dashed var(--tv-line-soft);
+	}
+
+	.tv-sign {
+		margin: 0;
+		font-size: 0.65rem;
+		letter-spacing: 0.04em;
+		color: var(--tv-body);
+	}
+
+	.tv-credit {
+		margin: 0;
+		font-size: 0.53rem;
+		text-align: right;
+		color: var(--tv-quiet);
+	}
+
+	/* 无障碍 ------------------------------------------------------------ */
+
+	.tv-sr {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		white-space: nowrap;
+		border: 0;
+		clip: rect(0 0 0 0);
+	}
+
+	/* 入场动画 ---------------------------------------------------------- */
+
+	:global(html.tv-motion:not(.tv-no-enter)) .tv-enter {
+		animation: tv-rise 0.72s cubic-bezier(0.22, 0.68, 0.32, 1) both;
+		animation-delay: var(--d, 0ms);
+	}
+
+	:global(html.tv-motion:not(.tv-no-enter)) .tv-underline path {
+		stroke-dashoffset: 1;
+		animation: tv-draw 1s cubic-bezier(0.3, 0.7, 0.3, 1) 0.7s forwards;
+	}
+
+	:global(html.tv-motion) .tv-map-card :is(.tv-provinces, .tv-graticule) {
+		animation: tv-map-in 1.15s cubic-bezier(0.25, 0.7, 0.3, 1) both;
+	}
+
+	:global(html.tv-motion) .tv-pins--full {
+		animation: tv-fade 0.7s ease 1s both;
+	}
+
+	:global(html.tv-motion) .tv-cluster-ring {
+		animation: tv-breathe 3.8s ease-in-out infinite;
+	}
+
+	:global(html.tv-motion) .tv-pin-pulse {
+		animation: tv-pulse 3.4s ease-out infinite;
+	}
+
+	:global(html.tv-motion) .tv-map-card.is-zoomed .tv-route-line {
+		animation: tv-march 2.6s linear infinite;
+	}
+
+	:global(html.tv-motion) .tv-map-card.is-zoomed .tv-route-comet {
+		animation: tv-comet 6.4s linear infinite;
+	}
+
+	:global(html.tv-motion) .tv-outro-plane {
+		animation: tv-plane 11s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+	}
+
+	[data-reveal] {
+		transition: opacity 0.75s ease, transform 0.8s cubic-bezier(0.22, 0.7, 0.3, 1);
+		transition-delay: var(--d, 0ms);
+	}
+
+	.tv-page.tv-armed [data-reveal]:not(.is-in) {
+		opacity: 0;
+		transform: translateY(22px);
+	}
+
+	.tv-page.tv-armed .tv-wish .tv-postcard {
+		opacity: 0;
+	}
+
+	.tv-page.tv-armed .tv-wish.is-in .tv-postcard {
+		opacity: 1;
+		animation: tv-deal 0.62s cubic-bezier(0.22, 0.7, 0.3, 1) backwards;
+		animation-delay: var(--d, 0ms);
+	}
+
+	.tv-pin.is-flash .tv-pin-halo {
+		animation: tv-flash 0.9s ease-out 2;
+	}
+
+	@keyframes tv-rise {
+		from {
+			opacity: 0;
+			transform: translateY(16px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@keyframes tv-fade {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	@keyframes tv-draw {
+		to {
+			stroke-dashoffset: 0;
+		}
+	}
+
+	@keyframes tv-map-in {
+		from {
+			opacity: 0;
+			transform: scale(0.965);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@keyframes tv-pulse {
+		0% {
+			opacity: 0.7;
+			transform: scale(0.6);
+		}
+		70% {
+			opacity: 0;
+			transform: scale(2.8);
+		}
+		100% {
+			opacity: 0;
+			transform: scale(2.8);
+		}
+	}
+
+	@keyframes tv-flash {
+		0% {
+			opacity: 0.85;
+			transform: scale(0.4);
+		}
+		100% {
+			opacity: 0;
+			transform: scale(2.8);
+		}
+	}
+
+	@keyframes tv-breathe {
+		0%,
+		100% {
+			opacity: 0.8;
+			transform: scale(1);
+		}
+		50% {
+			opacity: 0.3;
+			transform: scale(1.09);
+		}
+	}
+
+	@keyframes tv-sway {
+		0%,
+		100% {
+			transform: rotate(-6deg);
+		}
+		50% {
+			transform: rotate(6deg);
+		}
+	}
+
+	@keyframes tv-march {
+		to {
+			stroke-dashoffset: -10;
+		}
+	}
+
+	@keyframes tv-comet {
+		from {
+			offset-distance: 0%;
+		}
+		to {
+			offset-distance: 100%;
+		}
+	}
+
+	@keyframes tv-plane {
+		0% {
+			left: 0;
+			opacity: 0;
+			transform: rotate(0deg);
+		}
+		10% {
+			opacity: 1;
+		}
+		88% {
+			opacity: 1;
+		}
+		100% {
+			left: calc(100% - 1rem);
+			opacity: 0;
+			transform: rotate(2deg);
+		}
+	}
+
+	@keyframes tv-deal {
+		from {
+			opacity: 0;
+			transform: translateY(16px) rotate(calc(var(--tilt, 0deg) * 2.5));
+		}
+		to {
+			opacity: 1;
+			transform: rotate(var(--tilt, 0deg));
+		}
+	}
+
+	/* 暗色 -------------------------------------------------------------- */
+
+	:global(.dark) .tv-page {
+		box-shadow: 0 30px 80px -50px #000;
+	}
+
+	:global(.dark) .tv-province {
+		fill: color-mix(in srgb, var(--tea) 9%, var(--cream-base));
+	}
+
+	:global(.dark) .tv-province.is-visited {
+		fill: color-mix(in srgb, var(--sakura) 34%, var(--cream-base));
+	}
+
+	:global(.dark) .tv-pin-name {
+		stroke: color-mix(in srgb, var(--cream-base) 90%, transparent);
+	}
+
+	:global(.dark) .tv-pass-inner {
+		box-shadow:
+			0 20px 44px -32px #000,
+			inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
+	}
+
+	:global(.dark) .tv-map-card,
+	:global(.dark) .tv-journal {
+		box-shadow: 0 22px 48px -40px #000;
+	}
+
+	:global(.dark) .tv-postcard-plus {
+		border-color: color-mix(in srgb, var(--tea) 34%, transparent);
+		color: color-mix(in srgb, var(--tea) 66%, transparent);
+	}
+
+	:global(.dark) .tv-postcard-stamp {
+		border-color: color-mix(in srgb, var(--sakura) 42%, transparent);
+		color: color-mix(in srgb, var(--sakura) 86%, #fff);
+		opacity: 0.72;
+	}
+
+	/* 响应式 ------------------------------------------------------------ */
+
+	@media (max-width: 1180px) {
+		.tv-hero {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 18rem);
+		}
+
+		.tv-atlas-grid {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 17.5rem);
+		}
+	}
+
+	@media (max-width: 1024px) {
+		.tv-hero {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 1.4rem;
+		}
+
+		.tv-pass {
+			justify-self: stretch;
+			max-width: 22rem;
+		}
+
+		.tv-atlas-grid {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.tv-stops {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 0.12rem 0.5rem;
+		}
+
+		.tv-facts-grid {
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+
+	@media (max-width: 900px) {
+		.tv-postcards {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.tv-map-stage {
+			padding: 0 0.1rem;
+		}
+	}
+
+	@media (max-width: 780px) {
+		.tv-map-head {
+			flex-direction: column;
+			gap: 0.3rem;
+		}
+
+		.tv-inset {
+			width: 4.1rem;
+		}
+
+		.tv-caption-hint {
+			display: none;
+		}
+
+		.tv-map-foot small {
+			display: none;
+		}
+
+		.tv-outro {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.tv-outro-foot {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.3rem;
+		}
+
+		.tv-credit {
+			text-align: left;
+		}
+	}
+
+	@media (max-width: 620px) {
+		.tv-page {
+			padding: 1.1rem 0.8rem 1.2rem;
+			border-radius: 1rem;
+		}
+
+		.tv-page::before {
+			inset: 0.38rem;
+			border-radius: 0.7rem;
+		}
+
+		.tv-title {
+			font-size: 1.7rem;
+		}
+
+		.tv-lead {
+			font-size: 0.82rem;
+		}
+
+		.tv-btn {
+			flex: 1 1 auto;
+			font-size: 0.78rem;
+		}
+
+		.tv-stops {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.tv-mileage {
+			grid-template-columns: minmax(0, 1fr);
+			align-items: stretch;
+		}
+
+		.tv-mileage-facts {
+			padding: 0.7rem 0 0;
+			border-left: none;
+			border-top: 1px dashed var(--tv-line-soft);
+		}
+
+		.tv-route-stop {
+			width: 2.35rem;
+		}
+
+		.tv-route-stop b {
+			font-size: 0.52rem;
+		}
+
+		.tv-route-seg span {
+			display: none;
+		}
+
+		.tv-compass {
+			display: none;
+		}
+
+		.tv-map-foot {
+			font-size: 0.58rem;
+		}
+	}
+
+	@media (max-width: 560px) {
+		.tv-postcards {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.tv-postcard-photo {
+			height: 7.8rem;
+		}
+
+		.tv-mileage-num {
+			font-size: 2.1rem;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.tv-enter,
+		.tv-compass-sway,
+		.tv-pin-pulse,
+		.tv-cluster-ring,
+		.tv-route-line,
+		.tv-route-comet,
+		.tv-outro-plane,
+		.tv-postcard,
+		.tv-provinces,
+		.tv-graticule,
+		.tv-pins--full,
+		.tv-underline path {
+			animation: none !important;
+		}
+
+		[data-reveal] {
+			transition: none !important;
+		}
+
+		.tv-page.tv-armed [data-reveal]:not(.is-in),
+		.tv-page.tv-armed .tv-wish .tv-postcard {
+			opacity: 1;
+			transform: none;
+		}
+
+		.tv-pins--full {
+			opacity: 1;
+		}
+
+		.tv-underline path {
+			stroke-dashoffset: 0;
+		}
+
+		.tv-route-seg::before {
+			transform: scaleX(1);
+		}
+
+		.tv-pass-inner {
+			transform: none;
+		}
+	}
+</style>
