@@ -15,4 +15,8 @@ export const MAIN_PANEL_OVERLAPS_BANNER_HEIGHT = 3.5;
 
 // Page width: rem
 export const PAGE_WIDTH = 75;
-export const UNCATEGORIZED = 'Uncategorized'; // 你可以根据需要修改后面的字符串值
+
+// 小站上线日期（页脚「陪伴天数」等地方使用）
+export const SITE_START_DATE = "2025-12-01";
+
+export const UNCATEGORIZED = "Uncategorized"; // 你可以根据需要修改后面的字符串值

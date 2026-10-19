@@ -1,455 +1,1740 @@
 ---
-import { profileConfig } from "../config";
-import { url } from "../utils/url-utils";
+import { Icon } from "astro-icon/components";
+import { navBarConfig, profileConfig } from "../config";
+import { SITE_START_DATE } from "../constants/constants";
+import { LinkPresets } from "../constants/link-presets";
+import type { NavBarLink } from "../types/config";
+import {
+	getSiteContentStats,
+	getSortedPostsList,
+} from "../utils/content-utils";
+import { getPostUrlBySlug, url } from "../utils/url-utils";
+import ImageWrapper from "./misc/ImageWrapper.astro";
 
 const currentYear = new Date().getFullYear();
-const FOOTER_QUOTES = [
-    { text: "今天也要认真生活，顺便偷偷期待一点好运。", from: "今日份温柔" },
-    { text: "慢慢来吧，花会开，喜欢的故事也会有结局。", from: "生活小记" },
-    { text: "愿每一次晚风，都把好心情轻轻送到你身边。", from: "今日份温柔" },
-    { text: "把普通的日子收好，它们以后都会闪闪发光。", from: "时光收藏夹" },
-    { text: "生活偶尔下雨，也别忘了给心里留一小块晴天。", from: "生活小记" },
-    { text: "今天的你也很可爱，请继续喜欢这个世界吧。", from: "今日份温柔" },
-    { text: "不用急着长大，按自己的节奏慢慢向前就好。", from: "生活小记" },
-    { text: "有喜欢的事、有想见的人，今天就值得期待。", from: "今日份温柔" },
-    { text: "愿你路过的每一场风景，都有温柔回应。", from: "生活小记" },
-    { text: "把烦恼交给晚风，把快乐留给明天的自己。", from: "今日份温柔" },
-    { text: "日子平淡一点也没关系，我们可以自己加糖。", from: "生活小记" },
-    { text: "好好吃饭，好好睡觉，好好等待下一次心动。", from: "今日份温柔" },
-    { text: "每一个认真生活的瞬间，都值得被悄悄收藏。", from: "时光收藏夹" },
-    { text: "愿你在自己的故事里，永远是闪闪发光的主角。", from: "今日份温柔" },
-    { text: "如果今天有点累，就先停下来抱抱自己吧。", from: "生活小记" },
-    { text: "喜欢的风景要慢慢看，喜欢的人也要慢慢了解。", from: "今日份温柔" },
-    { text: "普通的一天，也可以因为一件小事变得特别。", from: "生活小记" },
-    { text: "愿所有不期而遇，最后都成为恰到好处的温柔。", from: "今日份温柔" },
-    { text: "认真记录生活的人，本身就在创造浪漫。", from: "时光收藏夹" },
-    { text: "今天也请带着一点点期待，慢慢走向明天。", from: "今日份温柔" },
-];
+
+// 构建时兜底的小站天数，运行时会由脚本按当前时间重新计算
+const daysSinceStart = Math.max(
+	1,
+	Math.floor((Date.now() - new Date(SITE_START_DATE).getTime()) / 86400000),
+);
+
+// 从导航配置摊平出「探索地图」的快捷入口（有子项时用子项，避免重复）
+const navLinks: NavBarLink[] = navBarConfig.links.map((item) =>
+	typeof item === "number" ? LinkPresets[item] : item,
+);
+const exploreLinks: NavBarLink[] = navLinks.flatMap((link) =>
+	link.children?.length ? link.children : [link],
+);
+
+const { postCount, wordCount } = await getSiteContentStats();
+const posts = await getSortedPostsList();
+const latestPost = posts[0];
+// 「随便翻一篇」候选项
+const shuffledPosts = posts.map((post) => ({
+	title: post.data.title,
+	href: getPostUrlBySlug(post.slug),
+}));
+const formatNumber = new Intl.NumberFormat("zh-CN");
+
+// 社交图标的品牌配色类名（与 Hero 保持一致）
+const socialBrand = (name: string) => {
+	const lower = name.toLowerCase();
+	if (lower.includes("github")) return "github";
+	if (lower.includes("qq")) return "qq";
+	if (lower.includes("bilibili")) return "bilibili";
+	if (lower === "x" || lower.includes("twitter")) return "x";
+	if (lower.includes("instagram")) return "instagram";
+	return "default";
+};
 ---
 
 <!-- 手账风分隔线 -->
-<div class="footer-divider" aria-hidden="true">
-    <span></span><b>♫</b><i>♡</i><b>✦</b><span></span>
-</div>
+<div class="site-footer" data-footer-root>
+	<div class="footer-divider" data-ft-reveal aria-hidden="true">
+		<span></span><b>♫</b><i>♡</i><b>✦</b><span></span>
+	</div>
 
-<!-- 页脚内容 -->
-<div class="footer-panel relative overflow-hidden transition mb-12">
-    <!-- 樱花飘落画布 -->
-    <sakura-canvas class="absolute top-0 left-0 w-full h-full pointer-events-none z-0 opacity-45">
-        <canvas class="w-full h-full"></canvas>
-    </sakura-canvas>
+	<!-- 页脚内容 -->
+	<div class="footer-panel relative transition mb-12" data-ft-posts={JSON.stringify(shuffledPosts)}>
+		<!-- 装饰层：方格纸 / 光晕 / 樱花 / 和纸胶带 -->
+		<span class="footer-deco" aria-hidden="true">
+			<span class="footer-paper"></span>
+			<i class="footer-aurora footer-aurora-a"></i>
+			<i class="footer-aurora footer-aurora-b"></i>
+			<sakura-canvas class="absolute top-0 left-0 w-full h-full pointer-events-none z-0 opacity-40">
+				<canvas class="w-full h-full"></canvas>
+			</sakura-canvas>
+			<span class="footer-tape"></span>
+			<span class="footer-doodle footer-doodle-left">୨୧</span>
+			<span class="footer-doodle footer-doodle-right">♡</span>
+		</span>
 
-    <span class="footer-tape" aria-hidden="true"></span>
-    <span class="footer-doodle footer-doodle-left" aria-hidden="true">୨୧</span>
-    <span class="footer-doodle footer-doodle-right" aria-hidden="true">♡</span>
+		<!-- 邮戳：贴在右上角的贴纸 -->
+		<div class="footer-stamp" aria-hidden="true">
+			<svg viewBox="0 0 100 100">
+				<defs>
+					<path
+						id="footer-stamp-arc"
+						d="M50,50 m-27,0 a27,27 0 1,1 54,0 a27,27 0 1,1 -54,0"></path>
+				</defs>
+				<circle class="footer-stamp-ring" cx="50" cy="50" r="42"></circle>
+				<circle class="footer-stamp-ring footer-stamp-dash" cx="50" cy="50" r="23"></circle>
+				<text class="footer-stamp-text">
+					<textPath href="#footer-stamp-arc" startOffset="0">AFTER SCHOOL NOTE ✦ YARON ✦</textPath>
+				</text>
+			</svg>
+			<span class="footer-stamp-heart">♡</span>
+		</div>
 
-    <div class="footer-heading relative z-10">
-        <span aria-hidden="true">✦</span>
-        <span>AFTER SCHOOL NOTE</span>
-        <b>(˶ᵔ ᵕ ᵔ˶)</b>
-    </div>
+		<div class="footer-heading relative z-10" data-ft-reveal style="--ft-delay: 60ms">
+			<span aria-hidden="true">✦</span>
+			<span>AFTER SCHOOL NOTE</span>
+			<b>(˶ᵔ ᵕ ᵔ˶)</b>
+		</div>
 
-    <!-- 每日一言（本地精选，点击切换） -->
-    <hitokoto-quote class="footer-quote relative z-10" title="点击刷新一言" role="button" tabindex="0" aria-label="点击换一句温柔的话">
-        <span class="footer-quote-icon" aria-hidden="true">♡</span>
-        <span class="footer-quote-copy">
-            <span>「<span class="hitokoto-text">正在寻找灵魂深处的共鸣...</span>」</span>
-            <span class="hitokoto-author"></span>
-        </span>
-        <span class="footer-quote-refresh" aria-hidden="true">换一句 ↻</span>
-    </hitokoto-quote>
+		<!-- 每日一言（本地精选，点击切换） -->
+		<hitokoto-quote
+			class="footer-quote relative z-10"
+			data-ft-reveal
+			style="--ft-delay: 140ms"
+			title="点击刷新一言"
+			role="button"
+			tabindex="0"
+			aria-label="点击换一句温柔的话">
+			<span class="footer-quote-icon" aria-hidden="true">♡</span>
+			<span class="footer-quote-copy">
+				<span>「<span class="hitokoto-text">正在寻找灵魂深处的共鸣...</span>」</span>
+				<span class="hitokoto-author"></span>
+			</span>
+			<span class="footer-quote-refresh" aria-hidden="true">
+				<span>换一句</span>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M3 12a9 9 0 0 1 15.3-6.4M21 12a9 9 0 0 1-15.3 6.4"></path>
+					<path d="M18 3v5h-5M6 21v-5h5"></path>
+				</svg>
+			</span>
+		</hitokoto-quote>
 
-    <!-- 主要信息 -->
-    <div class="footer-info relative z-10">
-        <div class="footer-signature">
-            <span class="footer-signature-mark" aria-hidden="true">♪</span>
-            <span>&copy; <span id="copyright-year">{currentYear}</span> {profileConfig.name}</span>
-            <span class="footer-signature-dot" aria-hidden="true"></span>
-            <span>Made with <span class="footer-heart animate-pulse">♥</span> in China</span>
-        </div>
+		<!-- 三栏信息卡 -->
+		<div class="footer-grid relative z-10">
+			<!-- ① 关于 -->
+			<section class="footer-card" data-ft-reveal style="--ft-delay: 220ms">
+				<header class="footer-card-title">
+					<Icon name="fa6-solid:mug-hot" />
+					<span>关于这里</span>
+					<em>ABOUT</em>
+				</header>
 
-        <!-- 链接区域 -->
-        <nav class="footer-links" aria-label="页脚链接">
-            <a target="_blank" href={url('rss.xml')}>
-                <svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
-                RSS
-            </a>
-            <a target="_blank" href={url('sitemap-index.xml')}>
-                <svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v16h-2z"/></svg>
-                Sitemap
-            </a>
-            <a target="_blank" href="https://github.com/Yaronluo">
-                <svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-                GitHub
-            </a>
-        </nav>
+				<div class="footer-profile">
+					<span class="footer-avatar">
+						<ImageWrapper
+							src={profileConfig.avatar || ""}
+							alt={profileConfig.name}
+							class="w-full h-full rounded-full"
+							loading="lazy" />
+					</span>
+					<span class="footer-profile-text">
+						<b class="footer-name">{profileConfig.name}</b>
+						<span class="footer-bio">{profileConfig.bio}</span>
+					</span>
+				</div>
 
-        <!-- 备案信息（如果需要） -->
-        <div class="footer-filing">
-            <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
-                <!-- 这里填写你的备案号 -->
-                <!-- 京ICP备xxxxxxxx号 -->
-            </a>
-        </div>
+				<div class="footer-socials">
+					{
+						profileConfig.links.map((link) => (
+							<a
+								class={`footer-social footer-social--${socialBrand(link.name)}`}
+								href={link.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								aria-label={link.name}
+								title={link.name}>
+								<Icon name={link.icon} />
+							</a>
+						))
+					}
+				</div>
 
-        <!-- 技术栈信息 -->
-        <div class="footer-powered">
-            <span aria-hidden="true">୨୧</span>
-            <span>Powered by <a target="_blank" href="https://astro.build">Astro</a> × <a target="_blank" href="https://github.com/saicaca/fuwari">Fuwari</a></span>
-            <span class="footer-powered-divider">·</span>
-            <span>Hosted on <a target="_blank" href="https://www.cloudflare.com/zh-cn/">Cloudflare</a></span>
-        </div>
-    </div>
+				<p class="footer-meta">
+					<span>已写下 <b>{postCount}</b> 篇</span>
+					<span class="footer-meta-dot" aria-hidden="true"></span>
+					<span>共 <b>{formatNumber.format(wordCount)}</b> 字</span>
+				</p>
+			</section>
+
+			<!-- ② 探索地图 -->
+			<section class="footer-card" data-ft-reveal style="--ft-delay: 300ms">
+				<header class="footer-card-title">
+					<Icon name="fa6-solid:compass" />
+					<span>探索地图</span>
+					<em>EXPLORE</em>
+				</header>
+
+				<ul class="footer-nav">
+					{
+						exploreLinks.map((link) => (
+							<li>
+								<a href={url(link.url)}>
+									{link.icon && <Icon name={link.icon} />}
+									<span>{link.name}</span>
+								</a>
+							</li>
+						))
+					}
+				</ul>
+
+				<a
+					class="footer-random"
+					href={shuffledPosts[0]?.href ?? "#"}
+					data-ft-random
+					title="在旧文里随手翻一篇">
+					<span class="footer-random-icon" aria-hidden="true">✧</span>
+					<span>随便翻一篇</span>
+					<svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true">
+						<path d="M5 12h13M13 6l6 6-6 6"></path>
+					</svg>
+				</a>
+			</section>
+
+			<!-- ③ 此刻 -->
+			<section class="footer-card" data-ft-reveal data-ft-count-scope style="--ft-delay: 380ms">
+				<header class="footer-card-title">
+					<Icon name="fa6-solid:clock" />
+					<span>此刻</span>
+					<em>NOW</em>
+				</header>
+
+				<p class="footer-clock" aria-label="当前时间">
+					<span class="footer-clock-main" data-ft-clock-main>--:--</span>
+					<span class="footer-clock-sec" data-ft-clock-sec>:--</span>
+				</p>
+
+				<p class="footer-now-line">
+					<span class="footer-greeting" data-ft-greeting>你好呀</span>
+					<span class="footer-meta-dot" aria-hidden="true"></span>
+					<span data-ft-date>正在读取时间…</span>
+				</p>
+
+				<div class="footer-daybar">
+					<span class="footer-daybar-label">
+						<span>今天已经走过</span>
+						<b data-ft-day-percent>0%</b>
+					</span>
+					<span class="footer-daybar-track" aria-hidden="true">
+						<i class="footer-daybar-fill" data-ft-day-fill></i>
+					</span>
+				</div>
+
+				<div class="footer-facts">
+					<p class="footer-fact">
+						<span class="footer-fact-key">陪伴</span>
+						<span class="footer-fact-val">
+							<b data-ft-count-to={daysSinceStart} data-ft-count-suffix=" 天">{daysSinceStart}</b>
+						</span>
+					</p>
+					{
+						latestPost && (
+							<p class="footer-fact footer-fact--post">
+								<span class="footer-fact-key">更新</span>
+								<a href={getPostUrlBySlug(latestPost.slug)} class="footer-fact-link">
+									{latestPost.data.title}
+								</a>
+							</p>
+						)
+					}
+				</div>
+			</section>
+		</div>
+
+		<!-- 底栏 -->
+		<div class="footer-bottom relative z-10" data-ft-reveal style="--ft-delay: 460ms">
+			<div class="footer-signature">
+				<span class="footer-signature-mark" aria-hidden="true">♪</span>
+				<span>&copy; <span id="copyright-year">{currentYear}</span> {profileConfig.name}</span>
+				<span class="footer-signature-dot" aria-hidden="true"></span>
+				<span>Made with <span class="footer-heart">♥</span> in China</span>
+			</div>
+
+			<nav class="footer-links" aria-label="页脚链接">
+				<a target="_blank" href={url("rss.xml")}>
+					<svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
+					RSS
+				</a>
+				<a target="_blank" href={url("sitemap-index.xml")}>
+					<svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v16h-2z"/></svg>
+					Sitemap
+				</a>
+				<a target="_blank" href="https://github.com/Yaronluo">
+					<svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+					GitHub
+				</a>
+			</nav>
+
+			<div class="footer-powered">
+				<span aria-hidden="true">୨୧</span>
+				<span>Powered by <a target="_blank" href="https://astro.build">Astro</a> × <a target="_blank" href="https://github.com/saicaca/fuwari">Fuwari</a></span>
+				<span class="footer-powered-divider">·</span>
+				<span>Hosted on <a target="_blank" href="https://www.cloudflare.com/zh-cn/">Cloudflare</a></span>
+			</div>
+
+			<!-- 备案信息（如果需要） -->
+			<div class="footer-filing">
+				<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
+					<!-- 这里填写你的备案号 -->
+					<!-- 京ICP备xxxxxxxx号 -->
+				</a>
+			</div>
+		</div>
+	</div>
 </div>
 
 <style>
-    .footer-divider {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.65rem;
-        margin: 2.5rem auto;
-        color: color-mix(in srgb, var(--primary) 68%, var(--tea));
-    }
-    .footer-divider span {
-        width: min(8rem, 20vw);
-        border-top: 1px dashed color-mix(in srgb, var(--primary) 24%, transparent);
-    }
-    .footer-divider b { font-size: 0.75rem; font-weight: 700; }
-    .footer-divider i { font-size: 1rem; font-style: normal; }
+	/* ============ 分隔线 ============ */
+	.footer-divider {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.55rem;
+		margin: 2.5rem auto 2rem;
+		color: color-mix(in srgb, var(--primary) 70%, var(--tea));
+	}
+	.footer-divider span {
+		display: block;
+		width: min(9rem, 22vw);
+		border-top: 1px dashed color-mix(in srgb, var(--primary) 28%, transparent);
+		transform: scaleX(1);
+		opacity: 1;
+		transition:
+			transform 900ms cubic-bezier(0.16, 1, 0.3, 1) 120ms,
+			opacity 900ms ease 120ms;
+	}
+	.footer-divider span:first-of-type {
+		transform-origin: right center;
+	}
+	.footer-divider span:last-of-type {
+		transform-origin: left center;
+	}
+	.footer-divider b {
+		font-size: 0.75rem;
+		font-weight: 700;
+	}
+	.footer-divider i {
+		font-size: 1rem;
+		font-style: normal;
+	}
 
-    .footer-panel {
-        display: flex;
-        min-height: 11rem;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 1.7rem 1.5rem 1rem;
-        border: 1px dashed color-mix(in srgb, var(--primary) 25%, transparent);
-        border-radius: 1.75rem;
-        background:
-            radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 23%),
-            radial-gradient(circle at 88% 82%, color-mix(in srgb, var(--tea) 8%, transparent), transparent 25%),
-            linear-gradient(145deg, rgb(255 255 255 / 0.5), color-mix(in srgb, var(--cream-base) 86%, transparent));
-        box-shadow:
-            inset 0 1px 0 rgb(255 255 255 / 0.72),
-            0 1.15rem 3rem rgb(112 77 67 / 0.07);
-    }
-    .footer-panel::before {
-        content: "";
-        position: absolute;
-        inset: 0.55rem;
-        border: 1px solid color-mix(in srgb, var(--primary) 8%, transparent);
-        border-radius: 1.35rem;
-        pointer-events: none;
-    }
-    .footer-tape {
-        position: absolute;
-        z-index: 3;
-        top: -0.35rem;
-        left: 50%;
-        width: 6.4rem;
-        height: 1.35rem;
-        background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 36%, transparent), color-mix(in srgb, var(--primary) 38%, white 52%), color-mix(in srgb, var(--primary) 36%, transparent));
-        clip-path: polygon(4% 10%, 98% 0, 94% 92%, 2% 100%);
-        transform: translateX(-50%) rotate(-2deg);
-        box-shadow: 0 0.3rem 0.9rem color-mix(in srgb, var(--primary) 14%, transparent);
-    }
-    .footer-doodle {
-        position: absolute;
-        z-index: 1;
-        color: color-mix(in srgb, var(--primary) 48%, transparent);
-        font-family: Georgia, serif;
-        pointer-events: none;
-    }
-    .footer-doodle-left { left: 4%; top: 22%; font-size: 1.35rem; transform: rotate(-12deg); }
-    .footer-doodle-right { right: 5%; bottom: 16%; font-size: 1.65rem; transform: rotate(10deg); }
-    .footer-heading {
-        display: flex;
-        align-items: center;
-        gap: 0.45rem;
-        margin-bottom: 0.45rem;
-        color: color-mix(in srgb, var(--primary) 78%, var(--tea));
-        font-size: 0.67rem;
-        font-weight: 800;
-        letter-spacing: 0.14em;
-    }
-    .footer-heading b { color: color-mix(in srgb, var(--tea) 66%, transparent); font-weight: 600; letter-spacing: 0; }
-    .footer-quote {
-        display: flex;
-        width: min(42rem, 100%);
-        cursor: pointer;
-        align-items: center;
-        gap: 0.8rem;
-        padding: 0.56rem 0.85rem;
-        border: 1px solid color-mix(in srgb, var(--primary) 15%, white);
-        border-radius: 1.15rem;
-        background: rgb(255 255 255 / 0.46);
-        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 0.6rem 1.5rem rgb(115 77 67 / 0.06);
-        color: rgb(70 61 59 / 0.76);
-        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
-    }
-    .footer-quote:hover,
-    .footer-quote:focus-visible {
-        border-color: color-mix(in srgb, var(--primary) 38%, white);
-        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.86), 0 0.75rem 1.7rem color-mix(in srgb, var(--primary) 10%, transparent);
-        outline: none;
-        transform: translateY(-2px);
-    }
-    .footer-quote-icon {
-        display: grid;
-        width: 2rem;
-        height: 2rem;
-        flex: 0 0 auto;
-        place-items: center;
-        border-radius: 0.7rem;
-        background: color-mix(in srgb, var(--primary) 12%, white);
-        color: var(--primary);
-        font-size: 1rem;
-    }
-    .footer-quote-copy {
-        display: flex;
-        min-width: 0;
-        flex: 1;
-        flex-wrap: wrap;
-        align-items: baseline;
-        justify-content: center;
-        gap: 0.2rem 0.65rem;
-        font-family: Georgia, "Noto Serif SC", serif;
-        font-size: 0.95rem;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        text-align: center;
-    }
-    .hitokoto-author { color: color-mix(in srgb, var(--primary) 65%, var(--tea)); font-size: 0.75rem; font-family: inherit; }
-    .footer-quote-refresh { flex: 0 0 auto; color: rgb(112 92 88 / 0.48); font-size: 0.67rem; font-weight: 650; }
-    .footer-info { display: flex; flex-direction: column; align-items: center; color: rgb(91 80 77 / 0.58); font-size: 0.78rem; text-align: center; }
-    .footer-signature { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.45rem; margin-top: 0.45rem; }
-    .footer-signature-mark { color: var(--primary); font-size: 1rem; }
-    .footer-signature-dot { width: 0.22rem; height: 0.22rem; border-radius: 50%; background: color-mix(in srgb, var(--primary) 45%, transparent); }
-    .footer-heart { color: var(--primary); }
-    .footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.45rem; margin-top: 0.45rem; }
-    .footer-links a {
-        display: inline-flex;
-        min-height: 2rem;
-        align-items: center;
-        padding: 0.35rem 0.72rem;
-        border: 1px solid color-mix(in srgb, var(--primary) 14%, transparent);
-        border-radius: 999px;
-        background: color-mix(in srgb, white 44%, transparent);
-        color: color-mix(in srgb, var(--primary) 72%, var(--tea));
-        font-weight: 700;
-        transition: transform 170ms ease, background-color 170ms ease, border-color 170ms ease;
-    }
-    .footer-links a:hover {
-        border-color: color-mix(in srgb, var(--primary) 32%, transparent);
-        background: color-mix(in srgb, var(--primary) 9%, white);
-        transform: translateY(-2px) rotate(-1deg);
-    }
-    .footer-filing { min-height: 0.1rem; margin-top: 0.2rem; font-size: 0.68rem; }
-    .footer-powered { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.3rem; margin-top: 0.25rem; color: rgb(104 91 88 / 0.46); font-size: 0.68rem; }
-    .footer-powered > span:first-child { color: color-mix(in srgb, var(--primary) 56%, transparent); }
-    .footer-powered a { color: color-mix(in srgb, var(--primary) 76%, var(--tea)); font-weight: 700; transition: color 160ms ease; }
-    .footer-powered a:hover { color: var(--primary); }
-    .footer-powered-divider { color: color-mix(in srgb, var(--primary) 35%, transparent); }
+	/* ============ 面板 ============ */
+	.footer-panel {
+		isolation: isolate;
+		padding: 2.15rem 1.55rem 1.15rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 25%, transparent);
+		border-radius: 1.85rem;
+		background:
+			radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 23%),
+			radial-gradient(circle at 88% 82%, color-mix(in srgb, var(--tea) 8%, transparent), transparent 25%),
+			linear-gradient(145deg, rgb(255 255 255 / 0.5), color-mix(in srgb, var(--cream-base) 86%, transparent));
+		box-shadow:
+			inset 0 1px 0 rgb(255 255 255 / 0.72),
+			0 1.15rem 3rem rgb(112 77 67 / 0.07);
+	}
+	.footer-panel::before {
+		content: "";
+		position: absolute;
+		inset: 0.55rem;
+		z-index: 0;
+		border: 1px solid color-mix(in srgb, var(--primary) 8%, transparent);
+		border-radius: 1.35rem;
+		pointer-events: none;
+	}
 
-    :global(.dark) .footer-panel {
-        background:
-            radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 23%),
-            linear-gradient(145deg, rgb(39 32 34 / 0.72), rgb(27 24 25 / 0.58));
-        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1.15rem 3rem rgb(0 0 0 / 0.18);
-    }
-    :global(.dark) .footer-quote { border-color: rgb(255 255 255 / 0.08); background: rgb(255 255 255 / 0.045); color: rgb(255 242 241 / 0.68); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05); }
-    :global(.dark) .footer-quote-icon,
-    :global(.dark) .footer-links a { background: rgb(255 255 255 / 0.055); border-color: rgb(255 255 255 / 0.075); }
-    :global(.dark) .footer-info { color: rgb(255 242 241 / 0.5); }
-    :global(.dark) .footer-powered { color: rgb(255 242 241 / 0.36); }
+	/* 装饰层裁切容器：让邮戳可以溢出到面板外 */
+	.footer-deco {
+		position: absolute;
+		z-index: 0;
+		inset: 0;
+		display: block;
+		overflow: hidden;
+		border-radius: inherit;
+		pointer-events: none;
+	}
 
-    @media (max-width: 640px) {
-        .footer-panel { min-height: 13.5rem; padding: 1.85rem 1rem 1rem; border-radius: 1.4rem; }
-        .footer-quote { align-items: flex-start; padding: 0.58rem 0.72rem; }
-        .footer-quote-copy {
-            flex-wrap: nowrap;
-            justify-content: flex-start;
-            gap: 0.3rem;
-            overflow: hidden;
-            font-size: clamp(0.62rem, 2.6vw, 0.78rem);
-            white-space: nowrap;
-            text-align: left;
-        }
-        .hitokoto-author { flex: 0 0 auto; font-size: 0.64rem; }
-        .footer-quote-refresh { display: none; }
-        .footer-signature { max-width: 18rem; }
-        .footer-signature-dot { display: none; }
-        .footer-signature > span:nth-child(4) { width: 100%; }
-        .footer-powered {
-            max-width: 100%;
-            flex-wrap: nowrap;
-            gap: 0.2rem;
-            font-size: clamp(0.56rem, 2.25vw, 0.64rem);
-            white-space: nowrap;
-        }
-    }
+	/* 方格纸纹理 */
+	.footer-paper {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		pointer-events: none;
+		opacity: 0.55;
+		background-image:
+			linear-gradient(to right, color-mix(in srgb, var(--primary) 8%, transparent) 1px, transparent 1px),
+			linear-gradient(to bottom, color-mix(in srgb, var(--primary) 8%, transparent) 1px, transparent 1px);
+		background-size: 1.75rem 1.75rem;
+		mask-image: radial-gradient(120% 90% at 50% 0%, #000 0%, transparent 72%);
+		-webkit-mask-image: radial-gradient(120% 90% at 50% 0%, #000 0%, transparent 72%);
+	}
 
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-    }
-    .animate-pulse {
-        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
+	/* 柔光 */
+	.footer-aurora {
+		position: absolute;
+		z-index: 0;
+		width: 16rem;
+		height: 16rem;
+		border-radius: 999px;
+		filter: blur(46px);
+		pointer-events: none;
+		will-change: transform;
+	}
+	.footer-aurora-a {
+		top: -6.5rem;
+		left: -4.5rem;
+		background: color-mix(in srgb, var(--primary) 26%, transparent);
+		opacity: 0.55;
+		animation: footer-drift-a 19s ease-in-out infinite;
+	}
+	.footer-aurora-b {
+		right: -6rem;
+		bottom: -8rem;
+		background: color-mix(in srgb, var(--azusa-blue) 20%, transparent);
+		opacity: 0.45;
+		animation: footer-drift-b 23s ease-in-out infinite;
+	}
+
+	/* 和纸胶带 */
+	.footer-tape {
+		position: absolute;
+		z-index: 3;
+		top: -0.3rem;
+		left: 50%;
+		width: 6.6rem;
+		height: 1.35rem;
+		background:
+			repeating-linear-gradient(
+				100deg,
+				rgb(255 255 255 / 0.22) 0 0.32rem,
+				transparent 0.32rem 0.7rem
+			),
+			linear-gradient(
+				90deg,
+				color-mix(in srgb, var(--primary) 36%, transparent),
+				color-mix(in srgb, var(--primary) 38%, white 52%),
+				color-mix(in srgb, var(--primary) 36%, transparent)
+			);
+		clip-path: polygon(4% 10%, 98% 0, 94% 92%, 2% 100%);
+		transform: translateX(-50%) rotate(-2deg);
+		transform-origin: center;
+		box-shadow: 0 0.3rem 0.9rem color-mix(in srgb, var(--primary) 14%, transparent);
+		animation: footer-tape-sway 7.5s ease-in-out infinite;
+	}
+
+	/* 手写涂鸦 */
+	.footer-doodle {
+		position: absolute;
+		z-index: 1;
+		color: color-mix(in srgb, var(--primary) 48%, transparent);
+		font-family: Georgia, serif;
+		pointer-events: none;
+	}
+	.footer-doodle-left {
+		left: 3.5%;
+		top: 20%;
+		font-size: 1.35rem;
+		transform: rotate(-12deg);
+	}
+	.footer-doodle-right {
+		right: 4%;
+		bottom: 14%;
+		font-size: 1.65rem;
+		transform: rotate(10deg);
+		animation: footer-float 6.5s ease-in-out infinite;
+	}
+
+	/* 邮戳：贴在面板右上角外沿的贴纸 */
+	.footer-stamp {
+		position: absolute;
+		z-index: 4;
+		top: -1.05rem;
+		right: 0.5rem;
+		width: 5.2rem;
+		height: 5.2rem;
+		color: color-mix(in srgb, var(--primary) 46%, transparent);
+		pointer-events: none;
+		filter: drop-shadow(0 0.55rem 0.9rem color-mix(in srgb, var(--primary) 14%, transparent));
+		transform: rotate(9deg);
+		animation: footer-seal 9s ease-in-out infinite;
+	}
+	.footer-stamp svg {
+		display: block;
+		width: 100%;
+		height: 100%;
+		overflow: visible;
+		animation: footer-spin 32s linear infinite;
+	}
+	.footer-stamp-ring {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1;
+	}
+	.footer-stamp-dash {
+		stroke-dasharray: 2 3.4;
+		opacity: 0.72;
+	}
+	.footer-stamp-text {
+		fill: currentColor;
+		font-family: inherit;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.18em;
+	}
+	.footer-stamp-heart {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		color: color-mix(in srgb, var(--primary) 58%, transparent);
+		font-size: 1.05rem;
+	}
+
+	/* 标题 */
+	.footer-heading {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.45rem;
+		margin-bottom: 0.55rem;
+		color: color-mix(in srgb, var(--primary) 78%, var(--tea));
+		font-size: 0.67rem;
+		font-weight: 800;
+		letter-spacing: 0.14em;
+	}
+	.footer-heading b {
+		color: color-mix(in srgb, var(--tea) 66%, transparent);
+		font-weight: 600;
+		letter-spacing: 0;
+	}
+
+	/* ============ 一言 ============ */
+	.footer-quote {
+		position: relative;
+		display: flex;
+		width: min(42rem, 100%);
+		overflow: hidden;
+		cursor: pointer;
+		align-items: center;
+		gap: 0.8rem;
+		margin: 0 auto;
+		padding: 0.56rem 0.85rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 15%, white);
+		border-radius: 1.15rem;
+		background: rgb(255 255 255 / 0.46);
+		box-shadow:
+			inset 0 1px 0 rgb(255 255 255 / 0.8),
+			0 0.6rem 1.5rem rgb(115 77 67 / 0.06);
+		color: color-mix(in srgb, var(--text-body) 92%, transparent);
+		transition:
+			transform 180ms ease,
+			border-color 180ms ease,
+			box-shadow 180ms ease;
+	}
+	.footer-quote:hover,
+	.footer-quote:focus-visible {
+		border-color: color-mix(in srgb, var(--primary) 38%, white);
+		box-shadow:
+			inset 0 1px 0 rgb(255 255 255 / 0.86),
+			0 0.75rem 1.7rem color-mix(in srgb, var(--primary) 10%, transparent);
+		outline: none;
+		transform: translateY(-2px);
+	}
+	.footer-quote-icon {
+		display: grid;
+		width: 2rem;
+		height: 2rem;
+		flex: 0 0 auto;
+		place-items: center;
+		border-radius: 0.7rem;
+		background: color-mix(in srgb, var(--primary) 12%, white);
+		color: var(--primary);
+		font-size: 1rem;
+		transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+	.footer-quote:hover .footer-quote-icon {
+		transform: scale(1.08) rotate(-6deg);
+	}
+	/* 掠过的一道光 */
+	.footer-quote::after {
+		content: "";
+		position: absolute;
+		inset: -40% -12%;
+		z-index: 0;
+		background: linear-gradient(
+			102deg,
+			transparent 40%,
+			rgb(255 255 255 / 0.62) 50%,
+			transparent 60%
+		);
+		opacity: 0;
+		pointer-events: none;
+		transform: translateX(-110%);
+		transition:
+			transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
+			opacity 240ms ease;
+	}
+	.footer-quote:hover::after {
+		opacity: 1;
+		transform: translateX(110%);
+	}
+	.footer-quote-icon,
+	.footer-quote-copy,
+	.footer-quote-refresh {
+		position: relative;
+		z-index: 1;
+	}
+	.footer-quote-copy {
+		display: flex;
+		min-width: 0;
+		flex: 1;
+		flex-wrap: wrap;
+		align-items: baseline;
+		justify-content: center;
+		gap: 0.2rem 0.65rem;
+		font-family: Georgia, "Noto Serif SC", serif;
+		font-size: 0.95rem;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		text-align: center;
+		opacity: 1;
+		filter: blur(0);
+		transform: translateY(0);
+		transition:
+			opacity 260ms ease,
+			transform 320ms cubic-bezier(0.16, 1, 0.3, 1),
+			filter 260ms ease;
+	}
+	.footer-quote.is-swapping .footer-quote-copy {
+		opacity: 0;
+		filter: blur(3px);
+		transform: translateY(-0.32rem);
+	}
+	.hitokoto-author {
+		color: color-mix(in srgb, var(--primary) 65%, var(--tea));
+		font-family: inherit;
+		font-size: 0.75rem;
+	}
+	.footer-quote-refresh {
+		display: inline-flex;
+		flex: 0 0 auto;
+		align-items: center;
+		gap: 0.22rem;
+		color: color-mix(in srgb, var(--text-muted) 66%, transparent);
+		font-size: 0.67rem;
+		font-weight: 650;
+	}
+	.footer-quote-refresh svg {
+		width: 0.75rem;
+		height: 0.75rem;
+	}
+	.footer-quote.is-bumped .footer-quote-refresh svg {
+		animation: footer-spin 620ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	/* ============ 三栏卡片 ============ */
+	.footer-grid {
+		display: grid;
+		width: 100%;
+		grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr));
+		gap: 0.8rem;
+		margin-top: 1.05rem;
+	}
+	.footer-card {
+		display: flex;
+		min-width: 0;
+		flex-direction: column;
+		gap: 0.6rem;
+		padding: 0.85rem 0.95rem 0.9rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 11%, transparent);
+		border-radius: 1.15rem;
+		background: color-mix(in srgb, white 38%, transparent);
+		text-align: left;
+		transition:
+			transform 340ms cubic-bezier(0.16, 1, 0.3, 1),
+			border-color 340ms ease,
+			box-shadow 340ms ease,
+			background-color 340ms ease;
+	}
+	.footer-card:hover {
+		border-color: color-mix(in srgb, var(--primary) 26%, transparent);
+		background: color-mix(in srgb, white 54%, transparent);
+		box-shadow: 0 0.8rem 1.9rem color-mix(in srgb, var(--primary) 9%, transparent);
+		transform: translateY(-0.2rem);
+	}
+	.footer-card-title {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		color: color-mix(in srgb, var(--primary) 84%, var(--tea));
+		font-size: 0.7rem;
+		font-weight: 800;
+		letter-spacing: 0.08em;
+	}
+	.footer-card-title svg {
+		width: 0.72rem;
+		height: 0.72rem;
+		flex: 0 0 auto;
+	}
+	.footer-card-title em {
+		margin-left: auto;
+		color: color-mix(in srgb, var(--tea) 52%, transparent);
+		font-size: 0.55rem;
+		font-style: normal;
+		font-weight: 700;
+		letter-spacing: 0.22em;
+	}
+
+	/* ① 关于 */
+	.footer-profile {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+	}
+	.footer-avatar {
+		display: block;
+		width: 2.9rem;
+		height: 2.9rem;
+		flex: 0 0 auto;
+		padding: 2px;
+		border-radius: 999px;
+		background: linear-gradient(140deg, color-mix(in srgb, var(--primary) 42%, transparent), color-mix(in srgb, var(--tea) 12%, transparent));
+		transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+	.footer-card:hover .footer-avatar {
+		transform: rotate(-4deg) scale(1.04);
+	}
+	.footer-profile-text {
+		display: flex;
+		min-width: 0;
+		flex-direction: column;
+		gap: 0.1rem;
+	}
+	.footer-name {
+		color: color-mix(in srgb, var(--text-strong) 92%, var(--primary));
+		font-size: 0.9rem;
+		font-weight: 800;
+		letter-spacing: 0.04em;
+	}
+	.footer-bio {
+		color: color-mix(in srgb, var(--text-muted) 96%, transparent);
+		font-size: 0.7rem;
+		line-height: 1.35;
+	}
+	.footer-socials {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem;
+	}
+	.footer-social {
+		display: grid;
+		width: 1.7rem;
+		height: 1.7rem;
+		place-items: center;
+		border: 1px solid color-mix(in srgb, var(--primary) 14%, transparent);
+		border-radius: 0.58rem;
+		background: color-mix(in srgb, white 46%, transparent);
+		color: color-mix(in srgb, var(--tea) 84%, var(--primary));
+		transition:
+			transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+			background-color 240ms ease,
+			border-color 240ms ease,
+			color 240ms ease,
+			box-shadow 240ms ease;
+	}
+	.footer-social svg {
+		width: 0.78rem;
+		height: 0.78rem;
+	}
+	.footer-social:hover {
+		transform: translateY(-0.15rem) scale(1.06);
+		color: #fff;
+	}
+	.footer-social--github:hover {
+		border-color: #24292e;
+		background: #24292e;
+		box-shadow: 0 0 1.4rem 0.15rem rgb(36 41 46 / 0.35);
+	}
+	.footer-social--qq:hover {
+		border-color: #12b7f5;
+		background: #12b7f5;
+		box-shadow: 0 0 1.4rem 0.15rem rgb(18 183 245 / 0.35);
+	}
+	.footer-social--bilibili:hover {
+		border-color: #fb7299;
+		background: #fb7299;
+		box-shadow: 0 0 1.4rem 0.15rem rgb(251 114 153 / 0.35);
+	}
+	.footer-social--x:hover {
+		border-color: #111;
+		background: #111;
+		box-shadow: 0 0 1.4rem 0.15rem rgb(17 17 17 / 0.32);
+	}
+	.footer-social--instagram:hover {
+		border-color: #e1306c;
+		background: #e1306c;
+		box-shadow: 0 0 1.4rem 0.15rem rgb(225 48 108 / 0.35);
+	}
+	.footer-social--default:hover {
+		border-color: var(--primary);
+		background: var(--primary);
+		box-shadow: 0 0 1.4rem 0.15rem color-mix(in srgb, var(--primary) 38%, transparent);
+	}
+	.footer-meta {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		margin-top: auto;
+		color: color-mix(in srgb, var(--text-muted) 86%, transparent);
+		font-size: 0.68rem;
+		font-variant-numeric: tabular-nums;
+	}
+	.footer-meta b {
+		color: color-mix(in srgb, var(--primary) 72%, var(--tea));
+		font-weight: 800;
+	}
+	.footer-meta-dot {
+		width: 0.2rem;
+		height: 0.2rem;
+		flex: 0 0 auto;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--primary) 45%, transparent);
+	}
+
+	/* ② 探索地图 */
+	.footer-nav {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.05rem 0.5rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.footer-nav li {
+		min-width: 0;
+	}
+	.footer-nav a {
+		display: flex;
+		align-items: center;
+		gap: 0.34rem;
+		padding: 0.2rem 0.3rem;
+		border-radius: 0.42rem;
+		color: color-mix(in srgb, var(--tea) 88%, var(--primary));
+		font-size: 0.72rem;
+		font-weight: 600;
+		transition:
+			color 180ms ease,
+			background-color 180ms ease,
+			transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+	.footer-nav a svg {
+		width: 0.66rem;
+		height: 0.66rem;
+		flex: 0 0 auto;
+		opacity: 0.66;
+		transition: opacity 180ms ease;
+	}
+	.footer-nav a span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.footer-nav a:hover {
+		background: color-mix(in srgb, var(--primary) 9%, transparent);
+		color: var(--primary);
+		transform: translateX(0.15rem);
+	}
+	.footer-nav a:hover svg {
+		opacity: 1;
+	}
+
+	/* 随机漫游 */
+	.footer-random {
+		display: inline-flex;
+		align-self: flex-start;
+		align-items: center;
+		gap: 0.3rem;
+		margin-top: auto;
+		padding: 0.26rem 0.55rem 0.26rem 0.45rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 28%, transparent);
+		border-radius: 0.62rem;
+		color: color-mix(in srgb, var(--primary) 72%, var(--tea));
+		font-size: 0.68rem;
+		font-weight: 700;
+		transition:
+			background-color 220ms ease,
+			border-color 220ms ease,
+			color 220ms ease,
+			transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+	.footer-random-icon {
+		color: color-mix(in srgb, var(--primary) 62%, transparent);
+	}
+	.footer-random svg {
+		width: 0.72rem;
+		height: 0.72rem;
+		transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+	.footer-random:hover {
+		border-color: color-mix(in srgb, var(--primary) 46%, transparent);
+		border-style: solid;
+		background: color-mix(in srgb, var(--primary) 9%, transparent);
+		color: var(--primary);
+		transform: translateX(0.14rem);
+	}
+	.footer-random:hover svg {
+		transform: translateX(0.18rem);
+	}
+
+	/* ③ 此刻 */
+	.footer-clock {
+		display: flex;
+		align-items: baseline;
+		gap: 0.15rem;
+		margin: -0.15rem 0 -0.2rem;
+		color: color-mix(in srgb, var(--text-strong) 88%, var(--primary));
+		font-variant-numeric: tabular-nums;
+		letter-spacing: 0.02em;
+		line-height: 1;
+	}
+	.footer-clock-main {
+		font-size: 1.85rem;
+		font-weight: 800;
+	}
+	.footer-clock-sec {
+		color: color-mix(in srgb, var(--primary) 62%, var(--tea));
+		font-size: 0.8rem;
+		font-weight: 700;
+	}
+	.footer-now-line {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		color: color-mix(in srgb, var(--text-muted) 90%, transparent);
+		font-size: 0.68rem;
+	}
+	.footer-greeting {
+		color: color-mix(in srgb, var(--primary) 78%, var(--tea));
+		font-weight: 700;
+	}
+	/* 今日进度 */
+	.footer-daybar {
+		display: flex;
+		flex-direction: column;
+		gap: 0.26rem;
+		margin-top: 0.15rem;
+	}
+	.footer-daybar-label {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.4rem;
+		color: color-mix(in srgb, var(--text-muted) 80%, transparent);
+		font-size: 0.62rem;
+	}
+	.footer-daybar-label b {
+		color: color-mix(in srgb, var(--primary) 84%, var(--tea));
+		font-variant-numeric: tabular-nums;
+		font-weight: 800;
+	}
+	.footer-daybar-track {
+		position: relative;
+		display: block;
+		overflow: hidden;
+		height: 0.24rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--primary) 12%, transparent);
+	}
+	.footer-daybar-fill {
+		display: block;
+		width: 0;
+		height: 100%;
+		border-radius: inherit;
+		background: linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--primary) 62%, transparent),
+			color-mix(in srgb, var(--primary) 92%, var(--tea))
+		);
+		transition: width 900ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.footer-facts {
+		display: flex;
+		flex-direction: column;
+		gap: 0.28rem;
+		margin-top: auto;
+		padding-top: 0.5rem;
+		border-top: 1px dashed color-mix(in srgb, var(--primary) 14%, transparent);
+	}
+	.footer-fact {
+		display: flex;
+		align-items: baseline;
+		gap: 0.42rem;
+		min-width: 0;
+		font-size: 0.68rem;
+	}
+	.footer-fact-key {
+		flex: 0 0 auto;
+		padding: 0.05rem 0.3rem;
+		border-radius: 0.32rem;
+		background: color-mix(in srgb, var(--primary) 11%, transparent);
+		color: color-mix(in srgb, var(--primary) 76%, var(--tea));
+		font-size: 0.6rem;
+		font-weight: 800;
+		letter-spacing: 0.06em;
+	}
+	.footer-fact-val {
+		color: color-mix(in srgb, var(--text-body) 86%, var(--primary));
+		font-variant-numeric: tabular-nums;
+	}
+	.footer-fact-val b {
+		color: color-mix(in srgb, var(--primary) 80%, var(--tea));
+		font-size: 0.82rem;
+		font-weight: 800;
+	}
+	.footer-fact--post {
+		min-width: 0;
+	}
+	.footer-fact-link {
+		overflow: hidden;
+		color: color-mix(in srgb, var(--tea) 88%, var(--primary));
+		font-weight: 650;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		transition: color 180ms ease;
+	}
+	.footer-fact-link:hover {
+		color: var(--primary);
+	}
+
+	/* ============ 底栏 ============ */
+	.footer-bottom {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.55rem 1.35rem;
+		margin-top: 1.1rem;
+		padding-top: 0.9rem;
+		border-top: 1px dashed color-mix(in srgb, var(--primary) 14%, transparent);
+		color: color-mix(in srgb, var(--text-muted) 86%, transparent);
+		font-size: 0.76rem;
+	}
+	.footer-signature {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: center;
+		gap: 0.42rem;
+	}
+	.footer-signature-mark {
+		color: var(--primary);
+		font-size: 1rem;
+	}
+	.footer-signature-dot {
+		width: 0.22rem;
+		height: 0.22rem;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--primary) 45%, transparent);
+	}
+	.footer-heart {
+		display: inline-block;
+		color: var(--primary);
+		animation: footer-beat 2.6s ease-in-out infinite;
+	}
+	.footer-links {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.4rem;
+	}
+	.footer-links a {
+		display: inline-flex;
+		min-height: 1.9rem;
+		align-items: center;
+		padding: 0.3rem 0.66rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 14%, transparent);
+		border-radius: 999px;
+		background: color-mix(in srgb, white 44%, transparent);
+		color: color-mix(in srgb, var(--primary) 72%, var(--tea));
+		font-size: 0.74rem;
+		font-weight: 700;
+		transition:
+			transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+			background-color 180ms ease,
+			border-color 180ms ease,
+			color 180ms ease;
+	}
+	.footer-links a:hover {
+		border-color: color-mix(in srgb, var(--primary) 34%, transparent);
+		background: color-mix(in srgb, var(--primary) 11%, white);
+		color: color-mix(in srgb, var(--primary) 92%, var(--tea));
+		transform: translateY(-2px) rotate(-1deg);
+	}
+	.footer-filing {
+		display: contents;
+		font-size: 0.68rem;
+	}
+	.footer-powered {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: center;
+		gap: 0.3rem;
+		color: color-mix(in srgb, var(--text-muted) 64%, transparent);
+		font-size: 0.68rem;
+	}
+	.footer-powered > span:first-child {
+		color: color-mix(in srgb, var(--primary) 56%, transparent);
+	}
+	.footer-powered a {
+		color: color-mix(in srgb, var(--primary) 76%, var(--tea));
+		font-weight: 700;
+		transition: color 160ms ease;
+	}
+	.footer-powered a:hover {
+		color: var(--primary);
+	}
+	.footer-powered-divider {
+		color: color-mix(in srgb, var(--primary) 35%, transparent);
+	}
+
+	/* ============ 暗色 ============ */
+	:global(.dark) .footer-panel {
+		background:
+			radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 23%),
+			linear-gradient(145deg, rgb(39 32 34 / 0.72), rgb(27 24 25 / 0.58));
+		box-shadow:
+			inset 0 1px 0 rgb(255 255 255 / 0.06),
+			0 1.15rem 3rem rgb(0 0 0 / 0.18);
+	}
+	:global(.dark) .footer-quote {
+		border-color: rgb(255 255 255 / 0.08);
+		background: rgb(255 255 255 / 0.045);
+		color: rgb(255 242 241 / 0.68);
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+	}
+	:global(.dark) .footer-quote-icon,
+	:global(.dark) .footer-links a,
+	:global(.dark) .footer-social {
+		border-color: rgb(255 255 255 / 0.075);
+		background: rgb(255 255 255 / 0.055);
+	}
+	:global(.dark) .footer-card {
+		border-color: rgb(255 255 255 / 0.07);
+		background: rgb(255 255 255 / 0.032);
+	}
+	:global(.dark) .footer-card:hover {
+		border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+		background: rgb(255 255 255 / 0.06);
+	}
+	:global(.dark) .footer-bio,
+	:global(.dark) .footer-meta,
+	:global(.dark) .footer-now-line {
+		color: rgb(255 242 241 / 0.52);
+	}
+	:global(.dark) .footer-social--github:hover {
+		border-color: #fff;
+		background: #fff;
+		color: #191516;
+	}
+	:global(.dark) .footer-social--x:hover {
+		border-color: #fff;
+		background: #fff;
+		color: #191516;
+	}
+	:global(.dark) .footer-bottom {
+		color: rgb(255 242 241 / 0.48);
+	}
+	:global(.dark) .footer-powered {
+		color: rgb(255 242 241 / 0.36);
+	}
+	:global(.dark) .footer-paper {
+		opacity: 0.32;
+	}
+
+	/* ============ 响应式 ============ */
+	@media (max-width: 900px) {
+		.footer-stamp {
+			width: 4.5rem;
+			height: 4.5rem;
+			top: -0.95rem;
+			right: -0.7rem;
+			opacity: 0.82;
+		}
+	}
+	@media (max-width: 760px) {
+		.footer-bottom {
+			justify-content: center;
+			text-align: center;
+		}
+	}
+	@media (max-width: 640px) {
+		.footer-divider {
+			margin: 2rem auto 1.5rem;
+		}
+		.footer-panel {
+			padding: 1.85rem 0.92rem 0.95rem;
+			border-radius: 1.4rem;
+		}
+		.footer-stamp {
+			display: none;
+		}
+		.footer-quote {
+			align-items: flex-start;
+			padding: 0.58rem 0.72rem;
+		}
+		.footer-quote-copy {
+			justify-content: flex-start;
+			gap: 0.15rem 0.4rem;
+			line-height: 1.5;
+			font-size: clamp(0.66rem, 2.9vw, 0.82rem);
+			text-align: left;
+		}
+		.hitokoto-author {
+			flex: 0 0 auto;
+			font-size: 0.64rem;
+		}
+		.footer-quote-refresh {
+			display: none;
+		}
+		.footer-grid {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 0.62rem;
+		}
+		.footer-signature {
+			max-width: 18rem;
+		}
+		.footer-signature-dot {
+			display: none;
+		}
+		.footer-signature > span:nth-child(4) {
+			width: 100%;
+		}
+		.footer-powered {
+			max-width: 100%;
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 0.1rem 0.2rem;
+			font-size: clamp(0.58rem, 2.3vw, 0.66rem);
+		}
+	}
+
+	/* ============ 动效 ============ */
+	/* 滚动入场：仅在支持脚本且未开启「减少动态效果」时接管初始状态。
+	   用独立的 translate 属性而不是 transform，避免和 hover 的 transform 互相覆盖 */
+	@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+		[data-footer-root] [data-ft-reveal] {
+			opacity: 0;
+			translate: 0 1.05rem;
+			transition:
+				opacity 720ms cubic-bezier(0.16, 1, 0.3, 1) var(--ft-delay, 0ms),
+				translate 720ms cubic-bezier(0.16, 1, 0.3, 1) var(--ft-delay, 0ms);
+		}
+		[data-footer-root] [data-ft-reveal].is-in {
+			opacity: 1;
+			translate: none;
+		}
+		.footer-divider:not(.is-in) span {
+			opacity: 0.35;
+			transform: scaleX(0.32);
+		}
+	}
+
+	@keyframes footer-drift-a {
+		0%,
+		100% {
+			transform: translate3d(0, 0, 0) scale(1);
+		}
+		50% {
+			transform: translate3d(1.8rem, 1.2rem, 0) scale(1.16);
+		}
+	}
+	@keyframes footer-drift-b {
+		0%,
+		100% {
+			transform: translate3d(0, 0, 0) scale(1.06);
+		}
+		50% {
+			transform: translate3d(-1.5rem, -1rem, 0) scale(0.92);
+		}
+	}
+	@keyframes footer-tape-sway {
+		0%,
+		100% {
+			transform: translateX(-50%) rotate(-2deg);
+		}
+		50% {
+			transform: translateX(-50%) rotate(-1deg) translateY(-0.08rem);
+		}
+	}
+	@keyframes footer-float {
+		0%,
+		100% {
+			transform: rotate(10deg) translateY(0);
+		}
+		50% {
+			transform: rotate(14deg) translateY(-0.32rem);
+		}
+	}
+	@keyframes footer-spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+	@keyframes footer-seal {
+		0%,
+		100% {
+			transform: rotate(9deg) translateY(0);
+		}
+		50% {
+			transform: rotate(4deg) translateY(-0.18rem);
+		}
+	}
+	@keyframes footer-beat {
+		0%,
+		100% {
+			transform: scale(1);
+		}
+		18% {
+			transform: scale(1.22);
+		}
+		36% {
+			transform: scale(1);
+		}
+		54% {
+			transform: scale(1.14);
+		}
+		72% {
+			transform: scale(1);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.footer-aurora,
+		.footer-tape,
+		.footer-doodle-right,
+		.footer-stamp,
+		.footer-stamp svg,
+		.footer-heart,
+		.footer-quote-refresh svg {
+			animation: none !important;
+		}
+		.footer-card,
+		.footer-social,
+		.footer-nav a,
+		.footer-quote,
+		.footer-quote-icon,
+		.footer-links a,
+		.footer-quote-copy {
+			transition: none !important;
+		}
+		.footer-quote:hover,
+		.footer-card:hover,
+		.footer-social:hover,
+		.footer-nav a:hover,
+		.footer-links a:hover {
+			transform: none;
+		}
+	}
 </style>
 
-<script is:inline define:vars={{ FOOTER_QUOTES }}>
-(() => {
-class HitokotoQuote extends HTMLElement {
-    constructor() {
-        super();
-        this.quoteIndex = -1;
-        const refreshQuote = () => {
-            const textEl = this.querySelector('.hitokoto-text');
-            if (textEl) textEl.textContent = "换一句温柔的话...";
-            this.showQuote(true);
-        };
-        this.addEventListener('click', refreshQuote);
-        this.addEventListener('keydown', (event) => {
-            if (event.key !== 'Enter' && event.key !== ' ') return;
-            event.preventDefault();
-            refreshQuote();
-        });
-    }
+<script>
+	import { SITE_START_DATE } from "../constants/constants";
 
-    connectedCallback() {
-        // 使用 setTimeout 确保 DOM 子元素已经完全挂载
-        setTimeout(() => this.showQuote(false), 0);
-    }
+	type SiteWindow = Window & {
+		__footerHookRegistered?: boolean;
+		__footerClockTimer?: number;
+		__footerObserver?: IntersectionObserver;
+	};
 
-    showQuote(advance) {
-        const textEl = this.querySelector('.hitokoto-text');
-        const authorEl = this.querySelector('.hitokoto-author');
-        if (!textEl) return;
+	const FOOTER_QUOTES = [
+		{ text: "今天也要认真生活，顺便偷偷期待一点好运。", from: "今日份温柔" },
+		{ text: "慢慢来吧，花会开，喜欢的故事也会有结局。", from: "生活小记" },
+		{ text: "愿每一次晚风，都把好心情轻轻送到你身边。", from: "今日份温柔" },
+		{ text: "把普通的日子收好，它们以后都会闪闪发光。", from: "时光收藏夹" },
+		{ text: "生活偶尔下雨，也别忘了给心里留一小块晴天。", from: "生活小记" },
+		{ text: "今天的你也很可爱，请继续喜欢这个世界吧。", from: "今日份温柔" },
+		{ text: "不用急着长大，按自己的节奏慢慢向前就好。", from: "生活小记" },
+		{ text: "有喜欢的事、有想见的人，今天就值得期待。", from: "今日份温柔" },
+		{ text: "愿你路过的每一场风景，都有温柔回应。", from: "生活小记" },
+		{ text: "把烦恼交给晚风，把快乐留给明天的自己。", from: "今日份温柔" },
+		{ text: "日子平淡一点也没关系，我们可以自己加糖。", from: "生活小记" },
+		{ text: "好好吃饭，好好睡觉，好好等待下一次心动。", from: "今日份温柔" },
+		{ text: "每一个认真生活的瞬间，都值得被悄悄收藏。", from: "时光收藏夹" },
+		{ text: "愿你在自己的故事里，永远是闪闪发光的主角。", from: "今日份温柔" },
+		{ text: "如果今天有点累，就先停下来抱抱自己吧。", from: "生活小记" },
+		{ text: "喜欢的风景要慢慢看，喜欢的人也要慢慢了解。", from: "今日份温柔" },
+		{ text: "普通的一天，也可以因为一件小事变得特别。", from: "生活小记" },
+		{ text: "愿所有不期而遇，最后都成为恰到好处的温柔。", from: "今日份温柔" },
+		{ text: "认真记录生活的人，本身就在创造浪漫。", from: "时光收藏夹" },
+		{ text: "今天也请带着一点点期待，慢慢走向明天。", from: "今日份温柔" },
+	];
 
-        if (this.quoteIndex < 0) {
-            const today = new Date();
-            const localDayNumber = Math.floor(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) / 86400000);
-            this.quoteIndex = localDayNumber % FOOTER_QUOTES.length;
-        } else if (advance) {
-            this.quoteIndex = (this.quoteIndex + 1) % FOOTER_QUOTES.length;
-        }
-        const quote = FOOTER_QUOTES[this.quoteIndex];
+	const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+	const prefersReducedMotion = () => window.matchMedia(MOTION_QUERY).matches;
 
-        textEl.style.opacity = '0';
-        if (authorEl) authorEl.style.opacity = '0';
+	/* ---------------- 一言 ---------------- */
+	class HitokotoQuote extends HTMLElement {
+		quoteIndex = -1;
 
-        setTimeout(() => {
-            textEl.textContent = quote.text;
-            if (authorEl) authorEl.textContent = `—— ${quote.from}`;
+		constructor() {
+			super();
+			// 点击刷新
+			this.addEventListener("click", () => this.showQuote(true));
+			this.addEventListener("keydown", (event: KeyboardEvent) => {
+				if (event.key !== "Enter" && event.key !== " ") return;
+				event.preventDefault();
+				this.showQuote(true);
+			});
+		}
 
-            textEl.style.transition = 'opacity 0.5s';
-            textEl.style.opacity = '1';
-            if (authorEl) {
-                authorEl.style.transition = 'opacity 0.5s';
-                authorEl.style.opacity = '0.7';
-            }
-        }, 300);
-    }
-}
-if (!customElements.get('hitokoto-quote')) {
-    customElements.define('hitokoto-quote', HitokotoQuote);
-}
+		connectedCallback() {
+			// 等子元素挂载完成再填内容
+			window.setTimeout(() => this.showQuote(false), 0);
+		}
 
-class Sakura {
-    constructor(w, h) {
-        this.reset(w, h, true);
-    }
-    reset(w, h, isInit) {
-        this.x = Math.random() * w;
-        this.y = isInit ? Math.random() * h : -20;
-        this.size = Math.random() * 6 + 4; 
-        this.speedY = Math.random() * 0.5 + 0.2; 
-        this.speedX = Math.random() * 0.5 - 0.25; 
-        this.angle = Math.random() * Math.PI * 2;
-        this.spin = Math.random() * 0.02 - 0.01;
-        this.opacity = Math.random() * 0.5 + 0.2;
-    }
-    update(w, h) {
-        this.y += this.speedY;
-        this.x += this.speedX + Math.sin(this.y * 0.01) * 0.5; 
-        this.angle += this.spin;
-        if (this.y > h + 20 || this.x < -20 || this.x > w + 20) {
-            this.reset(w, h, false);
-        }
-    }
-    draw(ctx, color) {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.angle);
-        ctx.globalAlpha = this.opacity;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.bezierCurveTo(this.size / 2, -this.size / 2, this.size, -this.size / 3, 0, this.size);
-        ctx.bezierCurveTo(-this.size, -this.size / 3, -this.size / 2, -this.size / 2, 0, 0);
-        ctx.fill();
-        ctx.restore();
-    }
-}
+		showQuote(advance: boolean) {
+			const textEl = this.querySelector<HTMLElement>(".hitokoto-text");
+			const authorEl = this.querySelector<HTMLElement>(".hitokoto-author");
+			if (!textEl) return;
 
-class SakuraCanvasElement extends HTMLElement {
-    connectedCallback() {
-        setTimeout(() => this.init(), 0);
-    }
-    
-    init() {
-        this.canvas = this.querySelector('canvas');
-        if (!this.canvas) return;
-        this.ctx = this.canvas.getContext('2d');
-        this.sakuras = [];
-        this.numSakuras = 25; 
-        this.updateColor = () => {
-            this.sakuraColor = getComputedStyle(document.documentElement)
-                .getPropertyValue('--primary').trim() || '#d97991';
-        };
-        this.updateColor();
-        this.themeObserver = new MutationObserver(this.updateColor);
-        this.themeObserver.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ['class', 'data-palette'],
-        });
-        
-        this.resize = () => {
-            this.canvas.width = this.offsetWidth;
-            this.canvas.height = this.offsetHeight;
-        };
-        
-        this.resize();
-        window.addEventListener('resize', this.resize);
-        
-        for (let i = 0; i < this.numSakuras; i++) {
-            this.sakuras.push(new Sakura(this.canvas.width, this.canvas.height));
-        }
-        
-        this.animId = requestAnimationFrame(() => this.animate());
-    }
-    
-    disconnectedCallback() {
-        if (this.resize) window.removeEventListener('resize', this.resize);
-        if (this.animId) cancelAnimationFrame(this.animId);
-        if (this.themeObserver) this.themeObserver.disconnect();
-    }
-    
-    animate() {
-        if (!this.canvas) return;
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.sakuras.forEach(s => {
-            s.update(this.canvas.width, this.canvas.height);
-            s.draw(this.ctx, this.sakuraColor);
-        });
-        this.animId = requestAnimationFrame(() => this.animate());
-    }
-}
-if (!customElements.get('sakura-canvas')) {
-    customElements.define('sakura-canvas', SakuraCanvasElement);
-}
-})();
+			if (this.quoteIndex < 0) {
+				const today = new Date();
+				const localDayNumber = Math.floor(
+					Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) / 86400000,
+				);
+				this.quoteIndex = localDayNumber % FOOTER_QUOTES.length;
+			} else if (advance) {
+				this.quoteIndex = (this.quoteIndex + 1) % FOOTER_QUOTES.length;
+			}
+
+			const quote = FOOTER_QUOTES[this.quoteIndex];
+			const commit = () => {
+				textEl.textContent = quote.text;
+				if (authorEl) authorEl.textContent = `—— ${quote.from}`;
+				this.classList.remove("is-swapping");
+			};
+
+			if (advance && !prefersReducedMotion()) {
+				this.classList.add("is-swapping");
+				window.setTimeout(commit, 240);
+				this.classList.remove("is-bumped");
+				void this.offsetWidth;
+				this.classList.add("is-bumped");
+			} else {
+				commit();
+			}
+		}
+	}
+
+	/* ---------------- 樱花 ---------------- */
+	class Sakura {
+		x = 0;
+		y = 0;
+		size = 0;
+		speedY = 0;
+		speedX = 0;
+		angle = 0;
+		spin = 0;
+		opacity = 0;
+
+		constructor(w: number, h: number) {
+			this.reset(w, h, true);
+		}
+
+		reset(w: number, h: number, isInit: boolean) {
+			this.x = Math.random() * w;
+			this.y = isInit ? Math.random() * h : -20;
+			this.size = Math.random() * 6 + 4;
+			this.speedY = Math.random() * 0.5 + 0.2;
+			this.speedX = Math.random() * 0.5 - 0.25;
+			this.angle = Math.random() * Math.PI * 2;
+			this.spin = Math.random() * 0.02 - 0.01;
+			this.opacity = Math.random() * 0.5 + 0.2;
+		}
+
+		update(w: number, h: number) {
+			this.y += this.speedY;
+			this.x += this.speedX + Math.sin(this.y * 0.01) * 0.5;
+			this.angle += this.spin;
+			if (this.y > h + 20 || this.x < -20 || this.x > w + 20) {
+				this.reset(w, h, false);
+			}
+		}
+
+		draw(ctx: CanvasRenderingContext2D, color: string) {
+			ctx.save();
+			ctx.translate(this.x, this.y);
+			ctx.rotate(this.angle);
+			ctx.globalAlpha = this.opacity;
+			ctx.fillStyle = color;
+			ctx.beginPath();
+			ctx.moveTo(0, 0);
+			ctx.bezierCurveTo(this.size / 2, -this.size / 2, this.size, -this.size / 3, 0, this.size);
+			ctx.bezierCurveTo(-this.size, -this.size / 3, -this.size / 2, -this.size / 2, 0, 0);
+			ctx.fill();
+			ctx.restore();
+		}
+	}
+
+	class SakuraCanvasElement extends HTMLElement {
+		canvas?: HTMLCanvasElement;
+		ctx?: CanvasRenderingContext2D | null;
+		sakuraColor = "#d97991";
+		connectedCallback() {
+			window.setTimeout(() => this.init(), 0);
+		}
+
+		init() {
+			this.canvas = this.querySelector("canvas") ?? undefined;
+			if (!this.canvas) return;
+			this.ctx = this.canvas.getContext("2d");
+
+			this.updateColor = () => {
+				this.sakuraColor =
+					getComputedStyle(document.documentElement).getPropertyValue("--primary").trim() ||
+					"#d97991";
+			};
+			this.updateColor();
+			this.themeObserver = new MutationObserver(() => this.updateColor());
+			this.themeObserver.observe(document.documentElement, {
+				attributes: true,
+				attributeFilter: ["class", "data-palette"],
+			});
+
+			this.resize = () => {
+				if (!this.canvas) return;
+				this.canvas.width = this.offsetWidth;
+				this.canvas.height = this.offsetHeight;
+			};
+			this.resize();
+			window.addEventListener("resize", this.resize);
+
+			for (let i = 0; i < 25; i++) {
+				this.sakuras.push(new Sakura(this.canvas.width, this.canvas.height));
+			}
+			this.animId = requestAnimationFrame(() => this.animate());
+		}
+
+		updateColor = () => {};
+		resize = () => {};
+		themeObserver?: MutationObserver;
+		sakuras: Sakura[] = [];
+		animId = 0;
+
+		disconnectedCallback() {
+			window.removeEventListener("resize", this.resize);
+			if (this.animId) cancelAnimationFrame(this.animId);
+			this.themeObserver?.disconnect();
+		}
+
+		animate() {
+			const canvas = this.canvas;
+			const ctx = this.ctx;
+			if (!canvas || !ctx) return;
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			for (const petal of this.sakuras) {
+				petal.update(canvas.width, canvas.height);
+				petal.draw(ctx, this.sakuraColor);
+			}
+			this.animId = requestAnimationFrame(() => this.animate());
+		}
+	}
+
+	if (!customElements.get("hitokoto-quote")) {
+		customElements.define("hitokoto-quote", HitokotoQuote);
+	}
+	if (!customElements.get("sakura-canvas")) {
+		customElements.define("sakura-canvas", SakuraCanvasElement);
+	}
+
+	/* ---------------- 计数器 ---------------- */
+	const countUp = (element: HTMLElement, target: number, suffix = "") => {
+		const duration = 900;
+		if (prefersReducedMotion()) {
+			element.textContent = `${target}${suffix}`;
+			return;
+		}
+		const start = performance.now();
+		const tick = (now: number) => {
+			const progress = Math.min((now - start) / duration, 1);
+			const eased = 1 - (1 - progress) ** 3;
+			element.textContent = `${Math.round(target * eased)}${suffix}`;
+			if (progress < 1) requestAnimationFrame(tick);
+		};
+		requestAnimationFrame(tick);
+	};
+
+	const runCounters = (scope: HTMLElement) => {
+		scope.querySelectorAll<HTMLElement>("[data-ft-count-to]").forEach((node) => {
+			if (node.dataset.ftCounted === "true") return;
+			node.dataset.ftCounted = "true";
+			const target = Number(node.dataset.ftCountTo ?? 0);
+			countUp(node, Number.isFinite(target) ? target : 0, node.dataset.ftCountSuffix ?? "");
+		});
+	};
+
+	/* ---------------- 时钟 ---------------- */
+	const WEEKDAYS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+	const pad = (value: number) => String(value).padStart(2, "0");
+	const greetingOf = (hour: number) => {
+		if (hour < 5) return "夜深了";
+		if (hour < 9) return "早安";
+		if (hour < 12) return "上午好";
+		if (hour < 14) return "午安";
+		if (hour < 18) return "下午好";
+		if (hour < 23) return "晚上好";
+		return "夜深了";
+	};
+
+	const startClock = (root: HTMLElement) => {
+		const mainEl = root.querySelector<HTMLElement>("[data-ft-clock-main]");
+		const secEl = root.querySelector<HTMLElement>("[data-ft-clock-sec]");
+		const dateEl = root.querySelector<HTMLElement>("[data-ft-date]");
+		const greetingEl = root.querySelector<HTMLElement>("[data-ft-greeting]");
+		const dayPercentEl = root.querySelector<HTMLElement>("[data-ft-day-percent]");
+		const dayFillEl = root.querySelector<HTMLElement>("[data-ft-day-fill]");
+		if (!mainEl) return;
+
+		const tick = () => {
+			const now = new Date();
+			mainEl.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+			if (secEl) secEl.textContent = `:${pad(now.getSeconds())}`;
+			if (dateEl) dateEl.textContent = `${now.getMonth() + 1}月${now.getDate()}日 · ${WEEKDAYS[now.getDay()]}`;
+			if (greetingEl) greetingEl.textContent = greetingOf(now.getHours());
+			if (dayPercentEl || dayFillEl) {
+				const ratio = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400;
+				if (dayPercentEl) dayPercentEl.textContent = `${Math.round(ratio * 100)}%`;
+				if (dayFillEl) dayFillEl.style.width = `${(ratio * 100).toFixed(1)}%`;
+			}
+		};
+		tick();
+
+		const siteWindow = window as SiteWindow;
+		if (siteWindow.__footerClockTimer) window.clearInterval(siteWindow.__footerClockTimer);
+		siteWindow.__footerClockTimer = window.setInterval(tick, 1000);
+	};
+
+	/* ---------------- 随便翻一篇 ---------------- */
+	const wireRandomPost = (root: HTMLElement, panel: HTMLElement) => {
+		const link = root.querySelector<HTMLAnchorElement>("[data-ft-random]");
+		const raw = panel.dataset.ftPosts;
+		if (!link || !raw) return;
+		let list: { title: string; href: string }[] = [];
+		try {
+			list = JSON.parse(raw) as { title: string; href: string }[];
+		} catch {
+			return;
+		}
+		if (!list.length) return;
+		// 捕获阶段先改好 href，交给 swup / 浏览器按常规方式跳转
+		link.addEventListener(
+			"click",
+			() => {
+				const pick = list[Math.floor(Math.random() * list.length)];
+				link.href = pick.href;
+				link.title = `随手翻到：${pick.title}`;
+			},
+			true,
+		);
+	};
+
+	/* ---------------- 初始化 ---------------- */
+	const revealEverything = (root: HTMLElement) => {
+		root.querySelectorAll<HTMLElement>("[data-ft-reveal]").forEach((node) => {
+			node.classList.add("is-in");
+		});
+		root.querySelectorAll<HTMLElement>("[data-ft-count-scope]").forEach(runCounters);
+	};
+
+	const initFooter = () => {
+		const root = document.querySelector<HTMLElement>("[data-footer-root]");
+		if (!root) return;
+		const panel = root.querySelector<HTMLElement>(".footer-panel");
+		if (!panel || panel.dataset.ftReady === "true") return;
+		panel.dataset.ftReady = "true";
+
+		// 天数以运行时为准，构建值只作为无脚本兜底
+		const parseStart = new Date(`${SITE_START_DATE}T00:00:00+08:00`).getTime();
+		const liveDays = Math.max(1, Math.floor((Date.now() - parseStart) / 86400000));
+		root.querySelectorAll<HTMLElement>("[data-ft-count-to]").forEach((node) => {
+			node.dataset.ftCountTo = String(liveDays);
+		});
+
+		startClock(root);
+		wireRandomPost(root, panel);
+
+		if (prefersReducedMotion() || !("IntersectionObserver" in window)) {
+			revealEverything(root);
+			return;
+		}
+
+		try {
+			// 清掉上一页残留的观察器
+			const siteWindow = window as SiteWindow;
+			siteWindow.__footerObserver?.disconnect();
+
+			const observer = new IntersectionObserver(
+				(entries) => {
+					for (const entry of entries) {
+						if (!entry.isIntersecting) continue;
+						const target = entry.target as HTMLElement;
+						target.classList.add("is-in");
+						if (target.dataset.ftCountScope !== undefined) runCounters(target);
+						observer.unobserve(target);
+					}
+				},
+				{ rootMargin: "0px 0px -6% 0px", threshold: 0.1 },
+			);
+			siteWindow.__footerObserver = observer;
+
+			root.querySelectorAll<HTMLElement>("[data-ft-reveal]").forEach((node) => observer.observe(node));
+
+			// 兜底：面板若始终没能被观察到（例如被裁剪或动画被拦截），2.4s 后直接显示
+			window.setTimeout(() => {
+				root.querySelectorAll<HTMLElement>("[data-ft-reveal]:not(.is-in)").forEach((node) => {
+					if (node.getBoundingClientRect().top < window.innerHeight) {
+						node.classList.add("is-in");
+					}
+				});
+			}, 2400);
+		} catch {
+			revealEverything(root);
+		}
+	};
+
+	const bootFooter = () => {
+		try {
+			initFooter();
+		} catch {
+			const root = document.querySelector<HTMLElement>("[data-footer-root]");
+			if (root) revealEverything(root);
+		}
+	};
+
+	bootFooter();
+
+	const siteWindow = window as SiteWindow;
+	const setupFooterHooks = () => {
+		if (siteWindow.__footerHookRegistered) return;
+		siteWindow.__footerHookRegistered = true;
+		window.swup?.hooks.on("page:view", bootFooter);
+	};
+	if (window.swup) setupFooterHooks();
+	else document.addEventListener("swup:enable", setupFooterHooks, { once: true });
 </script>
