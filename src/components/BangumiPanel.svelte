@@ -174,7 +174,7 @@
 			const toggle = item.querySelector<HTMLButtonElement>(".bangumi-review-toggle");
 			if (!text || !clip || !copy || !toggle) return;
 
-			const limit = parseFloat(getComputedStyle(clip).fontSize || "15") * 7.8;
+			const limit = Number.parseFloat(getComputedStyle(clip).fontSize || "15") * 7.8;
 			const overflows = copy.scrollHeight - limit > 2;
 			const expanded = !text.classList.contains("is-collapsed");
 			const label = toggle.querySelector<HTMLElement>(".bangumi-review-toggle-label");

@@ -8,6 +8,7 @@ import type { SearchResult } from "@/global";
 
 let keyword = "";
 let result: SearchResult[] = [];
+let searching = false;
 let pagefindLoaded = false;
 let initialized = false;
 let searchRequestId = 0;
@@ -29,11 +30,13 @@ const search = async (kw: string): Promise<void> => {
 	const requestId = ++searchRequestId;
 	if (!kw) {
 		result = [];
+		searching = false;
 		return;
 	}
 
 	if (!initialized) return;
 
+	searching = true;
 	try {
 		let searchResults: SearchResult[] = [];
 
@@ -49,10 +52,16 @@ const search = async (kw: string): Promise<void> => {
 			console.error("Pagefind is not available in production environment.");
 		}
 
-		if (requestId === searchRequestId) result = searchResults;
+		if (requestId === searchRequestId) {
+			result = searchResults;
+			searching = false;
+		}
 	} catch (error) {
 		console.error("Search error:", error);
-		if (requestId === searchRequestId) result = [];
+		if (requestId === searchRequestId) {
+			result = [];
+			searching = false;
+		}
 	}
 };
 
@@ -125,6 +134,13 @@ style="top: 5rem;">
             </div>
         </a>
     {/each}
+
+    <!-- 搜过了但没有结果，给一句提示，不然面板里只剩输入框 -->
+    {#if initialized && keyword.trim() && !searching && result.length === 0}
+        <p class="mt-3 px-3 pb-1 text-sm text-black/45 dark:text-white/45">
+            没有找到相关的文章，换个词试试？
+        </p>
+    {/if}
 </div>
 
 <style>

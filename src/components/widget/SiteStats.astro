@@ -114,7 +114,9 @@ const formatNumber = new Intl.NumberFormat("zh-CN");
         }
 
         function updateRunningTime() {
-            const startDate = new Date(SITE_START_DATE);
+            // 与站点其他「起航日」口径保持一致：按香港时间零点解析，
+            // 否则 new Date("2025-12-01") 是 UTC 零点，比 HKT 早 8 小时。
+            const startDate = new Date(`${SITE_START_DATE}T00:00:00+08:00`);
             const now = new Date();
             const diff = now.getTime() - startDate.getTime();
             const el = document.getElementById('site-running-time');
@@ -149,7 +151,7 @@ const formatNumber = new Intl.NumberFormat("zh-CN");
                 if (!share.websiteId || !share.token) throw new Error('Umami share response is incomplete');
 
                 const query = new URLSearchParams({
-                    startAt: String(new Date(SITE_START_DATE).getTime()),
+                    startAt: String(new Date(`${SITE_START_DATE}T00:00:00+08:00`).getTime()),
                     endAt: String(Date.now()),
                 });
                 const dateParts = new Intl.DateTimeFormat('en-US', {

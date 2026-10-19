@@ -557,7 +557,7 @@ const wishlistOverseas = travelWishlist.filter((item) => item.region === "国外
 
 				<div class="tv-caption">
 					<span class="tv-caption-mark" aria-hidden="true"></span>
-					<p data-caption>把鼠标放到地图上，看看是哪一站"</p>
+					<p data-caption>把鼠标放到地图上，看看是哪一站</p>
 					<span class="tv-caption-hint" data-hint>点击东南角 · 放大查看</span>
 				</div>
 				<p class="tv-sr" aria-live="polite" data-live></p>
@@ -911,6 +911,9 @@ const wishlistOverseas = travelWishlist.filter((item) => item.region === "国外
 				active = -1;
 				hovering = null;
 			}
+			// 状态变了就重绘一次：否则点「看全图」后 caption 和指北针还停在上一个站，
+			// 要等下一次悬停才会更新。
+			render();
 			const target = next ? TV_ZOOM : TV_FULL;
 			if (options.animate === false || tvReduced()) {
 				applyBox(target);
@@ -950,10 +953,13 @@ const wishlistOverseas = travelWishlist.filter((item) => item.region === "国外
 			if (provinceHover) {
 				caption.textContent = provinceHover.label;
 				compass?.classList.remove("is-pointing");
+				compass?.style.setProperty("--tv-needle", "0deg");
 				return;
 			}
 			caption.textContent = zoomed ? captionCluster : captionDefault;
 			compass?.classList.remove("is-pointing");
+			// 没有选中任何一站时指针也回正，否则会一直停在上一站的方向。
+			compass?.style.setProperty("--tv-needle", "0deg");
 		};
 
 		const flash = (index: number) => {

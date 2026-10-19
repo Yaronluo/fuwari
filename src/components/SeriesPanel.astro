@@ -33,6 +33,11 @@ const starTag = tags.length
 const starTagPosts = starTag
 	? posts.filter((post) => (post.data.tags || []).includes(starTag.name))
 	: [];
+// posts 是「置顶优先」排序，取「最近更新」不能直接拿第一个，要按发布时间重新挑一次。
+const starTagNewest = [...starTagPosts].sort(
+	(a, b) =>
+		new Date(b.data.published).getTime() - new Date(a.data.published).getTime(),
+)[0];
 
 type Post = (typeof posts)[number];
 
@@ -668,8 +673,8 @@ const doodles = [
                             <small>{starTag.count}</small>
                         </b>
                         <span class="star-lead-line">
-                            {starTagPosts[0]
-                                ? `最近更新 ${shortDate(starTagPosts[0])} · ${starTagPosts[0].data.title}`
+                            {starTagNewest
+                                ? `最近更新 ${shortDate(starTagNewest)} · ${starTagNewest.data.title}`
                                 : "这颗星下面还空着"}
                         </span>
                     </span>
@@ -2341,6 +2346,8 @@ const doodles = [
     }
 
     /* ============================================================ 锚点定位 */
+    /* #map-top 也要留出顶栏的高度，否则页脚「回到地图顶部」跳过去会被 fixed 导航压住 */
+    #map-top,
     #map-start,
     #map-routes,
     #map-territory,

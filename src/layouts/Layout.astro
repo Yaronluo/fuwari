@@ -162,8 +162,17 @@ const bannerOffset =
 		<!-- Set the theme before the page is rendered to avoid a flash -->
 		<script is:inline define:vars={{DEFAULT_THEME, LIGHT_MODE, DARK_MODE, AUTO_MODE, BANNER_HEIGHT_EXTEND, PAGE_WIDTH, configHue, themeColorFixed: siteConfig.themeColor.fixed}}>
 			(() => {
+			// 隐私模式 / 禁用 cookie 时 localStorage 会抛异常，读不到就当没存过，
+			// 不能让异常打断下面设置 dark 类和配色的逻辑（否则深色首屏会闪成亮色）。
+			const readStore = (key) => {
+				try {
+					return localStorage.getItem(key);
+				} catch {
+					return null;
+				}
+			};
 			// Load the theme from local storage
-			const theme = localStorage.getItem('theme') || DEFAULT_THEME;
+			const theme = readStore('theme') || DEFAULT_THEME;
 			document.documentElement.dataset.themeMode = theme;
 			switch (theme) {
 				case LIGHT_MODE:
@@ -181,7 +190,7 @@ const bannerOffset =
 			}
 
 			// Load the hue from local storage
-			const storedPalette = localStorage.getItem('theme-palette');
+			const storedPalette = readStore('theme-palette');
 			const palette = storedPalette === 'htt'
 				? 'yui'
 				: (['yui', 'mio', 'ritsu', 'mugi', 'azusa'].includes(storedPalette) ? storedPalette : 'yui');

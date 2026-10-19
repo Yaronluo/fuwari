@@ -19,8 +19,28 @@ const THEME_PALETTE_HUES: Record<ThemePalette, number> = {
 	azusa: 205,
 };
 
+/**
+ * localStorage 在隐私模式、被禁 cookie 或存储写满时会直接抛异常。
+ * 主题相关的读写都走这里，别让一次读取失败把整段首屏脚本或设置逻辑带崩。
+ */
+function readStore(key: string): string | null {
+	try {
+		return localStorage.getItem(key);
+	} catch {
+		return null;
+	}
+}
+
+function writeStore(key: string, value: string): void {
+	try {
+		localStorage.setItem(key, value);
+	} catch {
+		/* 存不下就只影响这次记忆，当前页面照常工作 */
+	}
+}
+
 export function getThemePalette(): ThemePalette {
-	const stored = localStorage.getItem("theme-palette") as ThemePalette | null;
+	const stored = readStore("theme-palette") as ThemePalette | null;
 	if (stored === ("htt" as ThemePalette)) {
 		return "yui";
 	}
@@ -38,7 +58,7 @@ export function applyThemePalette(palette: ThemePalette): void {
 }
 
 export function setThemePalette(palette: ThemePalette): void {
-	localStorage.setItem("theme-palette", palette);
+	writeStore("theme-palette", palette);
 	applyThemePalette(palette);
 }
 
@@ -53,7 +73,7 @@ export function getHue(): number {
 }
 
 export function setHue(hue: number): void {
-	localStorage.setItem("hue", String(hue));
+	writeStore("hue", String(hue));
 	const r = document.querySelector(":root") as HTMLElement;
 	if (!r) {
 		return;
@@ -86,10 +106,10 @@ export function applyThemeToDocument(theme: LIGHT_DARK_MODE) {
 }
 
 export function setTheme(theme: LIGHT_DARK_MODE): void {
-	localStorage.setItem("theme", theme);
+	writeStore("theme", theme);
 	applyThemeToDocument(theme);
 }
 
 export function getStoredTheme(): LIGHT_DARK_MODE {
-	return (localStorage.getItem("theme") as LIGHT_DARK_MODE) || DEFAULT_THEME;
+	return (readStore("theme") as LIGHT_DARK_MODE) || DEFAULT_THEME;
 }

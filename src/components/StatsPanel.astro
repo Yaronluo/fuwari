@@ -1005,6 +1005,12 @@ const RECENT_DAYS = 30;
 			studios: '动画会社',
 			collection: '小小收藏馆',
 		};
+		// 埋点里的路径来自访客，不能直接当 href：只接受站内单斜杠开头的路径，
+		// 否则记录成 `//evil.com/` 时会渲染出站外链接。
+		const safeHref = (value) => {
+			const raw = String(value || '');
+			return raw.startsWith('/') && !raw.startsWith('//') ? raw : '/';
+		};
 		const describePath = (path) => {
 			let decoded = String(path || '');
 			try {
@@ -1015,9 +1021,12 @@ const RECENT_DAYS = 30;
 			const trimmed = decoded.replace(/\/+$/, '');
 			const slug = trimmed.replace(/^\//, '');
 			const post = slug.match(/^posts\/(.+)$/);
-			if (post) return { label: post[1].replace(/[-_]+/g, ' '), href: decoded, isPost: true };
-			if (slug in ROUTE_NAMES) return { label: ROUTE_NAMES[slug], href: trimmed ? `${trimmed}/` : '/', isPost: false };
-			return { label: slug || decoded, href: decoded || '/', isPost: false };
+			if (post) return { label: post[1].replace(/[-_]+/g, ' '), href: safeHref(decoded), isPost: true };
+			// 用 hasOwnProperty 而不是 in：`constructor`、`toString` 这些原型链上的名字不算站内页面。
+			if (Object.prototype.hasOwnProperty.call(ROUTE_NAMES, slug)) {
+				return { label: ROUTE_NAMES[slug], href: trimmed ? `${trimmed}/` : '/', isPost: false };
+			}
+			return { label: slug || decoded, href: safeHref(decoded), isPost: false };
 		};
 		const renderPaths = (points) => {
 			const list = $('stats-paths-list');

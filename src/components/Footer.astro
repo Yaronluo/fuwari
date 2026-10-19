@@ -14,9 +14,13 @@ import ImageWrapper from "./misc/ImageWrapper.astro";
 const currentYear = new Date().getFullYear();
 
 // 构建时兜底的小站天数，运行时会由脚本按当前时间重新计算
+// （起航日按香港时间零点算，跟 Footer 脚本里的解析保持一致）
 const daysSinceStart = Math.max(
 	1,
-	Math.floor((Date.now() - new Date(SITE_START_DATE).getTime()) / 86400000),
+	Math.floor(
+		(Date.now() - new Date(`${SITE_START_DATE}T00:00:00+08:00`).getTime()) /
+			86400000,
+	),
 );
 
 // 从导航配置摊平出「探索地图」的快捷入口（有子项时用子项，避免重复）
@@ -184,9 +188,10 @@ const socialBrand = (name: string) => {
 					}
 				</ul>
 
+				{shuffledPosts.length > 0 && (
 				<a
 					class="footer-random"
-					href={shuffledPosts[0]?.href ?? "#"}
+					href={shuffledPosts[0].href}
 					data-ft-random
 					title="在旧文里随手翻一篇">
 					<span class="footer-random-icon" aria-hidden="true">✧</span>
@@ -202,6 +207,7 @@ const socialBrand = (name: string) => {
 						<path d="M5 12h13M13 6l6 6-6 6"></path>
 					</svg>
 				</a>
+				)}
 			</section>
 
 			<!-- ③ 此刻 -->
@@ -285,13 +291,12 @@ const socialBrand = (name: string) => {
 				<span>Hosted on <a target="_blank" href="https://www.cloudflare.com/zh-cn/">Cloudflare</a></span>
 			</div>
 
-			<!-- 备案信息（如果需要） -->
+			<!-- 备案信息（如果需要）：填好备案号后，把下面这段的注释去掉即可。
+			     先整段注释掉，避免页脚出现一个没有文字、却能被 Tab 聚焦的空链接。
 			<div class="footer-filing">
-				<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
-					<!-- 这里填写你的备案号 -->
-					<!-- 京ICP备xxxxxxxx号 -->
-				</a>
+				<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">京ICP备xxxxxxxx号</a>
 			</div>
+			-->
 		</div>
 	</div>
 </div>
@@ -1496,13 +1501,19 @@ const socialBrand = (name: string) => {
 		canvas?: HTMLCanvasElement;
 		ctx?: CanvasRenderingContext2D | null;
 		sakuraColor = "#d97991";
+		initTimer = 0;
+		inited = false;
 		connectedCallback() {
-			window.setTimeout(() => this.init(), 0);
+			this.initTimer = window.setTimeout(() => this.init(), 0);
 		}
 
 		init() {
+			// 元素被重复插入（宿主组件重渲染、DOM 搬移）时只初始化一次：
+			// 否则会多压一份花瓣、再起一条 rAF 链、再挂一个 resize 监听。
+			if (this.inited || !this.isConnected) return;
 			this.canvas = this.querySelector("canvas") ?? undefined;
 			if (!this.canvas) return;
+			this.inited = true;
 			this.ctx = this.canvas.getContext("2d");
 
 			this.updateColor = () => {
@@ -1547,9 +1558,16 @@ const socialBrand = (name: string) => {
 		viewHeight = 0;
 
 		disconnectedCallback() {
+			window.clearTimeout(this.initTimer);
 			window.removeEventListener("resize", this.resize);
 			if (this.animId) cancelAnimationFrame(this.animId);
+			this.animId = 0;
 			this.themeObserver?.disconnect();
+			// 回到初始状态，重新连回页面时能干净地再初始化一次。
+			this.inited = false;
+			this.sakuras = [];
+			this.canvas = undefined;
+			this.ctx = null;
 		}
 
 		step() {
