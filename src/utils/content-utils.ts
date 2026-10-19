@@ -1,4 +1,5 @@
 import { type CollectionEntry, getCollection } from "astro:content";
+import getReadingTime from "reading-time";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import { getCategoryUrl } from "@utils/url-utils.ts";
@@ -10,11 +11,11 @@ async function getRawSortedPosts() {
 	});
 
 	const sorted = allBlogPosts.sort((a, b) => {
-        // 首先按置顶状态排序
-        if (a.data.pinned && !b.data.pinned) return -1;
-        if (!a.data.pinned && b.data.pinned) return 1;
-        // 然后按发布时间排序
-        const dateA = new Date(a.data.published);
+		// 首先按置顶状态排序
+		if (a.data.pinned && !b.data.pinned) return -1;
+		if (!a.data.pinned && b.data.pinned) return 1;
+		// 然后按发布时间排序
+		const dateA = new Date(a.data.published);
 		const dateB = new Date(b.data.published);
 		return dateA > dateB ? -1 : 1;
 	});
@@ -50,6 +51,26 @@ export async function getSortedPostsList(): Promise<PostForList[]> {
 
 	return sortedPostsList;
 }
+
+export type ArchivePostForList = PostForList & {
+	/** Word count produced by the same reading-time plugin articles display. */
+	words: number;
+};
+
+/**
+ * Posts for the archive timeline. Bodies are consumed here and reduced to a
+ * word count, so the island receives plain numbers instead of full markdown.
+ */
+export async function getArchivePostList(): Promise<ArchivePostForList[]> {
+	const sortedFullPosts = await getRawSortedPosts();
+
+	return sortedFullPosts.map((post) => ({
+		slug: post.slug,
+		data: post.data,
+		words: getReadingTime(post.body || "").words,
+	}));
+}
+
 export type Tag = {
 	name: string;
 	count: number;
@@ -154,20 +175,26 @@ export async function getCategoryList(): Promise<Category[]> {
 }
 
 export async function getPostSeries(
-    seriesName: string,
-): Promise<{ body: string; data: CollectionEntry<"posts">["data"]; slug: string }[]> {
-    const posts = (await getCollection('posts', ({ data }) => {
-        return (
-            (import.meta.env.PROD ? data.draft !== true : true) &&
-            data.series === seriesName
-        )
-    })) as unknown as { body: string; data: CollectionEntry<"posts">["data"]; slug: string }[]
+	seriesName: string,
+): Promise<
+	{ body: string; data: CollectionEntry<"posts">["data"]; slug: string }[]
+> {
+	const posts = (await getCollection("posts", ({ data }) => {
+		return (
+			(import.meta.env.PROD ? data.draft !== true : true) &&
+			data.series === seriesName
+		);
+	})) as unknown as {
+		body: string;
+		data: CollectionEntry<"posts">["data"];
+		slug: string;
+	}[];
 
-    posts.sort((a, b) => {
-        const dateA = new Date(a.data.published)
-        const dateB = new Date(b.data.published)
-        return dateA > dateB ? 1 : -1
-    })
+	posts.sort((a, b) => {
+		const dateA = new Date(a.data.published);
+		const dateB = new Date(b.data.published);
+		return dateA > dateB ? 1 : -1;
+	});
 
-    return posts
+	return posts;
 }

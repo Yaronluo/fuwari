@@ -3,13 +3,13 @@ import ArchivePanel from "@components/ArchivePanel.svelte";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
-import { getSortedPostsList } from "../utils/content-utils";
+import { getArchivePostList } from "../utils/content-utils";
 
-const sortedPostsList = await getSortedPostsList();
+const archivePosts = await getArchivePostList();
 const archiveGeneratedAt = new Date().toISOString();
 ---
 
 <MainGridLayout title={i18n(I18nKey.archive)}>
-    <ArchivePanel sortedPosts={sortedPostsList} initialNow={archiveGeneratedAt} client:load></ArchivePanel>
+    <ArchivePanel sortedPosts={archivePosts} initialNow={archiveGeneratedAt} client:load></ArchivePanel>
 </MainGridLayout>
 
