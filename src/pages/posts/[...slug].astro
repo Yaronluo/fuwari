@@ -33,6 +33,13 @@ const anime = entry.data.anime;
 const postBasePath = path.join("content/posts/", getDir(entry.id));
 const animeThemeClass = anime ? `anime-theme anime-theme--${anime.theme}` : "";
 
+const minHeadingDepth = headings.length ? Math.min(...headings.map((heading) => heading.depth)) : 0;
+const mobileTocHeadings = headings.filter((heading) => heading.depth < minHeadingDepth + siteConfig.toc.depth);
+const removeTailingHash = (text: string) => {
+	const lastIndexOfHash = text.lastIndexOf("#");
+	return lastIndexOfHash === text.length - 1 ? text.substring(0, lastIndexOfHash) : text;
+};
+
 const jsonLd = {
 	"@context": "https://schema.org",
 	"@type": "BlogPosting",
@@ -122,9 +129,32 @@ const jsonLd = {
                 {!entry.data.image && <div class="border-[var(--line-divider)] border-dashed border-b-[1px] mb-5"></div>}
             </div>
             <span class="post-header-heart" aria-hidden="true">♡</span>
+            <div class="post-header-stamp" aria-hidden="true">
+                <span class="post-header-stamp__top">{profileConfig.name.toUpperCase()}</span>
+                <span class="post-header-stamp__glyph">✿</span>
+                <span class="post-header-stamp__year">{entry.data.published.getFullYear()}</span>
+                <span class="post-header-stamp__bottom">BLOG<br/>NOTE</span>
+            </div>
             </header>
 
             <ArticleDescription description={entry.data.description} />
+
+            {!anime && mobileTocHeadings.length > 1 && (
+                <details class="post-toc-mobile">
+                    <summary>
+                        <span class="post-toc-mobile__label">目录 <em>CONTENTS</em></span>
+                        <span class="post-toc-mobile__count">{mobileTocHeadings.length} 节</span>
+                        <Icon name="material-symbols:keyboard-arrow-down-rounded" class="text-[1.1rem]" />
+                    </summary>
+                    <ol>
+                        {mobileTocHeadings.map((heading) => (
+                            <li style={`--toc-indent: ${(heading.depth - minHeadingDepth) * 0.85}rem`}>
+                                <a href={`#${heading.slug}`}>{removeTailingHash(heading.text)}</a>
+                            </li>
+                        ))}
+                    </ol>
+                </details>
+            )}
 
 
             <!-- always show cover as long as it has one -->
@@ -282,6 +312,62 @@ const jsonLd = {
         transform: rotate(-9deg);
     }
 
+    .post-header-stamp {
+        position: absolute;
+        top: 1.05rem;
+        right: 1.3rem;
+        width: 4.7rem;
+        padding: 0.42rem 0.28rem 0.36rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 34%, transparent);
+        background: color-mix(in srgb, var(--glass-card) 90%, white 10%);
+        box-shadow: 0.16rem 0.2rem 0 color-mix(in srgb, var(--primary) 10%, transparent);
+        color: var(--primary);
+        text-align: center;
+        transform: rotate(4deg);
+    }
+
+    .post-header-stamp::before {
+        position: absolute;
+        inset: 0.2rem;
+        border: 1px dashed color-mix(in srgb, var(--primary) 26%, transparent);
+        content: "";
+        pointer-events: none;
+    }
+
+    .post-header-stamp__top {
+        display: block;
+        font-size: 0.42rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        line-height: 1.5;
+        white-space: nowrap;
+    }
+
+    .post-header-stamp__glyph {
+        display: block;
+        margin: 0.06rem 0;
+        font-size: 0.8rem;
+        line-height: 1;
+    }
+
+    .post-header-stamp__year {
+        display: block;
+        font-family: "Palatino Linotype", "Songti SC", ui-serif, Georgia, serif;
+        font-size: 1.02rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        line-height: 1.15;
+    }
+
+    .post-header-stamp__bottom {
+        display: block;
+        margin-top: 0.1rem;
+        font-size: 0.3rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        line-height: 1.55;
+    }
+
     :global(.post-article-shell:not(.anime-theme) .article-description) {
         margin: 0.2rem 0 2rem;
         padding: 1rem 1.15rem 1rem 3.2rem;
@@ -304,6 +390,79 @@ const jsonLd = {
 		content: "✎";
 		font-size: 0.72rem;
 		transform: translateY(-50%);
+    }
+
+    .post-toc-mobile {
+        margin: -0.3rem 0 1.5rem;
+        padding: 0 0.95rem;
+        border: 1px dashed color-mix(in srgb, var(--primary) 20%, transparent);
+        border-radius: 0.95rem;
+        background: color-mix(in srgb, var(--primary) 4%, var(--glass-card));
+    }
+
+    .post-toc-mobile summary {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.72rem 0;
+        cursor: pointer;
+        list-style: none;
+    }
+
+    .post-toc-mobile summary::-webkit-details-marker { display: none; }
+
+    .post-toc-mobile__label {
+        color: var(--primary);
+        font-size: 0.62rem;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+    }
+
+    .post-toc-mobile__label em {
+        margin-left: 0.35rem;
+        color: color-mix(in srgb, var(--text-color) 42%, transparent);
+        font-size: 0.54rem;
+        font-style: normal;
+        letter-spacing: 0.12em;
+    }
+
+    .post-toc-mobile__count {
+        margin-left: auto;
+        color: color-mix(in srgb, var(--text-color) 45%, transparent);
+        font-size: 0.62rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .post-toc-mobile summary :global(svg) {
+        color: color-mix(in srgb, var(--primary) 62%, transparent);
+    }
+
+    .post-toc-mobile[open] summary :global(svg) { transform: rotate(180deg); }
+
+    .post-toc-mobile ol {
+        margin: 0 0 0.8rem;
+        padding: 0.3rem 0 0;
+        border-top: 1px dashed color-mix(in srgb, var(--primary) 16%, transparent);
+        list-style: none;
+    }
+
+    .post-toc-mobile li a {
+        display: block;
+        padding: 0.4rem 0 0.4rem calc(0.2rem + var(--toc-indent, 0rem));
+        color: color-mix(in srgb, var(--text-color) 74%, transparent);
+        font-size: 0.8rem;
+        line-height: 1.65;
+        text-decoration: none;
+    }
+
+    .post-toc-mobile li + li a {
+        border-top: 1px dashed color-mix(in srgb, var(--primary) 9%, transparent);
+    }
+
+    .post-toc-mobile li a:hover { color: var(--primary); }
+
+    @media (min-width: 1536px) {
+        .post-toc-mobile { display: none; }
     }
 
     :global(.post-article-shell:not(.anime-theme) .markdown-content) {
@@ -430,6 +589,17 @@ const jsonLd = {
 		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.065);
 	}
 
+	:global(.dark .post-header-stamp) {
+		border-color: color-mix(in srgb, var(--primary) 42%, transparent);
+		background: color-mix(in srgb, var(--primary) 8%, rgb(46 37 40 / 0.94));
+		box-shadow: 0.16rem 0.2rem 0 rgb(0 0 0 / 0.28);
+	}
+
+	:global(.dark .post-toc-mobile) {
+		border-color: color-mix(in srgb, var(--primary) 24%, rgb(255 255 255 / 0.06));
+		background: color-mix(in srgb, var(--primary) 6%, rgb(46 37 40 / 0.82));
+	}
+
     :global(.dark .post-article-shell:not(.anime-theme) .markdown-content h2),
     :global(.dark .post-article-shell:not(.anime-theme) .article-description),
     :global(.dark .post-article-shell:not(.anime-theme) .markdown-content blockquote:not(.admonition)) {
@@ -488,6 +658,13 @@ const jsonLd = {
         .post-reading-stats > div { padding: 0.25rem 0.42rem; }
         .post-title { padding-right: 1rem; font-size: 1.65rem !important; line-height: 1.35 !important; }
         .post-header-heart { right: 0.75rem; bottom: 0.6rem; }
+        .post-header-stamp { top: 0.6rem; right: 0.75rem; width: 3.5rem; padding: 0.28rem 0.16rem 0.24rem; }
+        .post-header-stamp__top { font-size: 0.3rem; letter-spacing: 0.12em; }
+        .post-header-stamp__glyph { margin: 0.02rem 0; font-size: 0.56rem; }
+        .post-header-stamp__year { font-size: 0.76rem; }
+        .post-header-stamp__bottom { margin-top: 0.04rem; font-size: 0.2rem; letter-spacing: 0.14em; }
+        .post-toc-mobile { margin-top: -0.1rem; padding: 0 0.8rem; }
+        .post-toc-mobile li a { font-size: 0.78rem; }
         :global(#post-container) { padding: 1rem 0.9rem 0.75rem; }
         :global(.post-article-shell:not(.anime-theme) .article-description) { padding: 0.85rem 0.9rem 0.85rem 2.8rem; }
         :global(.post-article-shell:not(.anime-theme) .markdown-content) { font-size: 0.9rem; line-height: 1.85; }
