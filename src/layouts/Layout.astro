@@ -87,6 +87,26 @@ const bannerOffset =
 		</style>
 		<script is:inline>
 			(() => {
+				// 入场动画在 Layout 的 init() 之前一直保持暂停：那里初始化
+				// OverlayScrollbars 时会把 <body> 的子节点全部重新 append 一遍，
+				// 这会让所有正在播放的 CSS 动画被取消并从 0 重放（首屏动画看起来
+				// 就是"播到一半消失、再完整播一次"）。暂停中的动画停在 0% 帧，
+				// 和 backwards 填充的视觉完全一致，所以重新挂载时看不出跳变。
+				// DOMContentLoaded / load 只是兜底：layout 模块正常时 init() 会先
+				// 放行，这里就是空操作；万一模块没加载成功，也不至于让整页动画
+				// 一直冻在首帧。
+				document.documentElement.classList.add('enter-pending');
+				const releaseEntranceAnimations = () => {
+					document.documentElement.classList.remove('enter-pending');
+				};
+
+				if (document.readyState === 'loading') {
+					document.addEventListener('DOMContentLoaded', releaseEntranceAnimations, { once: true });
+					window.addEventListener('load', releaseEntranceAnimations, { once: true });
+				} else {
+					releaseEntranceAnimations();
+				}
+
 				const navigationEntry = performance.getEntriesByType('navigation')[0];
 				const isPageReload = navigationEntry?.type === 'reload';
 
@@ -553,8 +573,14 @@ function showBanner() {
 function init() {
 	loadTheme();
 	loadHue();
-	initCustomScrollbar();
-	showBanner();
+	try {
+		// 初始化滚动条会重排 <body> 的子节点（见布局 <head> 里的 enter-pending），
+		// 因此入场动画要等这一步结束后再放行，保证只完整播放一次。
+		initCustomScrollbar();
+		showBanner();
+	} finally {
+		document.documentElement.classList.remove('enter-pending');
+	}
 }
 
 /* Load settings when entering the site */
