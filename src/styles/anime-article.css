@@ -1,0 +1,2033 @@
+/* 番剧观后感（anime article）主题样式 —— 由 AnimeArticleHero.astro 引入 */
+
+.anime-theme {
+	--anime-sky: #6eb9ec;
+	--anime-deep: #173b60;
+	--anime-light: #c8efff;
+	--anime-warm: #ffd995;
+	--anime-rain-opacity: 0.2;
+	--anime-cloud-opacity: 0.65;
+	--anime-quote-icon: "☂";
+	isolation: isolate;
+	background:
+		linear-gradient(180deg, color-mix(in srgb, var(--anime-light) 13%, var(--glass-card)), var(--glass-card) 18rem),
+		var(--glass-card);
+	transition: background 800ms ease, box-shadow 800ms ease;
+}
+
+.anime-theme[data-anime-mood="sun"] {
+	--anime-sky: #70cfff;
+	--anime-deep: #245f87;
+	--anime-light: #e6f9ff;
+	--anime-warm: #ffe2a0;
+	--anime-rain-opacity: 0.05;
+	--anime-cloud-opacity: 0.25;
+}
+
+.anime-theme[data-anime-mood="cloud"] {
+	--anime-sky: #8faabd;
+	--anime-deep: #314c61;
+	--anime-light: #d7e2e8;
+	--anime-rain-opacity: 0.16;
+	--anime-cloud-opacity: 0.72;
+}
+
+.anime-theme[data-anime-mood="storm"] {
+	--anime-sky: #506f91;
+	--anime-deep: #182b47;
+	--anime-light: #b1cce0;
+	--anime-rain-opacity: 0.3;
+	--anime-cloud-opacity: 0.86;
+}
+
+.anime-theme[data-anime-mood="clear"],
+.anime-theme[data-anime-mood="sky"] {
+	--anime-sky: #78cef7;
+	--anime-deep: #285f87;
+	--anime-light: #e5f8ff;
+	--anime-warm: #ffda8b;
+	--anime-rain-opacity: 0.08;
+	--anime-cloud-opacity: 0.32;
+}
+
+.anime-theme[data-anime-mood="dawn"] {
+	--anime-sky: #9fcbed;
+	--anime-deep: #4e5f82;
+	--anime-light: #fff0dc;
+	--anime-warm: #ffbd9a;
+	--anime-rain-opacity: 0.08;
+	--anime-cloud-opacity: 0.35;
+}
+
+.anime-theme--k-on {
+	--anime-sky: #e98ca7;
+	--anime-deep: #70475c;
+	--anime-light: #fff0f4;
+	--anime-warm: #f5d38b;
+	--anime-rain-opacity: 0.12;
+	--anime-cloud-opacity: 0.46;
+	--anime-quote-icon: "♪";
+}
+
+.anime-theme--k-on[data-anime-mood="yui"] {
+	--anime-sky: #ef9b78;
+	--anime-deep: #76513f;
+	--anime-light: #fff2df;
+	--anime-warm: #ffd777;
+}
+
+.anime-theme--k-on[data-anime-mood="tea"] {
+	--anime-sky: #d89b74;
+	--anime-deep: #674b43;
+	--anime-light: #fff1dc;
+	--anime-warm: #efc77b;
+}
+
+.anime-theme--k-on[data-anime-mood="graduation"] {
+	--anime-sky: #e784aa;
+	--anime-deep: #6e435c;
+	--anime-light: #ffe9f2;
+	--anime-warm: #f5c4d9;
+}
+
+.anime-theme--k-on[data-anime-mood="fuwafuwa"] {
+	--anime-sky: #eea2be;
+	--anime-deep: #74516b;
+	--anime-light: #fff0f7;
+	--anime-warm: #f6d59f;
+}
+
+.anime-theme--k-on[data-anime-mood="band"] {
+	--anime-sky: #d86f87;
+	--anime-deep: #60394d;
+	--anime-light: #ffe7ed;
+	--anime-warm: #f3bf7d;
+}
+
+.anime-theme--k-on[data-anime-mood="memory"] {
+	--anime-sky: #b899ce;
+	--anime-deep: #5a4d76;
+	--anime-light: #f4efff;
+	--anime-warm: #f0cba3;
+}
+
+.anime-weather-layer {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	overflow: hidden;
+}
+
+.anime-weather-layer::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background:
+		radial-gradient(circle at 78% 4%, color-mix(in srgb, var(--anime-warm) 42%, transparent), transparent 17rem),
+		linear-gradient(160deg, color-mix(in srgb, var(--anime-sky) 17%, transparent), transparent 30rem);
+	opacity: 0.85;
+	transition: background 800ms ease;
+}
+
+.anime-weather-clouds {
+	position: absolute;
+	top: -8rem;
+	right: -10rem;
+	width: 34rem;
+	height: 22rem;
+	border-radius: 50%;
+	background:
+		radial-gradient(ellipse at 35% 50%, color-mix(in srgb, var(--anime-light) 50%, transparent), transparent 54%),
+		radial-gradient(ellipse at 70% 40%, color-mix(in srgb, var(--anime-sky) 30%, transparent), transparent 58%);
+	filter: blur(26px);
+	opacity: var(--anime-cloud-opacity);
+	transition: opacity 800ms ease, background 800ms ease;
+}
+
+.anime-weather-rain {
+	position: absolute;
+	inset: 0;
+	background-image: repeating-linear-gradient(
+		112deg,
+		transparent 0 28px,
+		rgba(153, 224, 255, 0.38) 29px,
+		transparent 31px 58px
+	);
+	background-size: 58px 74px;
+	opacity: var(--anime-rain-opacity);
+	animation: anime-rain-fall 18s linear infinite;
+	transition: opacity 800ms ease;
+}
+
+.anime-theme--k-on .anime-weather-layer::before {
+	background:
+		radial-gradient(circle at 16% 7%, rgba(255, 219, 139, 0.35), transparent 15rem),
+		radial-gradient(circle at 82% 12%, color-mix(in srgb, var(--anime-sky) 24%, transparent), transparent 20rem),
+		linear-gradient(160deg, color-mix(in srgb, var(--anime-light) 28%, transparent), transparent 32rem);
+}
+
+.anime-theme--k-on .anime-weather-clouds {
+	top: -9rem;
+	right: -5rem;
+	background:
+		radial-gradient(ellipse at 30% 48%, color-mix(in srgb, var(--anime-light) 72%, transparent), transparent 52%),
+		radial-gradient(ellipse at 72% 42%, color-mix(in srgb, var(--anime-sky) 24%, transparent), transparent 58%);
+	filter: blur(32px);
+}
+
+.anime-theme--k-on .anime-weather-rain {
+	background-image:
+		radial-gradient(ellipse at center, color-mix(in srgb, var(--anime-sky) 46%, transparent) 0 32%, transparent 36%),
+		radial-gradient(ellipse at center, color-mix(in srgb, var(--anime-warm) 34%, transparent) 0 30%, transparent 35%);
+	background-position: 0 0, 2.8rem 3.4rem;
+	background-size: 5.5rem 7.5rem, 7rem 9rem;
+	opacity: 0.18;
+	transform: rotate(-12deg) scale(1.15);
+	animation: k-on-petals-fall 24s linear infinite;
+}
+
+
+body:has(.anime-theme--k-on) .k-on-palette-bg {
+	background:
+		radial-gradient(circle at 78% 10%, rgba(255, 218, 143, 0.25), transparent 22rem),
+		radial-gradient(circle at 12% 30%, rgba(241, 154, 184, 0.2), transparent 25rem),
+		linear-gradient(145deg, #fff2e8 0%, #fff7f2 44%, #f7ebef 100%);
+}
+
+body:has(.anime-theme--k-on) .palette-blob--sakura {
+	background: rgba(238, 126, 164, 0.24);
+}
+
+body:has(.anime-theme--k-on) .palette-blob--azusa {
+	background: rgba(137, 91, 121, 0.14);
+}
+
+body:has(.anime-theme--k-on) .palette-blob--mio {
+	background: rgba(246, 193, 105, 0.18);
+}
+
+body:has(.anime-theme--k-on) .reading-track-bed {
+	background: rgba(187, 111, 139, 0.2);
+}
+
+body:has(.anime-theme--k-on) .reading-track-beats {
+	background: repeating-linear-gradient(90deg, transparent 0 2.2rem, rgba(224, 129, 162, 0.38) 2.2rem 2.27rem);
+}
+
+body:has(.anime-theme--k-on) .reading-track-fill {
+	background: linear-gradient(90deg, #d87a9b, #f0a9be 66%, #f3cb79);
+	box-shadow: 0 0 0.7rem rgba(221, 122, 157, 0.55);
+}
+
+body:has(.anime-theme--k-on) .reading-track-pick {
+	border-radius: 55% 45% 60% 40%;
+	background: #e98ca7;
+	box-shadow: 0 0.15rem 0.5rem rgba(186, 88, 124, 0.55);
+}
+
+body:has(.anime-theme--k-on) .reading-track-finish {
+	font-size: 0;
+}
+
+body:has(.anime-theme--k-on) .reading-track-finish::after {
+	content: "♪";
+	color: #d66f94;
+	font-size: 0.9rem;
+}
+
+:root.dark body:has(.anime-theme--k-on) .k-on-palette-bg {
+	background:
+		radial-gradient(circle at 76% 10%, rgba(244, 177, 109, 0.1), transparent 24rem),
+		linear-gradient(145deg, #251923 0%, #32212c 46%, #28212e 100%);
+}
+
+.anime-theme--weathering-with-you .k-on-record-player {
+	border-color: color-mix(in srgb, var(--anime-sky) 28%, var(--glass-border));
+	background:
+		linear-gradient(135deg, color-mix(in srgb, var(--anime-light) 42%, var(--glass-card)), color-mix(in srgb, var(--anime-sky) 12%, var(--glass-card))),
+		var(--glass-card);
+	box-shadow: 0 1rem 2.4rem color-mix(in srgb, var(--anime-deep) 12%, transparent);
+}
+
+.anime-theme--weathering-with-you .k-on-record-player__deck {
+	border-color: color-mix(in srgb, var(--anime-sky) 34%, transparent);
+	background:
+		linear-gradient(145deg, color-mix(in srgb, var(--anime-plate) 84%, #8edbff), color-mix(in srgb, var(--anime-plate) 92%, #061624));
+	box-shadow:
+		inset 0 1px rgba(255, 255, 255, 0.25),
+		0 0.65rem 1.25rem color-mix(in srgb, var(--anime-deep) 26%, transparent);
+}
+
+.anime-theme--weathering-with-you .k-on-record-player__tonearm {
+	background: linear-gradient(90deg, #eaf7ff, #92aec0 50%, #ffffff);
+}
+
+.anime-theme--weathering-with-you .k-on-record-player__tonearm::before {
+	border-color: #b9d2e2;
+	background: color-mix(in srgb, var(--anime-plate) 84%, #0a1d2c);
+}
+
+.anime-theme--weathering-with-you .k-on-record-player__tonearm span,
+.anime-theme--weathering-with-you .k-on-record-player__power,
+.anime-theme--weathering-with-you .k-on-record-player__eyebrow span {
+	background: var(--anime-sky);
+}
+
+.anime-theme--weathering-with-you .k-on-record-player__title {
+	color: color-mix(in srgb, var(--anime-deep) 82%, var(--text-strong));
+}
+
+.anime-theme--weathering-with-you .k-on-record-player audio {
+	accent-color: var(--anime-sky);
+}
+
+body:has(.anime-theme--weathering-with-you) .k-on-palette-bg {
+	background:
+		radial-gradient(circle at 78% 12%, rgba(255, 216, 142, 0.23), transparent 24rem),
+		linear-gradient(145deg, #d9f2ff 0%, #edf7fb 42%, #d9e9f5 100%);
+}
+
+body:has(.anime-theme--weathering-with-you) .palette-blob--sakura {
+	background: rgba(107, 200, 244, 0.24);
+}
+
+body:has(.anime-theme--weathering-with-you) .palette-blob--azusa {
+	background: rgba(53, 119, 173, 0.16);
+}
+
+body:has(.anime-theme--weathering-with-you) .palette-blob--mio {
+	background: rgba(255, 199, 135, 0.15);
+}
+
+body:has(.anime-theme--weathering-with-you) .reading-track-bed {
+	background: rgba(85, 145, 183, 0.2);
+}
+
+body:has(.anime-theme--weathering-with-you) .reading-track-beats {
+	background: repeating-linear-gradient(90deg, transparent 0 2.2rem, rgba(100, 190, 232, 0.42) 2.2rem 2.27rem);
+}
+
+body:has(.anime-theme--weathering-with-you) .reading-track-fill {
+	background: linear-gradient(90deg, #619fc9, #71d0f6 68%, #ffd488);
+	box-shadow: 0 0 0.7rem rgba(85, 191, 236, 0.62);
+}
+
+body:has(.anime-theme--weathering-with-you) .reading-track-pick {
+	border-radius: 55% 45% 60% 40%;
+	background: #73d5fa;
+	box-shadow: 0 0.15rem 0.5rem rgba(72, 176, 222, 0.65);
+}
+
+body:has(.anime-theme--weathering-with-you) .reading-track-finish {
+	font-size: 0;
+}
+
+body:has(.anime-theme--weathering-with-you) .reading-track-finish::after {
+	content: "☀";
+	color: #f5b95c;
+	font-size: 0.85rem;
+}
+
+:root.dark body:has(.anime-theme--weathering-with-you) .k-on-palette-bg {
+	background:
+		radial-gradient(circle at 76% 10%, rgba(255, 180, 100, 0.1), transparent 24rem),
+		linear-gradient(145deg, #0e1c2b 0%, #14283a 46%, #17212e 100%);
+}
+
+@keyframes anime-rain-fall {
+	to { background-position: 0 74rem; }
+}
+
+@keyframes k-on-petals-fall {
+	to { background-position: 0 60rem, 2.8rem 72rem; }
+}
+
+/* ==========================================================================
+   01. 底色与纸张：在原有 --anime-* 变量之上补充观后感专用的“场刊纸面”
+   ========================================================================== */
+
+.anime-theme {
+	--anime-ink: #12283f;
+	--anime-paper: #fdfaf4;
+	--anime-plate: var(--anime-deep);
+	--anime-paper-edge: color-mix(in srgb, var(--anime-deep) 13%, transparent);
+	--anime-serif: "Iowan Old Style", "Palatino Linotype", Georgia, "Times New Roman", serif;
+	--anime-parallax: 0px;
+}
+
+:root.dark .anime-theme {
+	--anime-ink: #eaf3fb;
+	--anime-paper: #131f2d;
+	--anime-deep: #9ecbe8;
+	--anime-plate: #14304a;
+	--anime-paper-edge: color-mix(in srgb, #a8d4f2 16%, transparent);
+}
+
+/* ==========================================================================
+   02. 主视觉：电影海报式的 Hero
+   ========================================================================== */
+
+.anime-hero {
+	position: relative;
+	isolation: isolate;
+	min-height: clamp(29rem, 62vh, 40rem);
+	margin: 0.35rem 0 1.5rem;
+	border: 1px solid color-mix(in srgb, var(--anime-light) 52%, transparent);
+	border-radius: 1.9rem;
+	overflow: hidden;
+	background: var(--anime-plate);
+	box-shadow:
+		0 2.2rem 4.4rem color-mix(in srgb, var(--anime-deep) 30%, transparent),
+		0 0 0 1px color-mix(in srgb, #fff 16%, transparent) inset;
+}
+
+.anime-hero__media {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+}
+
+/* 背景层：同一张封面放大模糊，像影院散场后的光晕 */
+.anime-hero__backdrop {
+	position: absolute;
+	inset: -7%;
+	z-index: 0;
+	overflow: hidden;
+	filter: blur(28px) saturate(1.18) brightness(0.86);
+	transform: scale(1.06);
+	animation: anime-bg-drift 38s ease-in-out infinite alternate;
+}
+
+@keyframes anime-bg-drift {
+	from {
+		transform: scale(1.06) translate3d(-0.8%, 0.6%, 0);
+	}
+
+	to {
+		transform: scale(1.12) translate3d(1%, -0.8%, 0);
+	}
+}
+
+.anime-hero__backdrop-image {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.anime-hero__backdrop img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center;
+}
+
+/* 铺底原图：只在窄屏使用 */
+.anime-hero__image {
+	position: absolute !important;
+	inset: 0;
+	display: none;
+	width: 100%;
+	height: 100%;
+}
+
+.anime-hero__image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: 58% 38%;
+	transform: translate3d(0, calc(var(--anime-parallax) * 0.3), 0) scale(1.06);
+	transition: transform 1s cubic-bezier(0.22, 0.61, 0.36, 1), filter 1.2s ease;
+	filter: saturate(1.05) contrast(1.02);
+}
+
+.anime-hero:hover .anime-hero__image img {
+	transform: translate3d(0, calc(var(--anime-parallax) * 0.3), 0) scale(1.095);
+}
+
+/* 逆光光束 */
+.anime-hero__rays {
+	position: absolute;
+	inset: -35% -12% -12%;
+	transform-origin: 78% 6%;
+	background: conic-gradient(
+		from 196deg at 78% 6%,
+		transparent 0deg,
+		rgba(255, 248, 222, 0.2) 7deg,
+		transparent 16deg,
+		transparent 34deg,
+		rgba(255, 246, 214, 0.13) 41deg,
+		transparent 52deg,
+		transparent 76deg,
+		rgba(255, 246, 214, 0.09) 83deg,
+		transparent 96deg,
+		transparent 150deg
+	);
+	mix-blend-mode: screen;
+	animation: anime-rays 24s ease-in-out infinite;
+	pointer-events: none;
+}
+
+/* 雨丝 / 花瓣 */
+.anime-hero__weather {
+	position: absolute;
+	inset: 0;
+	background:
+		repeating-linear-gradient(112deg, transparent 0 31px, rgba(214, 244, 255, 0.22) 32px, transparent 34px 64px),
+		radial-gradient(circle at 74% 16%, rgba(255, 232, 165, 0.32), transparent 17rem);
+	mix-blend-mode: screen;
+	opacity: 0.62;
+	animation: anime-hero-rain 14s linear infinite;
+	pointer-events: none;
+}
+
+/* 胶片颗粒 */
+.anime-hero__grain {
+	position: absolute;
+	inset: 0;
+	opacity: 0.15;
+	mix-blend-mode: overlay;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+	background-size: 140px 140px;
+	pointer-events: none;
+}
+
+.anime-hero__shade {
+	position: absolute;
+	inset: 0;
+	background:
+		linear-gradient(180deg, rgba(6, 20, 36, 0.34) 0%, rgba(6, 20, 36, 0.06) 24%, rgba(6, 18, 32, 0.42) 64%, rgba(5, 13, 25, 0.86) 100%),
+		linear-gradient(100deg, rgba(6, 18, 32, 0.86) 0%, rgba(6, 18, 32, 0.7) 32%, rgba(6, 18, 32, 0.3) 56%, rgba(6, 18, 32, 0.12) 74%, rgba(6, 18, 32, 0.24) 100%);
+}
+
+/* 右侧倾斜的照片卡（拍立得 / 场刊插页） */
+.anime-hero__plate {
+	position: absolute;
+	top: 50%;
+	right: clamp(1.5rem, 3vw, 2.6rem);
+	z-index: 4;
+	width: clamp(14rem, 34%, 21rem);
+	margin: 0;
+	padding: 0.5rem 0.5rem 0;
+	border-radius: 0.5rem;
+	background: linear-gradient(152deg, #fffdf6 0%, #f7efe2 62%, #efe4d3 100%);
+	box-shadow:
+		0 2rem 3.6rem rgba(3, 12, 24, 0.46),
+		0 0 0 1px rgba(255, 255, 255, 0.5),
+		0 0.35rem 0.9rem rgba(3, 12, 24, 0.18);
+	transform: translateY(-50%) rotate(-2.6deg);
+	transition:
+		transform 0.8s cubic-bezier(0.2, 0.7, 0.3, 1),
+		box-shadow 0.6s ease;
+}
+
+.anime-hero__plate:hover {
+	transform: translateY(-50%) rotate(-0.6deg) scale(1.015);
+	box-shadow:
+		0 2.4rem 4rem rgba(3, 12, 24, 0.5),
+		0 0 0 1px rgba(255, 255, 255, 0.6),
+		0 0.35rem 0.9rem rgba(3, 12, 24, 0.18);
+}
+
+/* 胶带 */
+.anime-hero__plate::before,
+.anime-hero__plate::after {
+	content: "";
+	position: absolute;
+	z-index: 2;
+	width: 4.2rem;
+	height: 1.15rem;
+	background: linear-gradient(135deg, rgba(255, 246, 226, 0.86), rgba(255, 213, 186, 0.62));
+	box-shadow: 0 1px 3px rgba(16, 26, 38, 0.16);
+	opacity: 0.95;
+	pointer-events: none;
+}
+
+.anime-hero__plate::before {
+	top: -0.6rem;
+	left: -0.75rem;
+	transform: rotate(-36deg);
+}
+
+.anime-hero__plate::after {
+	right: -0.75rem;
+	bottom: 2.5rem;
+	transform: rotate(-36deg);
+}
+
+.anime-hero__plate-photo {
+	position: relative;
+	display: block;
+	width: 100%;
+	aspect-ratio: 4 / 5;
+	overflow: hidden;
+	border-radius: 0.22rem;
+	background: color-mix(in srgb, var(--anime-sky) 26%, #0b1a2a);
+	box-shadow: inset 0 0 0 1px rgba(20, 40, 60, 0.14);
+}
+
+.anime-hero__plate-photo img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	transition: transform 1.2s cubic-bezier(0.2, 0.6, 0.3, 1);
+}
+
+.anime-hero__plate:hover .anime-hero__plate-photo img {
+	transform: scale(1.05);
+}
+
+.anime-hero__plate-caption {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding: 0.48rem 0.3rem 0.58rem;
+	color: #6a7887;
+	font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 0.48rem;
+	letter-spacing: 0.13em;
+	text-transform: uppercase;
+}
+
+.anime-hero__plate-caption em {
+	font-style: normal;
+	color: #9b6a74;
+	font-weight: 700;
+}
+
+/* 内嵌片框 */
+.anime-hero__frame {
+	position: absolute;
+	inset: 0.8rem;
+	border: 1px solid rgba(255, 255, 255, 0.26);
+	border-radius: 1.35rem;
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+	pointer-events: none;
+}
+
+.anime-hero__frame::before,
+.anime-hero__frame::after {
+	content: "";
+	position: absolute;
+	width: 2.2rem;
+	height: 2.2rem;
+	opacity: 0.55;
+}
+
+.anime-hero__frame::before {
+	top: 0.5rem;
+	left: 0.5rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.75);
+	border-left: 1px solid rgba(255, 255, 255, 0.75);
+	border-top-left-radius: 0.6rem;
+}
+
+.anime-hero__frame::after {
+	right: 0.5rem;
+	bottom: 0.5rem;
+	border-right: 1px solid rgba(255, 255, 255, 0.75);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.75);
+	border-bottom-right-radius: 0.6rem;
+}
+
+/* 光点 */
+.anime-hero__sparks {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+
+.anime-hero__sparks i {
+	position: absolute;
+	left: var(--x);
+	top: var(--y);
+	width: calc(3px * var(--s));
+	height: calc(3px * var(--s));
+	border-radius: 50%;
+	background: rgba(255, 250, 232, 0.95);
+	box-shadow: 0 0 0.6rem rgba(255, 240, 200, 0.9);
+	opacity: 0;
+	animation: anime-spark 8s ease-in-out infinite;
+	animation-delay: var(--d);
+}
+
+/* 竖排片名 */
+.anime-hero__rail {
+	position: absolute;
+	top: clamp(1.5rem, 2.6vw, 2.2rem);
+	left: clamp(1.5rem, 2.6vw, 2.2rem);
+	z-index: 2;
+	writing-mode: vertical-rl;
+	color: rgba(255, 255, 255, 0.96);
+	font-size: 0.78rem;
+	font-weight: 600;
+	letter-spacing: 0.4em;
+	text-shadow:
+		0 0 0.7rem rgba(3, 30, 55, 0.65),
+		0 1px 2px rgba(3, 30, 55, 0.75);
+	pointer-events: none;
+}
+
+.anime-hero__rail > * {
+	display: block;
+}
+
+.anime-hero__rail-line {
+	width: 1px;
+	height: 3.2rem;
+	margin: 0.85rem 0;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), transparent);
+}
+
+.anime-hero__rail-en {
+	font-size: 0.54rem;
+	letter-spacing: 0.3em;
+	opacity: 0.62;
+}
+
+/* 正文信息 */
+.anime-hero__content {
+	position: absolute;
+	left: 0;
+	right: 40%;
+	bottom: 0;
+	z-index: 3;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	max-width: 36rem;
+	padding: clamp(1.35rem, 2.4vw, 2.1rem) clamp(1.2rem, 2vw, 1.8rem) clamp(1.6rem, 2.6vw, 2.3rem)
+		clamp(1.6rem, 3vw, 2.6rem);
+	color: white;
+}
+
+.anime-hero__content > * {
+	animation: anime-rise 0.9s cubic-bezier(0.2, 0.65, 0.3, 1) both;
+}
+
+.anime-hero__content > :nth-child(1) { animation-delay: 0.05s; }
+.anime-hero__content > :nth-child(2) { animation-delay: 0.14s; }
+.anime-hero__content > :nth-child(3) { animation-delay: 0.23s; }
+.anime-hero__content > :nth-child(4) { animation-delay: 0.32s; }
+.anime-hero__content > :nth-child(5) { animation-delay: 0.41s; }
+
+.anime-hero__badges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.anime-hero__badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.42rem;
+	padding: 0.36rem 0.72rem;
+	border: 1px solid rgba(255, 255, 255, 0.26);
+	border-radius: 999px;
+	background: rgba(8, 24, 40, 0.34);
+	backdrop-filter: blur(10px);
+	color: rgba(238, 249, 255, 0.92);
+	font-size: 0.63rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+}
+
+.anime-hero__badge--primary {
+	border-color: rgba(160, 226, 255, 0.52);
+	background: linear-gradient(120deg, rgba(72, 168, 224, 0.52), rgba(30, 92, 146, 0.34));
+}
+
+.anime-hero__badge-dot {
+	width: 0.34rem;
+	height: 0.34rem;
+	border-radius: 50%;
+	background: #9ce8ff;
+	box-shadow: 0 0 0.55rem #9ce8ff;
+	animation: anime-pulse 2.6s ease-in-out infinite;
+}
+
+.anime-hero__eyebrow {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.55rem;
+	margin-top: 1.15rem;
+	color: rgba(216, 241, 255, 0.84);
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.24em;
+	text-transform: uppercase;
+}
+
+.anime-hero__eyebrow-rule {
+	width: 2rem;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8));
+}
+
+.anime-hero__eyebrow-sep {
+	opacity: 0.45;
+	letter-spacing: 0;
+}
+
+.anime-hero__title {
+	max-width: min(100%, 40rem);
+	margin: 0.6rem 0 0;
+	color: #fff;
+	font-size: clamp(1.6rem, 3.05vw, 2.6rem);
+	font-weight: 700;
+	line-height: 1.34;
+	letter-spacing: 0.004em;
+	text-wrap: balance;
+	text-shadow: 0 0.12rem 0.9rem rgba(3, 12, 24, 0.55);
+}
+
+.anime-hero__description {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 3;
+	overflow: hidden;
+	max-width: 33rem;
+	margin: 0.85rem 0 0;
+	color: rgba(224, 240, 252, 0.82);
+	font-size: 0.88rem;
+	line-height: 1.85;
+	letter-spacing: 0.012em;
+	text-wrap: balance;
+}
+
+.anime-hero__reading-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem 1.1rem;
+	width: min(100%, 30rem);
+	margin-top: 1.1rem;
+	padding-top: 0.85rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.16);
+	color: rgba(226, 242, 255, 0.72);
+	font-size: 0.7rem;
+	letter-spacing: 0.1em;
+}
+
+.anime-hero__title-lead {
+	display: block;
+	text-wrap: balance;
+}
+
+.anime-hero__title-tail {
+	display: block;
+	margin-top: 0.55rem;
+	color: color-mix(in srgb, #eaf6ff 92%, transparent);
+	font-size: 0.56em;
+	font-weight: 600;
+	line-height: 1.5;
+	letter-spacing: 0.005em;
+	text-wrap: balance;
+}
+
+.anime-hero__reading-meta span {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.32rem;
+}
+
+.anime-hero__reading-meta svg {
+	width: 0.95rem;
+	height: 0.95rem;
+	opacity: 0.72;
+}
+
+/* 朱印：贴在照片卡左下角 */
+.anime-hero__seal {
+	position: absolute;
+	left: -1.05rem;
+	bottom: 2.9rem;
+	z-index: 5;
+	display: grid;
+	justify-items: center;
+	gap: 0.14rem;
+	padding: 0.4rem 0.36rem 0.26rem;
+	border-radius: 0.42rem;
+	background: linear-gradient(150deg, rgba(201, 62, 49, 0.94), rgba(158, 36, 30, 0.94));
+	color: #fff6ec;
+	box-shadow:
+		inset 0 0 0 2px rgba(255, 246, 235, 0.82),
+		0 0.6rem 1.4rem rgba(60, 10, 8, 0.32);
+	transform: rotate(-6deg);
+	transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.anime-hero__seal:hover {
+	transform: rotate(-2deg) scale(1.04);
+}
+
+.anime-hero__seal-text {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 0.02rem 0.08rem;
+}
+
+.anime-hero__seal-text i {
+	font-style: normal;
+	font-size: 0.92rem;
+	font-weight: 700;
+	line-height: 1.14;
+}
+
+.anime-hero__seal-sub {
+	font-size: 0.4rem;
+	letter-spacing: 0.2em;
+	opacity: 0.82;
+}
+
+/* K-ON 版：柔粉与放学后的暖光 */
+.anime-theme--k-on .anime-hero {
+	border-color: rgba(255, 235, 218, 0.6);
+	background: #70475c;
+	box-shadow:
+		0 2.2rem 4.4rem rgba(104, 60, 76, 0.26),
+		0 0 0 1px rgba(255, 244, 235, 0.2) inset;
+}
+
+.anime-theme--k-on .anime-hero__rays {
+	background: conic-gradient(
+		from 196deg at 80% 8%,
+		transparent 0deg,
+		rgba(255, 226, 178, 0.22) 8deg,
+		transparent 18deg,
+		transparent 40deg,
+		rgba(255, 226, 178, 0.14) 47deg,
+		transparent 58deg,
+		transparent 120deg
+	);
+}
+
+.anime-theme--k-on .anime-hero__weather {
+	background:
+		radial-gradient(ellipse at center, rgba(255, 214, 228, 0.5) 0 32%, transparent 36%),
+		radial-gradient(ellipse at center, rgba(255, 232, 178, 0.36) 0 30%, transparent 35%);
+	background-position: 0 0, 2.8rem 3.4rem;
+	background-size: 5.5rem 7.5rem, 7rem 9rem;
+	opacity: 0.24;
+	mix-blend-mode: normal;
+	animation: k-on-petals-fall 26s linear infinite;
+}
+
+.anime-theme--k-on .anime-hero__shade {
+	background:
+		linear-gradient(180deg, rgba(46, 20, 30, 0.3) 0%, rgba(46, 20, 30, 0.04) 24%, rgba(52, 22, 34, 0.42) 64%, rgba(34, 12, 22, 0.86) 100%),
+		linear-gradient(100deg, rgba(44, 18, 28, 0.84) 0%, rgba(44, 18, 28, 0.66) 32%, rgba(44, 18, 28, 0.28) 56%, rgba(44, 18, 28, 0.1) 74%, rgba(44, 18, 28, 0.22) 100%);
+}
+
+.anime-theme--k-on .anime-hero__badge--primary {
+	border-color: rgba(255, 208, 226, 0.55);
+	background: linear-gradient(120deg, rgba(226, 122, 158, 0.5), rgba(150, 70, 104, 0.32));
+}
+
+.anime-theme--k-on .anime-hero__plate::before,
+.anime-theme--k-on .anime-hero__plate::after {
+	background: linear-gradient(135deg, rgba(255, 240, 246, 0.9), rgba(255, 184, 208, 0.58));
+}
+
+.anime-theme--k-on .anime-hero__plate-caption {
+	color: #7d6a72;
+}
+
+.anime-theme--k-on .anime-hero__badge-dot {
+	background: #ffd9e7;
+	box-shadow: 0 0 0.55rem #ffd9e7;
+}
+
+.anime-theme--k-on .anime-hero__seal {
+	background: linear-gradient(150deg, rgba(214, 92, 138, 0.94), rgba(160, 52, 96, 0.94));
+}
+
+.anime-theme--k-on .anime-hero__sparks i {
+	background: rgba(255, 236, 214, 0.95);
+	box-shadow: 0 0 0.6rem rgba(255, 214, 198, 0.9);
+}
+
+@keyframes anime-rise {
+	from {
+		opacity: 0;
+		transform: translate3d(0, 1.1rem, 0);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes anime-rays {
+	0%, 100% { opacity: 0.5; transform: rotate(-1.4deg) scale(1); }
+	50% { opacity: 0.88; transform: rotate(1.4deg) scale(1.04); }
+}
+
+@keyframes anime-hero-rain {
+	to { background-position: 0 34rem, 0 0; }
+}
+
+@keyframes anime-spark {
+	0%, 100% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.6); }
+	18% { opacity: 0.9; }
+	45% { opacity: 0.6; transform: translate3d(0, -1.4rem, 0) scale(1); }
+	70% { opacity: 0; transform: translate3d(0, -2.8rem, 0) scale(0.7); }
+}
+
+@keyframes anime-pulse {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50% { opacity: 0.45; transform: scale(0.72); }
+}
+
+/* ==========================================================================
+   03. 作品档案：场刊式档案卡（时间线 + 资料格 + 金句条）
+   ========================================================================== */
+
+.anime-dossier {
+	position: relative;
+	isolation: isolate;
+	margin: 0 0 1.5rem;
+	padding: clamp(1.15rem, 2.2vw, 1.7rem) clamp(1.2rem, 2.4vw, 1.9rem) 1rem;
+	border: 1px solid var(--anime-paper-edge);
+	border-radius: 1.5rem;
+	background:
+		radial-gradient(circle at 10% -10%, color-mix(in srgb, var(--anime-sky) 16%, transparent), transparent 22rem),
+		radial-gradient(circle at 94% 6%, color-mix(in srgb, var(--anime-warm) 20%, transparent), transparent 16rem),
+		var(--anime-paper);
+	box-shadow:
+		0 1.2rem 2.4rem color-mix(in srgb, var(--anime-deep) 10%, transparent),
+		0 1px 0 rgba(255, 255, 255, 0.6) inset;
+	overflow: hidden;
+}
+
+.anime-dossier::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	background-image: radial-gradient(color-mix(in srgb, var(--anime-deep) 26%, transparent) 0.5px, transparent 0.6px);
+	background-size: 14px 14px;
+	opacity: 0.14;
+	pointer-events: none;
+}
+
+.anime-dossier__head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	padding-bottom: 0.9rem;
+	border-bottom: 1px solid color-mix(in srgb, var(--anime-deep) 12%, transparent);
+}
+
+.anime-dossier__kicker {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.42rem;
+	color: color-mix(in srgb, var(--anime-deep) 54%, transparent);
+	font-size: 0.6rem;
+	font-weight: 700;
+	letter-spacing: 0.26em;
+}
+
+.anime-dossier__kicker span {
+	color: color-mix(in srgb, var(--anime-sky) 82%, var(--anime-deep));
+	font-size: 0.68rem;
+}
+
+.anime-dossier__titleblock h2 {
+	margin: 0.35rem 0 0;
+	color: var(--anime-ink);
+	font-size: 1.14rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	line-height: 1.3;
+}
+
+.anime-dossier__headmeta {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 0.7rem;
+	padding-top: 0.35rem;
+}
+
+.anime-dossier__barcode {
+	width: 3.4rem;
+	height: 1rem;
+	color: color-mix(in srgb, var(--anime-deep) 62%, transparent);
+	opacity: 0.55;
+	background: repeating-linear-gradient(
+		90deg,
+		currentColor 0 1px,
+		transparent 1px 3px,
+		currentColor 3px 5px,
+		transparent 5px 6px,
+		currentColor 6px 7px,
+		transparent 7px 10px
+	);
+}
+
+.anime-dossier__code {
+	color: color-mix(in srgb, var(--anime-deep) 42%, transparent);
+	font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 0.55rem;
+	letter-spacing: 0.16em;
+}
+
+.anime-dossier__status {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.28rem 0.62rem;
+	border: 1px solid color-mix(in srgb, var(--anime-sky) 46%, transparent);
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--anime-sky) 12%, transparent);
+	color: color-mix(in srgb, var(--anime-deep) 76%, transparent);
+	font-size: 0.56rem;
+	font-weight: 700;
+	letter-spacing: 0.18em;
+}
+
+.anime-dossier__status i {
+	width: 0.32rem;
+	height: 0.32rem;
+	border-radius: 50%;
+	background: var(--anime-sky);
+	box-shadow: 0 0 0.45rem var(--anime-sky);
+	animation: anime-pulse 2.6s ease-in-out infinite;
+}
+
+.anime-dossier__body {
+	display: grid;
+	grid-template-columns: minmax(8.5rem, 10.5rem) minmax(0, 1fr);
+	gap: clamp(1rem, 2.4vw, 2rem);
+	padding: 1.15rem 0 0.2rem;
+}
+
+/* 观看时间线 */
+.anime-timeline {
+	position: relative;
+	display: grid;
+	gap: 1.05rem;
+	margin: 0;
+	padding: 0.15rem 0 0.15rem 1.05rem;
+	list-style: none;
+}
+
+.anime-timeline::before {
+	content: "";
+	position: absolute;
+	left: 0.26rem;
+	top: 0.85rem;
+	bottom: 0.85rem;
+	width: 1px;
+	background: linear-gradient(
+		180deg,
+		color-mix(in srgb, var(--anime-sky) 65%, transparent),
+		color-mix(in srgb, var(--anime-warm) 80%, transparent)
+	);
+}
+
+.anime-timeline__item {
+	position: relative;
+	display: grid;
+	gap: 0.05rem;
+}
+
+.anime-timeline__dot {
+	position: absolute;
+	left: -1.05rem;
+	top: 0.42rem;
+	width: 0.55rem;
+	height: 0.55rem;
+	border: 1.5px solid color-mix(in srgb, var(--anime-sky) 80%, transparent);
+	border-radius: 50%;
+	background: var(--anime-paper);
+	transform: translateX(-0.14rem);
+}
+
+.anime-timeline__item.is-current .anime-timeline__dot {
+	border-color: color-mix(in srgb, var(--anime-warm) 88%, var(--anime-deep));
+	background: color-mix(in srgb, var(--anime-warm) 92%, white);
+	box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--anime-warm) 22%, transparent);
+}
+
+.anime-timeline__label {
+	color: color-mix(in srgb, var(--anime-deep) 54%, transparent);
+	font-size: 0.62rem;
+	font-weight: 700;
+	letter-spacing: 0.22em;
+}
+
+.anime-timeline__date {
+	color: var(--anime-ink);
+	font-size: 0.86rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+}
+
+/* 资料格 */
+.anime-dossier__facts {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0;
+	margin: 0;
+	padding-top: 0.15rem;
+}
+
+.anime-fact {
+	display: grid;
+	align-content: start;
+	gap: 0.22rem;
+	padding: 0.3rem 0.9rem 0.3rem 1.05rem;
+	border-left: 1px dashed color-mix(in srgb, var(--anime-deep) 16%, transparent);
+}
+
+.anime-fact:first-child {
+	padding-left: 0;
+	border-left: 0;
+}
+
+.anime-fact dt {
+	display: flex;
+	align-items: center;
+	gap: 0.36rem;
+	color: color-mix(in srgb, var(--anime-deep) 50%, transparent);
+	font-size: 0.63rem;
+	font-weight: 700;
+	letter-spacing: 0.2em;
+}
+
+.anime-fact__icon {
+	display: inline-flex;
+	color: color-mix(in srgb, var(--anime-sky) 84%, var(--anime-deep));
+}
+
+.anime-fact__icon svg {
+	width: 0.9rem;
+	height: 0.9rem;
+}
+
+.anime-fact dd {
+	margin: 0;
+	color: var(--anime-ink);
+	font-size: 0.9rem;
+	font-weight: 700;
+	letter-spacing: 0.01em;
+	overflow-wrap: anywhere;
+}
+
+/* 金句条 */
+.anime-dossier__quote {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 0.8rem;
+	margin: 0.55rem 0 0;
+	padding: 0.85rem 1.05rem;
+	border: 1px solid color-mix(in srgb, var(--anime-warm) 42%, transparent);
+	border-radius: 0.95rem;
+	background:
+		linear-gradient(105deg, color-mix(in srgb, var(--anime-warm) 20%, transparent), color-mix(in srgb, var(--anime-sky) 8%, transparent)),
+		color-mix(in srgb, var(--anime-paper) 88%, white);
+}
+
+.anime-dossier__quote-mark {
+	color: color-mix(in srgb, var(--anime-warm) 78%, var(--anime-deep));
+	font-family: var(--anime-serif);
+	font-size: 2.5rem;
+	line-height: 0.7;
+	opacity: 0.55;
+	transform: translateY(0.5rem);
+}
+
+.anime-dossier__quote-label {
+	color: color-mix(in srgb, var(--anime-deep) 46%, transparent);
+	font-size: 0.54rem;
+	font-weight: 700;
+	letter-spacing: 0.26em;
+}
+
+.anime-dossier__quote-body p {
+	margin: 0.18rem 0 0;
+	color: var(--anime-ink);
+	font-size: 0.94rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	line-height: 1.6;
+}
+
+.anime-dossier__quote-seal {
+	margin-left: auto;
+	padding-left: 0.6rem;
+	color: color-mix(in srgb, var(--anime-deep) 34%, transparent);
+	font-size: 0.56rem;
+	letter-spacing: 0.3em;
+	writing-mode: vertical-rl;
+}
+
+.anime-theme--k-on .anime-dossier__quote {
+	border-color: color-mix(in srgb, var(--anime-sky) 42%, transparent);
+	background:
+		linear-gradient(105deg, color-mix(in srgb, var(--anime-sky) 16%, transparent), color-mix(in srgb, var(--anime-warm) 12%, transparent)),
+		color-mix(in srgb, var(--anime-paper) 88%, white);
+}
+
+:root.dark .anime-dossier {
+	background:
+		radial-gradient(circle at 10% -10%, color-mix(in srgb, var(--anime-sky) 14%, transparent), transparent 22rem),
+		radial-gradient(circle at 94% 6%, color-mix(in srgb, var(--anime-warm) 12%, transparent), transparent 16rem),
+		var(--anime-paper);
+	box-shadow: 0 1.2rem 2.4rem rgba(0, 0, 0, 0.35);
+}
+
+:root.dark .anime-dossier__quote {
+	background:
+		linear-gradient(105deg, color-mix(in srgb, var(--anime-warm) 12%, transparent), color-mix(in srgb, var(--anime-sky) 8%, transparent)),
+		color-mix(in srgb, var(--anime-paper) 90%, black);
+}
+
+/* ==========================================================================
+   04. 正文排版：章扉 / 剧照画框 / 独白金句 / 列表
+   ========================================================================== */
+
+.anime-theme .markdown-content {
+	counter-reset: anime-chapter anime-still;
+	color: color-mix(in srgb, var(--anime-ink) 94%, transparent);
+	font-size: 1.04rem;
+	line-height: 1.95;
+	letter-spacing: 0.012em;
+}
+
+/* prose 默认把正文压到 76% 透明度，暗色下会发灰，这里统一拉回 */
+.anime-theme .markdown-content > section,
+.anime-theme .markdown-content > section > p,
+.anime-theme .markdown-content > section li,
+.anime-theme .markdown-content > section td {
+	color: color-mix(in srgb, var(--anime-ink) 96%, transparent);
+}
+
+:root.dark .anime-theme .markdown-content > section,
+:root.dark .anime-theme .markdown-content > section > p,
+:root.dark .anime-theme .markdown-content > section li {
+	color: var(--anime-ink);
+}
+
+.anime-theme .markdown-content > section > p {
+	margin: 1.1em 0;
+	text-wrap: pretty;
+}
+
+.anime-theme .markdown-content > section > p:first-of-type {
+	margin-top: 0.2em;
+}
+
+/* —— 章扉 —— */
+.anime-theme .markdown-content h1 {
+	position: relative;
+	margin: 3.4rem 0 1.4rem;
+	padding: 1.5rem 0 0.95rem 4.15rem;
+	border-bottom: 1px solid color-mix(in srgb, var(--anime-deep) 15%, transparent);
+	color: var(--anime-ink);
+	font-size: clamp(1.3rem, 1.9vw, 1.58rem);
+	font-weight: 700;
+	line-height: 1.45;
+	letter-spacing: 0.035em;
+	counter-increment: anime-chapter;
+	text-wrap: balance;
+}
+
+.anime-theme .markdown-content h1:first-of-type {
+	margin-top: 2rem;
+}
+
+.anime-theme .markdown-content h1::after {
+	content: "CHAPTER " counter(anime-chapter, decimal-leading-zero) " · " attr(data-anime-mood);
+	position: absolute;
+	top: 0;
+	left: 4.15rem;
+	color: color-mix(in srgb, var(--anime-sky) 58%, var(--anime-deep));
+	font-size: 0.56rem;
+	font-weight: 700;
+	letter-spacing: 0.3em;
+	text-transform: uppercase;
+}
+
+.anime-theme .markdown-content h1::before {
+	content: attr(data-anime-icon);
+	position: absolute;
+	left: 0;
+	top: 1.15rem;
+	display: grid;
+	place-items: center;
+	width: 3rem;
+	height: 3rem;
+	border-radius: 50%;
+	color: color-mix(in srgb, var(--anime-plate) 82%, white);
+	font-size: 1.28rem;
+	font-weight: 400;
+	line-height: 1;
+	background:
+		radial-gradient(circle at 32% 26%, #fff 0%, color-mix(in srgb, var(--anime-light) 86%, white) 46%, color-mix(in srgb, var(--anime-sky) 36%, white) 100%);
+	box-shadow:
+		0 0 0 1px color-mix(in srgb, var(--anime-sky) 38%, transparent),
+		0 0.5rem 1.1rem color-mix(in srgb, var(--anime-deep) 14%, transparent);
+	transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.3, 1), box-shadow 0.6s ease;
+}
+
+.anime-theme .markdown-content h1:hover::before {
+	transform: rotate(-8deg) scale(1.06);
+	box-shadow:
+		0 0 0 1px color-mix(in srgb, var(--anime-sky) 55%, transparent),
+		0 0.7rem 1.5rem color-mix(in srgb, var(--anime-deep) 20%, transparent);
+}
+
+/* 章扉右侧的细装饰线 */
+.anime-theme .markdown-content h1 > .anchor {
+	position: relative;
+	z-index: 2;
+}
+
+/* —— 小节 —— */
+.anime-theme .markdown-content h2 {
+	position: relative;
+	margin: 2.3rem 0 0.9rem;
+	padding-left: 1.45rem;
+	color: color-mix(in srgb, var(--anime-ink) 94%, transparent);
+	font-size: 1.12rem;
+	font-weight: 700;
+	line-height: 1.6;
+	letter-spacing: 0.03em;
+}
+
+.anime-theme .markdown-content h2::before {
+	content: "";
+	position: absolute;
+	left: 0.16rem;
+	top: 0.62rem;
+	width: 0.58rem;
+	height: 0.58rem;
+	border-radius: 0.12rem;
+	background: linear-gradient(135deg, var(--anime-sky), var(--anime-warm));
+	transform: rotate(45deg);
+}
+
+/* —— 剧照画框 —— */
+.anime-theme .markdown-content > section > p:has(> img:only-child) {
+	position: relative;
+	margin: 2.2rem 0;
+	padding: 0.55rem 0.55rem 0;
+	border: 1px solid color-mix(in srgb, var(--anime-deep) 11%, transparent);
+	border-radius: 1rem;
+	background: color-mix(in srgb, var(--anime-paper) 94%, white);
+	box-shadow:
+		0 1.5rem 2.8rem color-mix(in srgb, var(--anime-deep) 12%, transparent),
+		0 1px 0 rgba(255, 255, 255, 0.7) inset;
+	counter-increment: anime-still;
+	transition: transform 0.55s cubic-bezier(0.2, 0.7, 0.3, 1), box-shadow 0.55s ease;
+}
+
+.anime-theme .markdown-content > section > p:has(> img:only-child) > img {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: 0.6rem;
+}
+
+.anime-theme .markdown-content > section > p:has(> img:only-child)::after {
+	content: "STILL " counter(anime-still, decimal-leading-zero) " ／ フレーム";
+	display: block;
+	padding: 0.62rem 0.2rem 0.72rem;
+	color: color-mix(in srgb, var(--anime-deep) 42%, transparent);
+	font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 0.55rem;
+	letter-spacing: 0.24em;
+	text-align: right;
+}
+
+.anime-theme .markdown-content > section > p:has(> img:only-child):hover {
+	transform: translateY(-0.2rem);
+	box-shadow:
+		0 2rem 3.4rem color-mix(in srgb, var(--anime-deep) 17%, transparent),
+		0 1px 0 rgba(255, 255, 255, 0.7) inset;
+}
+
+/* —— 独白金句 —— */
+.anime-theme .markdown-content > section > p:has(> strong:only-child) {
+	position: relative;
+	margin: 1.65rem 0;
+	padding: 0.28rem 1.2rem 0.3rem 1.15rem;
+	border-left: 2px solid color-mix(in srgb, var(--anime-sky) 80%, transparent);
+	border-radius: 0 0.7rem 0.7rem 0;
+	background: linear-gradient(100deg, color-mix(in srgb, var(--anime-sky) 12%, transparent), transparent 74%);
+	color: color-mix(in srgb, var(--anime-deep) 90%, black);
+	font-size: 1.05rem;
+	font-weight: 700;
+	line-height: 1.95;
+	letter-spacing: 0.02em;
+	transition: background 0.5s ease, border-color 0.5s ease, transform 0.5s ease;
+}
+
+.anime-theme .markdown-content > section > p:has(> strong:only-child) strong {
+	background: none;
+}
+
+.anime-theme .markdown-content > section > p:has(> strong:only-child)::after {
+	content: var(--anime-quote-icon);
+	position: absolute;
+	top: -0.6rem;
+	right: 0.75rem;
+	color: color-mix(in srgb, var(--anime-sky) 70%, transparent);
+	font-size: 1.05rem;
+	opacity: 0.34;
+	pointer-events: none;
+}
+
+.anime-theme .markdown-content > section > p:has(> strong:only-child):hover {
+	transform: translateX(0.22rem);
+	background: linear-gradient(100deg, color-mix(in srgb, var(--anime-sky) 18%, transparent), transparent 78%);
+	border-left-color: color-mix(in srgb, var(--anime-warm) 88%, var(--anime-sky));
+}
+
+.anime-theme .markdown-content > section > p:has(> strong:only-child) + p:has(> strong:only-child) {
+	margin-top: 0.55rem;
+}
+
+/* 段落内强调：暖色荧光笔 */
+.anime-theme .markdown-content > section > p strong {
+	color: color-mix(in srgb, var(--anime-deep) 88%, black);
+	font-weight: 700;
+	background: linear-gradient(180deg, transparent 60%, color-mix(in srgb, var(--anime-warm) 48%, transparent) 60%, color-mix(in srgb, var(--anime-warm) 48%, transparent) 92%, transparent 92%);
+}
+
+/* —— 列表 / 引用 —— */
+.anime-theme .markdown-content > section > ul,
+.anime-theme .markdown-content > section > ol {
+	display: grid;
+	gap: 0.4rem;
+	margin: 1.25rem 0;
+	padding-left: 1.15rem;
+}
+
+.anime-theme .markdown-content > section li {
+	line-height: 1.95;
+}
+
+.anime-theme .markdown-content > section > ul li::marker {
+	color: color-mix(in srgb, var(--anime-sky) 82%, var(--anime-deep));
+}
+
+.anime-theme .markdown-content > section > blockquote {
+	margin: 1.6rem 0;
+	padding: 0.9rem 1.1rem;
+	border-left: 2px solid color-mix(in srgb, var(--anime-sky) 60%, transparent);
+	border-radius: 0 0.8rem 0.8rem 0;
+	background: color-mix(in srgb, var(--anime-sky) 7%, transparent);
+	color: color-mix(in srgb, var(--anime-ink) 82%, transparent);
+	font-style: normal;
+}
+
+.anime-theme .markdown-content > section > blockquote p {
+	margin: 0.3em 0;
+}
+
+/* K-ON 版：正文里的粉色点缀 */
+.anime-theme--k-on .markdown-content > section > p:has(> strong:only-child) {
+	border-left-color: color-mix(in srgb, var(--anime-sky) 76%, transparent);
+	background: linear-gradient(100deg, color-mix(in srgb, var(--anime-sky) 13%, transparent), transparent 74%);
+}
+
+.anime-theme--k-on .markdown-content > section > p strong {
+	background: linear-gradient(180deg, transparent 60%, color-mix(in srgb, var(--anime-sky) 34%, transparent) 60%, color-mix(in srgb, var(--anime-sky) 34%, transparent) 92%, transparent 92%);
+}
+
+:root.dark .anime-theme .markdown-content {
+	color: color-mix(in srgb, var(--anime-ink) 76%, transparent);
+}
+
+:root.dark .anime-theme .markdown-content > section > p:has(> strong:only-child) {
+	color: color-mix(in srgb, var(--anime-ink) 95%, transparent);
+	background: linear-gradient(100deg, color-mix(in srgb, var(--anime-sky) 16%, transparent), transparent 74%);
+}
+
+:root.dark .anime-theme .markdown-content > section > p:has(> img:only-child) {
+	background: color-mix(in srgb, var(--anime-paper) 88%, white 4%);
+	box-shadow: 0 1.5rem 2.8rem rgba(0, 0, 0, 0.35);
+}
+
+:root.dark .anime-theme .markdown-content h1::before {
+	box-shadow:
+		0 0 0 1px color-mix(in srgb, var(--anime-sky) 30%, transparent),
+		0 0.5rem 1.2rem rgba(0, 0, 0, 0.4);
+}
+
+/* ==========================================================================
+   05. 片尾：FIN 结束卡（与片头海报呼应的一张暗色字幕卡）
+   ========================================================================== */
+
+.anime-fin {
+	position: relative;
+	isolation: isolate;
+	margin: 2.9rem 0 1.4rem;
+	padding: clamp(1.9rem, 3.6vw, 2.6rem) clamp(1.6rem, 3vw, 2.1rem) clamp(1.5rem, 3vw, 1.95rem);
+	border-radius: 1.3rem;
+	background:
+		radial-gradient(120% 92% at 50% -20%, rgba(126, 200, 255, 0.3), transparent 62%),
+		linear-gradient(170deg, #16324c 0%, #0b1a2a 62%, #071320 100%);
+	color: #eaf5ff;
+	text-align: center;
+	overflow: hidden;
+	box-shadow:
+		0 1.7rem 3.6rem rgba(8, 26, 44, 0.22),
+		inset 0 0 0 1px rgba(180, 222, 255, 0.13);
+}
+
+/* 胶片齿孔 */
+.anime-fin__perf {
+	position: absolute;
+	inset: 0.6rem 0.42rem;
+	background-image:
+		repeating-linear-gradient(180deg, rgba(224, 244, 255, 0.17) 0 0.32rem, transparent 0.32rem 1rem),
+		repeating-linear-gradient(180deg, rgba(224, 244, 255, 0.17) 0 0.32rem, transparent 0.32rem 1rem);
+	background-repeat: no-repeat;
+	background-position: left top, right top;
+	background-size: 0.4rem 100%, 0.4rem 100%;
+	pointer-events: none;
+}
+
+/* 斜向雨光 */
+.anime-fin::before {
+	content: "";
+	position: absolute;
+	inset: -20% -10% auto;
+	height: 130%;
+	background: repeating-linear-gradient(
+		76deg,
+		rgba(198, 232, 255, 0.055) 0 1px,
+		transparent 1px 9px
+	);
+	mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 68%);
+	pointer-events: none;
+}
+
+/* 顶部一道天光 */
+.anime-fin::after {
+	content: "";
+	position: absolute;
+	left: 14%;
+	right: 14%;
+	top: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(190, 230, 255, 0.55), transparent);
+	pointer-events: none;
+}
+
+.anime-fin__body {
+	position: relative;
+	z-index: 1;
+}
+
+.anime-fin__line {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.75rem;
+	margin: 0;
+	color: rgba(178, 220, 255, 0.66);
+	font-size: 0.58rem;
+	font-weight: 700;
+	letter-spacing: 0.34em;
+	text-indent: 0.34em;
+}
+
+.anime-fin__line::before,
+.anime-fin__line::after {
+	content: "";
+	width: 2.6rem;
+	height: 1px;
+	background: currentColor;
+	opacity: 0.5;
+}
+
+.anime-fin__end {
+	margin: 0.9rem 0 0;
+	color: #f3fbff;
+	font-size: clamp(2rem, 5.6vw, 2.85rem);
+	font-weight: 700;
+	letter-spacing: 0.46em;
+	text-indent: 0.46em;
+	line-height: 1.1;
+	text-shadow: 0 0 1.9rem rgba(122, 198, 255, 0.45);
+}
+
+.anime-fin__title {
+	margin: 0.7rem 0 0;
+	color: rgba(198, 228, 255, 0.64);
+	font-size: 0.64rem;
+	font-weight: 700;
+	letter-spacing: 0.24em;
+}
+
+.anime-fin__quote {
+	max-width: 30rem;
+	margin: 1.15rem auto 0;
+	color: #e6f4ff;
+	font-size: 1rem;
+	font-weight: 600;
+	line-height: 1.9;
+	letter-spacing: 0.05em;
+	text-shadow: 0 1px 14px rgba(10, 40, 66, 0.45);
+}
+
+.anime-fin__meta {
+	max-width: 22rem;
+	margin: 1.2rem auto 0;
+	padding-top: 0.9rem;
+	border-top: 1px solid rgba(178, 220, 255, 0.16);
+	color: rgba(170, 205, 235, 0.56);
+	font-size: 0.58rem;
+	letter-spacing: 0.16em;
+}
+
+:root.dark .anime-fin {
+	background:
+		radial-gradient(120% 92% at 50% -20%, rgba(126, 200, 255, 0.22), transparent 62%),
+		linear-gradient(170deg, #1c3a58 0%, #0e2136 62%, #0a1724 100%);
+	box-shadow:
+		0 1.7rem 3.6rem rgba(0, 0, 0, 0.34),
+		inset 0 0 0 1px rgba(180, 222, 255, 0.1);
+}
+
+/* K-ON 版：放学后天台上的夜色 */
+.anime-theme--k-on .anime-fin {
+	background:
+		radial-gradient(120% 92% at 50% -20%, rgba(255, 198, 216, 0.3), transparent 62%),
+		linear-gradient(170deg, #4a2836 0%, #2c1723 62%, #1b0e17 100%);
+	box-shadow:
+		0 1.7rem 3.6rem rgba(58, 22, 36, 0.26),
+		inset 0 0 0 1px rgba(255, 214, 228, 0.14);
+}
+
+/* ==========================================================================
+   06. 滚动入场动画
+   ========================================================================== */
+
+.anime-reveal {
+	opacity: 0;
+	transform: translate3d(0, 1.4rem, 0);
+	filter: blur(4px);
+	transition:
+		opacity 0.85s cubic-bezier(0.22, 0.6, 0.3, 1),
+		transform 0.85s cubic-bezier(0.22, 0.6, 0.3, 1),
+		filter 0.85s ease;
+	transition-delay: var(--reveal-delay, 0ms);
+}
+
+.anime-reveal.is-inview {
+	opacity: 1;
+	transform: none;
+	filter: none;
+}
+
+/* ==========================================================================
+   07. 目录与页面外壳的番剧化
+   ========================================================================== */
+
+body:has(.anime-theme--weathering-with-you) table-of-contents {
+	--primary: #3d8fc4;
+	border-color: color-mix(in srgb, #6eb9ec 26%, transparent);
+	background:
+		linear-gradient(160deg, rgba(200, 239, 255, 0.32), transparent 52%),
+		color-mix(in srgb, var(--glass-card) 84%, transparent);
+}
+
+body:has(.anime-theme--weathering-with-you) table-of-contents::before {
+	content: "☂  READING MAP · 天気の栞";
+	border-bottom-color: color-mix(in srgb, #6eb9ec 30%, transparent);
+}
+
+body:has(.anime-theme--k-on) table-of-contents {
+	--primary: #d4738f;
+	border-color: color-mix(in srgb, #e98ca7 26%, transparent);
+	background:
+		linear-gradient(160deg, rgba(255, 240, 244, 0.38), transparent 52%),
+		color-mix(in srgb, var(--glass-card) 84%, transparent);
+}
+
+body:has(.anime-theme--k-on) table-of-contents::before {
+	content: "♪  READING MAP · 軽音部ノート";
+	border-bottom-color: color-mix(in srgb, #e98ca7 30%, transparent);
+}
+
+/* 目录条目排版：窄栏里也要能读 */
+body:has(.anime-theme) table-of-contents {
+	padding: 0.9rem 0.5rem 0.6rem;
+}
+
+body:has(.anime-theme) table-of-contents::before {
+	margin: 0 0.5rem 0.6rem;
+	font-size: 0.6rem;
+	letter-spacing: 0.1em;
+}
+
+body:has(.anime-theme) table-of-contents .toc-link {
+	margin: 0.1rem 0;
+	padding: 0.3rem 0.4rem 0.3rem 0.62rem;
+	border-left: 2px solid transparent;
+	border-radius: 0.55rem;
+	transition:
+		color 0.25s ease,
+		background-color 0.25s ease,
+		border-color 0.25s ease;
+}
+
+body:has(.anime-theme) table-of-contents .toc-link > div {
+	font-size: 0.8rem;
+	line-height: 1.62;
+	letter-spacing: 0.005em;
+}
+
+body:has(.anime-theme) table-of-contents .toc-link > div.pl-4 {
+	padding-left: 0.55rem;
+}
+
+body:has(.anime-theme) table-of-contents .toc-link > div.pl-8 {
+	padding-left: 1.1rem;
+}
+
+body:has(.anime-theme) table-of-contents .toc-link.visible {
+	border-left-color: color-mix(in srgb, var(--primary) 62%, transparent);
+	background: color-mix(in srgb, var(--primary) 9%, transparent);
+}
+
+body:has(.anime-theme) table-of-contents .toc-link.visible > div {
+	font-weight: 700;
+}
+
+/* ==========================================================================
+   08. 响应式与降级
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+	.anime-hero__seal {
+		display: none;
+	}
+}
+
+@media (max-width: 860px) {
+	.anime-hero {
+		min-height: clamp(23rem, 62vh, 30rem);
+		border-radius: 1.5rem;
+	}
+
+	/* 窄屏退回整图铺底，照片卡与模糊背景都收起 */
+	.anime-hero__plate,
+	.anime-hero__backdrop {
+		display: none;
+	}
+
+	.anime-hero__image {
+		display: block;
+	}
+
+	.anime-hero__shade {
+		background:
+			linear-gradient(180deg, rgba(6, 20, 36, 0.08) 0%, rgba(6, 20, 36, 0) 26%, rgba(6, 18, 32, 0.44) 62%, rgba(5, 13, 25, 0.9) 100%),
+			linear-gradient(102deg, rgba(7, 20, 36, 0.7) 0%, rgba(7, 20, 36, 0.4) 34%, rgba(7, 20, 36, 0.06) 56%, transparent 70%);
+	}
+
+	.anime-theme--k-on .anime-hero__shade {
+		background:
+			linear-gradient(180deg, rgba(48, 22, 33, 0.08) 0%, rgba(48, 22, 33, 0) 24%, rgba(54, 24, 36, 0.44) 62%, rgba(38, 16, 26, 0.88) 100%),
+			linear-gradient(102deg, rgba(52, 24, 36, 0.68) 0%, rgba(52, 24, 36, 0.36) 34%, rgba(52, 24, 36, 0.04) 58%, transparent 74%);
+	}
+
+	.anime-hero__rail {
+		display: none;
+	}
+
+	.anime-hero__content {
+		right: 0;
+		max-width: none;
+		padding: 1.15rem 1.2rem 1.35rem;
+	}
+
+	.anime-hero__title {
+		font-size: clamp(1.42rem, 5.4vw, 1.95rem);
+	}
+
+	.anime-hero__description {
+		-webkit-line-clamp: 2;
+		font-size: 0.82rem;
+	}
+
+	.anime-hero__frame {
+		inset: 0.55rem;
+		border-radius: 1.15rem;
+	}
+
+	.anime-dossier__body {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 1.1rem;
+	}
+
+	.anime-dossier__head {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.65rem;
+	}
+
+	.anime-dossier__headmeta {
+		justify-content: flex-start;
+		padding-top: 0;
+	}
+
+	.anime-dossier__barcode {
+		display: none;
+	}
+
+	.anime-theme .markdown-content {
+		font-size: 1rem;
+		line-height: 1.98;
+	}
+
+	.anime-theme .markdown-content h1 {
+		margin-top: 2.9rem;
+		padding-left: 3.5rem;
+		font-size: 1.24rem;
+	}
+
+	.anime-theme .markdown-content h1::before {
+		width: 2.55rem;
+		height: 2.55rem;
+		top: 1.25rem;
+		font-size: 1.1rem;
+	}
+
+	.anime-theme .markdown-content h1::after {
+		left: 3.5rem;
+		font-size: 0.52rem;
+		letter-spacing: 0.24em;
+	}
+
+	.anime-theme .markdown-content > section > p:has(> img:only-child) {
+		margin: 1.7rem 0;
+		box-shadow: 0 1rem 2rem color-mix(in srgb, var(--anime-deep) 12%, transparent);
+	}
+}
+
+@media (max-width: 560px) {
+	.anime-hero {
+		min-height: 26rem;
+		border-radius: 1.3rem;
+	}
+
+	.anime-hero__badges {
+		gap: 0.4rem;
+	}
+
+	.anime-hero__badge {
+		padding: 0.3rem 0.6rem;
+		font-size: 0.57rem;
+	}
+
+	.anime-hero__eyebrow {
+		margin-top: 0.9rem;
+		font-size: 0.6rem;
+		letter-spacing: 0.18em;
+	}
+
+	.anime-hero__reading-meta {
+		gap: 0.35rem 0.8rem;
+		font-size: 0.64rem;
+	}
+
+	.anime-dossier__facts {
+		grid-template-columns: minmax(0, 1fr);
+		padding-top: 0;
+	}
+
+	.anime-fact {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.8rem;
+		padding: 0.42rem 0;
+		border-left: 0;
+		border-bottom: 1px dashed color-mix(in srgb, var(--anime-deep) 12%, transparent);
+	}
+
+	.anime-fact dt {
+		font-size: 0.6rem;
+	}
+
+	.anime-fact dd {
+		text-align: right;
+		font-size: 0.82rem;
+	}
+
+	.anime-dossier__quote {
+		flex-wrap: wrap;
+	}
+
+	.anime-dossier__quote-seal {
+		display: none;
+	}
+
+	.anime-theme .markdown-content h1 {
+		padding-left: 3.1rem;
+		font-size: 1.15rem;
+	}
+
+	.anime-theme .markdown-content h1::before {
+		width: 2.25rem;
+		height: 2.25rem;
+		font-size: 1rem;
+	}
+
+	.anime-theme .markdown-content h1::after {
+		left: 3.1rem;
+		letter-spacing: 0.18em;
+	}
+
+	.anime-theme .markdown-content > section > p:has(> strong:only-child) {
+		padding: 0.28rem 0.9rem 0.3rem 0.95rem;
+		font-size: 1rem;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.anime-hero__backdrop,
+	.anime-hero__rays,
+	.anime-hero__weather,
+	.anime-hero__sparks i,
+	.anime-hero__badge-dot,
+	.anime-dossier__status i {
+		animation: none !important;
+	}
+
+	.anime-hero__content > * {
+		animation: none !important;
+	}
+
+	.anime-hero__image img,
+	.anime-theme .markdown-content > section > p:has(> img:only-child),
+	.anime-theme .markdown-content h1::before {
+		transition: none !important;
+	}
+
+	.anime-reveal,
+	.anime-reveal.is-inview {
+		opacity: 1;
+		transform: none;
+		filter: none;
+		transition: none;
+	}
+}
+
+
+
