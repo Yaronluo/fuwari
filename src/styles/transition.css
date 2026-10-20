@@ -2,6 +2,22 @@
    The leaving page lifts and fogs out; the incoming page is revealed in place,
    in "ink": the blocks go from fogged to sharp without travelling. */
 
+/* First paint: keep every entrance animation paused until the layout is set up.
+   Layout's init() initializes OverlayScrollbars on <body>, and that library
+   removes and re-appends every child of <body> while it builds its viewport.
+   Any CSS animation already playing when that happens is cancelled and replayed
+   from the start, which is why the first-visit choreography used to cut off and
+   play twice. Paused animations sit on their 0% frame (identical to the
+   backwards fill the delays rely on), so releasing them after the setup makes
+   the choreography run exactly once. The class is removed in Layout's init()
+   (see also the inline head script, which drops it on window.load as a
+   fallback). */
+html.enter-pending *,
+html.enter-pending *::before,
+html.enter-pending *::after {
+    animation-play-state: paused !important;
+}
+
 html.is-changing .transition-swup-fade {
     transition-property: opacity, transform, filter;
     transition-timing-function: cubic-bezier(0.45, 0, 0.75, 0.9);
