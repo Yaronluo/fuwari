@@ -62,25 +62,37 @@ const favoriteRating = ratingDistribution.reduce(
     (best, item) => (item.count > best.count ? item : best),
     ratingDistribution[0]
 );
-const topRated = allCollections
+// 首屏右侧扇形封面（左 → 中 → 右）。想换封面只要改这里的 Bangumi subject id 顺序即可，
+// 找不到的 id 会被跳过，剩余位置自动用「我的评分最高」补齐。
+const HERO_FAN_SUBJECT_IDS = [
+    347887, // 擅长捉弄的高木同学 第三季
+    1424, // 轻音少女
+    638497, // 相反的你和我 第二季
+];
+
+const posterOf = (item: (typeof allCollections)[number]) => {
+    const rawImage = item.subject.images?.large || item.subject.images?.common || '';
+    return {
+        name: item.subject.name_cn || item.subject.name || 'Anime',
+        image: `https://images.weserv.nl/?url=${rawImage}`,
+        rate: Number(item.rate || 0),
+    };
+};
+
+const awardedCollections = allCollections
     .filter((item) => item.subject.images?.large || item.subject.images?.common)
     .sort((a, b) => {
         const myRatingDiff = Number(b.rate || 0) - Number(a.rate || 0);
         if (myRatingDiff !== 0) return myRatingDiff;
         return Number(b.subject.score || 0) - Number(a.subject.score || 0);
-    })
-    .slice(0, 3)
-    .map((item) => {
-        const rawImage = item.subject.images?.large || item.subject.images?.common || '';
-        return {
-            name: item.subject.name_cn || item.subject.name || 'Anime',
-            image: `https://images.weserv.nl/?url=${rawImage}`,
-            rate: Number(item.rate || 0),
-        };
     });
-// 中间那张压在最上层，所以把评分最高的一部放在中间位置
-const fanSlots = [topRated[1], topRated[0], topRated[2]];
-const heroFan = fanSlots.filter((poster): poster is (typeof topRated)[number] => Boolean(poster));
+const pinnedCollections = HERO_FAN_SUBJECT_IDS
+    .map((subjectId) => awardedCollections.find((item) => item.subject.id === subjectId))
+    .filter((item): item is (typeof awardedCollections)[number] => Boolean(item));
+const pinnedIds = new Set(pinnedCollections.map((item) => item.subject.id));
+const heroFan = [...pinnedCollections, ...awardedCollections.filter((item) => !pinnedIds.has(item.subject.id))]
+    .slice(0, 3)
+    .map(posterOf);
 const reviews = allCollections
     .filter((item) => item.type === 2 && item.comment?.trim())
     .sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
@@ -339,7 +351,13 @@ const reviewDate = (value?: string) => value
                             <p class="bangumi-eyebrow">故事结束，心动留在这里</p>
                             <h2>看完之后，想说的话</h2>
                         </div>
-                        <span class="bangumi-review-count"><strong>{reviews.length}</strong>篇短评 · 最近更新在前</span>
+                        <div class="bangumi-review-tools">
+                            <span class="bangumi-review-count"><strong>{reviews.length}</strong>篇短评 · <span data-review-order-label>最近更新在前</span></span>
+                            <div class="bangumi-review-sort" role="group" aria-label="短评排序方式">
+                                <button type="button" data-review-sort="updated" aria-pressed="true" class="is-active">最近更新</button>
+                                <button type="button" data-review-sort="rating" aria-pressed="false">我的评分</button>
+                            </div>
+                        </div>
                     </header>
                     {reviews.length === 0 ? (
                         <div class="bangumi-state"><strong>还没有短评</strong><span>在 Bangumi 为看过的番剧写下感想，下次同步就会出现在这里。</span></div>
@@ -354,7 +372,7 @@ const reviewDate = (value?: string) => value
                                 const hasOriginalTitle = Boolean(item.subject.name_cn && item.subject.name && item.subject.name_cn !== item.subject.name);
                                 const subjectUrl = `https://bgm.tv/subject/${item.subject.id}`;
                                 return (
-                                    <article class="bangumi-review-item">
+                                    <article class="bangumi-review-item" data-rate={rate} data-updated={item.updated_at || ''}>
                                         <span class="bangumi-review-accent" aria-hidden="true"></span>
                                         <span class="bangumi-review-spot" aria-hidden="true"></span>
                                         <span class="bangumi-review-ghost" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
@@ -537,6 +555,13 @@ const reviewDate = (value?: string) => value
     .bangumi-review-count { display: inline-flex; align-items: baseline; gap: 0.22rem; padding: 0.32rem 0.7rem; border: 1px solid color-mix(in srgb, var(--primary) 16%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--primary) 7%, var(--card-bg)); color: var(--text-muted); font-size: 0.74rem; white-space: nowrap; }
     .bangumi-review-count strong { color: var(--primary); font-size: 0.95rem; font-weight: 900; font-variant-numeric: tabular-nums; }
 
+    .bangumi-review-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.5rem; }
+    .bangumi-review-sort { display: inline-flex; gap: 0.16rem; padding: 0.2rem; border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--card-bg) 78%, transparent); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4); }
+    .bangumi-review-sort button { padding: 0.36rem 0.72rem; border-radius: 999px; color: var(--text-muted); font-size: 0.72rem; font-weight: 800; line-height: 1; white-space: nowrap; cursor: pointer; transition: color 0.25s ease, background-color 0.25s ease, box-shadow 0.3s ease, transform 0.25s ease; }
+    .bangumi-review-sort button:hover { color: var(--primary); transform: translateY(-1px); }
+    .bangumi-review-sort button.is-active { color: var(--primary); background: color-mix(in srgb, var(--primary) 11%, var(--card-bg)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 26%, transparent); }
+    .bangumi-review-sort button:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
     .bangumi-review-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.2rem; }
 
     .bangumi-review-item { position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: 8.6rem minmax(0, 1fr); align-items: start; gap: 1.5rem; padding: 1.45rem 1.6rem 1.5rem; border: 1px solid color-mix(in srgb, var(--primary) 14%, transparent); border-radius: 1.35rem; background: color-mix(in srgb, var(--card-bg) 96%, transparent); box-shadow: 0 2px 5px color-mix(in srgb, var(--primary) 5%, transparent), 0 16px 38px color-mix(in srgb, var(--primary) 7%, transparent); transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s ease, border-color 0.45s ease; }
@@ -610,7 +635,7 @@ const reviewDate = (value?: string) => value
     @media (max-width: 640px) {
         #main-grid:has(.bangumi-page) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .bangumi-review-heading { display: block; }
-        .bangumi-review-count { margin-top: 0.7rem; }
+        .bangumi-review-tools { justify-content: flex-start; margin-top: 0.75rem; }
         .bangumi-review-list { gap: 1rem; }
         .bangumi-review-item { grid-template-columns: 4.7rem minmax(0, 1fr); gap: 0.9rem; padding: 1rem 1rem 1.05rem; border-radius: 1.05rem; }
         .bangumi-review-ghost { display: none; }

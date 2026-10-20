@@ -11,7 +11,10 @@
 	let pageIndicator: HTMLElement | null = null;
 	let paginationBar: HTMLElement | null = null;
 	let reviewSection: HTMLElement | null = null;
+	let reviewList: HTMLElement | null = null;
 	let reviewItems: NodeListOf<HTMLElement> | null = null;
+	let sortButtons: NodeListOf<HTMLButtonElement> | null = null;
+	let reviewSort: "updated" | "rating" = "updated";
 	let viewButtons: NodeListOf<HTMLButtonElement> | null = null;
 	let statusTabs: HTMLElement | null = null;
 	let currentView = "wall";
@@ -145,6 +148,63 @@
 			if (!revealObserver) revealObserver = createRevealObserver();
 			revealObserver.observe(item);
 		});
+	}
+
+	/** 切换排序后清掉出现状态，让卡片按新顺序重新浮现 */
+	function resetReviewReveal() {
+		if (!reviewItems?.length) return;
+
+		Array.from(reviewItems).forEach((item) => {
+			revealedItems.delete(item);
+			item.classList.remove("is-revealed");
+		});
+	}
+
+	/** 按「最近更新」或「我的评分」重排短评 DOM，并同步右下角的序号 */
+	function applyReviewSort() {
+		if (!reviewList) return;
+
+		const cards = Array.from(reviewList.querySelectorAll<HTMLElement>(".bangumi-review-item"));
+		if (cards.length < 2) return;
+
+		cards.sort((a, b) => {
+			if (reviewSort === "rating") {
+				const ratingDiff = Number(b.dataset.rate || 0) - Number(a.dataset.rate || 0);
+				if (ratingDiff !== 0) return ratingDiff;
+			}
+			return (b.dataset.updated || "").localeCompare(a.dataset.updated || "");
+		});
+
+		const fragment = document.createDocumentFragment();
+		cards.forEach((card, index) => {
+			const ghost = card.querySelector<HTMLElement>(".bangumi-review-ghost");
+			if (ghost) ghost.textContent = String(index + 1).padStart(2, "0");
+			fragment.appendChild(card);
+		});
+		reviewList.appendChild(fragment);
+		reviewItems = reviewList.querySelectorAll<HTMLElement>(".bangumi-review-item");
+	}
+
+	function handleSortClick(event: Event) {
+		const button = event.currentTarget as HTMLButtonElement;
+		const nextSort = button.dataset.reviewSort === "rating" ? "rating" : "updated";
+		if (nextSort === reviewSort) return;
+		reviewSort = nextSort;
+
+		sortButtons?.forEach((item) => {
+			const active = (item.dataset.reviewSort === "rating" ? "rating" : "updated") === reviewSort;
+			item.classList.toggle("is-active", active);
+			item.setAttribute("aria-pressed", String(active));
+		});
+
+		const label = document.querySelector<HTMLElement>("[data-review-order-label]");
+		if (label) label.textContent = reviewSort === "rating" ? "评分从高到低" : "最近更新在前";
+
+		resetReviewReveal();
+		applyReviewSort();
+		currentPage = 1;
+		render();
+		syncReviewToggles();
 	}
 
 	function createRevealObserver() {
@@ -334,7 +394,9 @@
 		pageIndicator = document.getElementById("page-indicator");
 		paginationBar = document.getElementById("bangumi-pagination");
 		reviewSection = document.getElementById("bangumi-reviews");
+		reviewList = reviewSection?.querySelector<HTMLElement>(".bangumi-review-list") ?? null;
 		reviewItems = document.querySelectorAll<HTMLElement>(".bangumi-review-item");
+		sortButtons = document.querySelectorAll<HTMLButtonElement>("[data-review-sort]");
 		viewButtons = document.querySelectorAll<HTMLButtonElement>("[data-view]");
 		statusTabs = document.getElementById("bangumi-tabs-container");
 		mobileQuery = window.matchMedia("(max-width: 640px)");
@@ -355,6 +417,10 @@
 		viewButtons.forEach((button) => {
 			button.addEventListener("click", handleViewClick);
 			eventListeners.push(() => button.removeEventListener("click", handleViewClick));
+		});
+		sortButtons.forEach((button) => {
+			button.addEventListener("click", handleSortClick);
+			eventListeners.push(() => button.removeEventListener("click", handleSortClick));
 		});
 		if (new URLSearchParams(window.location.search).get("view") === "reviews") {
 			viewButtons.forEach((button) => {
