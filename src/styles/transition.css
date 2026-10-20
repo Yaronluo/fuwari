@@ -1,27 +1,73 @@
-/* Page transition animations with Swup */
+/* Page transition animations with Swup -------------------------------------
+   The leaving page lifts and fogs out; the incoming page is revealed in place,
+   in "ink": the blocks go from fogged to sharp without travelling. */
+
 html.is-changing .transition-swup-fade {
-    @apply transition-all duration-200
-}
-html.is-animating .transition-swup-fade {
-    @apply opacity-0;
+    transition-property: opacity, transform, filter;
+    transition-timing-function: cubic-bezier(0.45, 0, 0.75, 0.9);
+    transition-duration: 210ms;
 }
 
-/* Fade-in animations for components (scale-in from inside out) */
-@keyframes fade-in-scale {
+/* Exit: a short lift with a light fog, so the swap reads as the page stepping
+   back rather than as content being yanked away. */
+html.is-animating.is-leaving .transition-swup-fade {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.99);
+    filter: blur(3px);
+}
+
+/* Entrance: opacity plus fog, never a transform. Nothing slides in from
+   below; the page condenses where it already is. */
+@keyframes ink-in {
     0% {
-        transform: scale(0.98);
+        opacity: 0;
+        filter: blur(3px);
+    }
+    100% {
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
+@keyframes fade-in-opacity {
+    0% {
         opacity: 0;
     }
     100% {
-        transform: scale(1);
         opacity: 1;
+    }
+}
+
+/* Article sections: fog only, no opacity change. A section is a plain block in
+   normal flow, so blurring it is cheap; the column as a whole is handled
+   below. */
+@keyframes article-section-ink {
+    0% {
+        filter: blur(2px);
+    }
+    100% {
+        filter: blur(0);
     }
 }
 
 /* Main components */
 .onload-animation {
-    animation: 350ms cubic-bezier(0.16, 1, 0.3, 1) fade-in-scale;
+    animation: 360ms cubic-bezier(0.22, 1, 0.36, 1) ink-in;
     animation-fill-mode: backwards;
+}
+
+/* A 10,000px article column must not blur or fade as one box: rasterizing it
+   every frame stalls the first paint, and scaling it moves the heading by
+   hundreds of pixels. Those elements fall back to a plain opacity fade; the
+   Swup container owns the page-level transition. */
+#content-wrapper,
+.article-content-wrapper.onload-animation,
+.onload-animation:has(h1.post-title) {
+    animation-name: fade-in-opacity;
+}
+
+.article-content-wrapper .onload-animation {
+    animation-name: article-section-ink;
 }
 
 /* A hard refresh should paint the already available page immediately. Keep
@@ -32,47 +78,10 @@ html.is-page-reload .onload-animation,
     animation: none !important;
 }
 
-/* A long article must not scale as one giant box. With the default centered
-   transform origin, scaling a 10,000px+ wrapper by 0.98 moves its heading by
-   hundreds of pixels and looks like a second page refresh. The wrapper owns
-   the single opacity reveal; its child sections own the gentle upward motion. */
-@keyframes article-page-enter {
-    0% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 1;
-    }
-}
-
-.article-content-wrapper.onload-animation {
-    animation-name: article-page-enter;
-}
-
-/* Article pages fade in once as a whole. Their staggered child animations keep
-   the gentle motion, but must not fade each section a second time. */
-@keyframes article-section-rise {
-    0% {
-        transform: translateY(0.45rem) scale(0.995);
-    }
-    100% {
-        transform: translateY(0) scale(1);
-    }
-}
-
-.article-content-wrapper .onload-animation {
-    animation-name: article-section-rise;
-}
-@keyframes fade-in-opacity {
-    0% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 1;
-    }
-}
+/* The sidebar wrapper would otherwise multiply its own fade with the widgets
+   inside it; let the widgets carry the staggered reveal instead. */
 #sidebar {
-    animation-delay: 100ms
+    animation: none;
 }
 #swup-container {
     outline: none;
@@ -81,17 +90,33 @@ html.is-page-reload .onload-animation,
     animation-delay: var(--content-delay);
 }
 .footer {
-    animation-delay: 250ms;
+    animation-delay: 140ms;
 }
 #banner-credit {
-    animation-delay: 400ms;
+    animation-delay: 320ms;
 }
 
 /* Post content */
 #post-container :nth-child(1) { animation-delay: calc(var(--content-delay) + 0ms) }
-#post-container :nth-child(2) { animation-delay: calc(var(--content-delay) + 50ms) }
-#post-container :nth-child(3) { animation-delay: calc(var(--content-delay) + 100ms) }
-#post-container :nth-child(4) { animation-delay: calc(var(--content-delay) + 175ms) }
-#post-container :nth-child(5) { animation-delay: calc(var(--content-delay) + 250ms) }
-#post-container :nth-child(6) { animation-delay: calc(var(--content-delay) + 325ms) }
+#post-container :nth-child(2) { animation-delay: calc(var(--content-delay) + 30ms) }
+#post-container :nth-child(3) { animation-delay: calc(var(--content-delay) + 60ms) }
+#post-container :nth-child(4) { animation-delay: calc(var(--content-delay) + 90ms) }
+#post-container :nth-child(5) { animation-delay: calc(var(--content-delay) + 120ms) }
+#post-container :nth-child(6) { animation-delay: calc(var(--content-delay) + 150ms) }
 
+/* Motion should stay optional: keep the page change as a plain, quick fade. */
+@media (prefers-reduced-motion: reduce) {
+    html.is-changing .transition-swup-fade {
+        transition-duration: 1ms;
+    }
+    html.is-animating.is-leaving .transition-swup-fade {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+    .onload-animation {
+        animation-name: fade-in-opacity;
+        animation-duration: 1ms;
+        animation-delay: 0ms !important;
+    }
+}

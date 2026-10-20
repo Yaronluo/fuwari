@@ -569,6 +569,17 @@ const setup = () => {
 		document.documentElement.style.setProperty('--content-delay', '0ms')
 	})
 	window.swup.hooks.on('content:replace', initCustomScrollbar)
+
+	// Swup's scroll plugin animates the reset between pages by default: the new
+	// page is painted at the old scroll offset and then scrolls up through the
+	// viewport, which reads as the whole article sliding in from below. Jump to
+	// the top in the same frame instead; the entrance animation is the only
+	// motion on screen. Scroll positions are still cached for back/forward.
+	type SwupPlugin = {name?: string; options?: {animateScroll?: boolean | Record<string, boolean>}}
+	const scrollPlugin = (window.swup as unknown as {plugins?: SwupPlugin[]}).plugins?.find(
+		(plugin) => plugin.name === 'SwupScrollPlugin'
+	)
+	if (scrollPlugin?.options) scrollPlugin.options.animateScroll = false
 	window.swup.hooks.on('visit:start', (visit: {to: {url: string}}) => {
 		// Freeze the current split/merged state while Swup restores scroll.
 		document.documentElement.classList.add('nav-route-changing')
