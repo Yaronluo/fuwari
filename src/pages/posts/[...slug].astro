@@ -145,6 +145,19 @@ const jsonLd = {
                 <Content />
             </Markdown>
 
+            {anime && (
+                <section class="anime-fin" aria-label="观后感片尾">
+                    <div class="anime-fin__perf" aria-hidden="true"></div>
+                    <div class="anime-fin__body">
+                        <p class="anime-fin__line" aria-hidden="true">END ROLL</p>
+                        <p class="anime-fin__end">FIN</p>
+                        <p class="anime-fin__title">{anime.titleJa}{anime.titleEn ? ` / ${anime.titleEn}` : ""} · {anime.year}</p>
+                        {anime.quote && <p class="anime-fin__quote">「{anime.quote}」</p>}
+                        <p class="anime-fin__meta">{remarkPluginFrontmatter.words} 字 · 约 {remarkPluginFrontmatter.minutes} 分钟 · 写于 {formatDateToYYYYMMDD(entry.data.published)}</p>
+                    </div>
+                </section>
+            )}
+
             {licenseConfig.enable && <License title={entry.data.title} slug={entry.slug} pubDate={entry.data.published} class="mb-6 rounded-xl license-container onload-animation"></License>}
 
         </div>
