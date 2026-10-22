@@ -7,6 +7,7 @@
     "start": "node scripts/astro-with-proxy.mjs dev --host",
     "check": "astro check",
     "test:birthday": "node --test tests/birthday.test.mjs",
+    "test:lunar": "node --test tests/lunar.test.mjs",
     "build": "node scripts/astro-with-proxy.mjs build && pagefind --site dist",
     "preview": "astro preview",
     "astro": "astro",

@@ -1,167 +1,1232 @@
 ---
-import WidgetLayout from "./WidgetLayout.astro";
 import { Icon } from "astro-icon/components";
 import { getSortedPostsList } from "../../utils/content-utils";
 import { getPostUrlBySlug } from "../../utils/url-utils";
+import WidgetLayout from "./WidgetLayout.astro";
 
 interface Props {
-    class?: string;
-    style?: string;
+	class?: string;
+	style?: string;
 }
 
 const className = Astro.props.class;
 const style = Astro.props.style;
-const calendarPosts = (await getSortedPostsList()).map((post) => ({
-    date: post.data.published.toISOString().slice(0, 10),
-    title: post.data.title,
-    url: getPostUrlBySlug(post.slug),
-}));
+
+// 只把「日期 + 标题 + 链接」传给浏览器，月历、农历与节日都在客户端计算
+const calendarPosts = (await getSortedPostsList())
+	.map((post) => ({
+		date: post.data.published.toISOString().slice(0, 10),
+		title: post.data.title,
+		url: getPostUrlBySlug(post.slug),
+	}))
+	.sort((left, right) => left.date.localeCompare(right.date));
 ---
 
-<WidgetLayout name="日历" id="site-calendar" class:list={[className, "calendar-card"]} style={style} icon="material-symbols:calendar-month-outline-rounded">
-    <div class="calendar-widget" data-calendar>
-        <div class="calendar-heading">
-            <button type="button" data-calendar-prev aria-label="上个月">‹</button>
-            <div class="calendar-heading-center">
-                <strong data-calendar-title></strong>
-                <button type="button" class="calendar-current-month" data-calendar-current hidden>返回本月</button>
-            </div>
-            <button type="button" data-calendar-next aria-label="下个月">›</button>
-        </div>
-        <div class="calendar-weekdays" aria-hidden="true">
-            <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
-        </div>
-        <div class="calendar-days" data-calendar-days></div>
-        <div class="calendar-holiday" data-calendar-holiday>
-            <Icon name="material-symbols:celebration-rounded" class="calendar-holiday-icon" aria-hidden="true" />
-            <span data-calendar-holiday-text>正在计算下一个传统节日…</span>
-        </div>
-    </div>
+<WidgetLayout
+	name="日历"
+	id="site-calendar"
+	class:list={[className]}
+	style={style}
+	icon="material-symbols:calendar-month-outline-rounded"
+>
+	<calendar-widget class="cal" data-posts={JSON.stringify(calendarPosts)}>
+		<div class="cal-head">
+			<button class="cal-nav" type="button" data-cal="prev" aria-label="上个月">
+				<Icon name="material-symbols:chevron-left-rounded" />
+			</button>
+			<button
+				class="cal-title"
+				type="button"
+				data-cal="title"
+				aria-haspopup="dialog"
+				aria-expanded="false"
+				aria-label="选择月份"
+			>
+				<span data-cal="label">日历</span>
+				<span class="cal-caret" aria-hidden="true"></span>
+			</button>
+			<button class="cal-nav" type="button" data-cal="next" aria-label="下个月">
+				<Icon name="material-symbols:chevron-right-rounded" />
+			</button>
+		</div>
+
+		<div class="cal-week" aria-hidden="true">
+			<span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+		</div>
+		<div class="cal-grid" data-cal="grid"></div>
+
+		<div class="cal-daylist" data-cal="daylist" hidden></div>
+
+		<div class="cal-foot">
+			<p class="cal-next" data-cal="next-festival"></p>
+			<a class="cal-count" data-cal="count" href="/archive/" hidden></a>
+		</div>
+
+		<div class="cal-picker" data-cal="picker" role="dialog" aria-label="选择月份" hidden>
+			<div class="cal-picker-head">
+				<button class="cal-picker-arrow" type="button" data-cal="year-prev" aria-label="上一年">
+					<Icon name="material-symbols:chevron-left-rounded" />
+				</button>
+				<strong data-cal="picker-year"></strong>
+				<button class="cal-picker-arrow" type="button" data-cal="year-next" aria-label="下一年">
+					<Icon name="material-symbols:chevron-right-rounded" />
+				</button>
+			</div>
+			<div class="cal-picker-months" data-cal="picker-months"></div>
+			<button class="cal-picker-today" type="button" data-cal="picker-today">回到今天</button>
+		</div>
+
+		<span class="cal-sr" data-cal="announce" aria-live="polite"></span>
+	</calendar-widget>
 </WidgetLayout>
 
-<script is:inline define:vars={{ calendarPosts }}>
-    (() => {
-        const root = document.querySelector('[data-calendar]');
-        if (!root || root.dataset.ready) return;
-        root.dataset.ready = 'true';
-        const title = root.querySelector('[data-calendar-title]');
-        const days = root.querySelector('[data-calendar-days]');
-        const holiday = root.querySelector('[data-calendar-holiday-text]');
-        const currentMonthButton = root.querySelector('[data-calendar-current]');
-        const now = new Date();
-        let view = new Date(now.getFullYear(), now.getMonth(), 1);
-        const postsByDate = calendarPosts.reduce((map, post) => {
-            (map[post.date] ||= []).push(post);
-            return map;
-        }, {});
-        const holidays = {
-            2026: [['春节', '2026-02-17'], ['端午节', '2026-06-19'], ['七夕', '2026-08-19'], ['中秋节', '2026-09-25'], ['重阳节', '2026-10-18']],
-            2027: [['春节', '2027-02-06'], ['端午节', '2027-06-09'], ['七夕', '2027-08-08'], ['中秋节', '2027-09-15'], ['重阳节', '2027-10-08']],
-            2028: [['春节', '2028-01-26'], ['端午节', '2028-06-15'], ['七夕', '2028-08-19'], ['中秋节', '2028-10-03'], ['重阳节', '2028-10-29']],
-            2029: [['春节', '2029-02-13'], ['端午节', '2029-06-05'], ['七夕', '2029-08-07'], ['中秋节', '2029-09-22'], ['重阳节', '2029-10-17']],
-            2030: [['春节', '2030-02-03'], ['端午节', '2030-06-25'], ['七夕', '2030-08-03'], ['中秋节', '2030-09-12'], ['重阳节', '2030-10-07']],
-        };
-        const pad = (n) => String(n).padStart(2, '0');
-        const dateKey = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-        function render() {
-            const year = view.getFullYear(), month = view.getMonth();
-            title.textContent = `${year}年${pad(month + 1)}月`;
-            currentMonthButton.hidden = year === now.getFullYear() && month === now.getMonth();
-            days.innerHTML = '';
-            const first = new Date(year, month, 1).getDay();
-            const last = new Date(year, month + 1, 0).getDate();
-            for (let i = 0; i < first; i++) days.insertAdjacentHTML('beforeend', '<span class="calendar-empty"></span>');
-            for (let day = 1; day <= last; day++) {
-                const date = new Date(year, month, day);
-                const isToday = dateKey(date) === dateKey(now);
-                const key = dateKey(date);
-                const posts = postsByDate[key] || [];
-                const dayElement = document.createElement('span');
-                dayElement.className = `calendar-day${isToday ? ' is-today' : ''}${posts.length ? ' has-posts' : ''}`;
-                dayElement.textContent = String(day);
-                if (isToday) dayElement.setAttribute('aria-label', `今天 ${key}`);
-                if (posts.length) {
-                    dayElement.tabIndex = 0;
-                    dayElement.setAttribute('aria-label', `${key} 发布了 ${posts.length} 篇文章`);
-                    const marker = document.createElement('span');
-                    marker.className = 'calendar-post-marker';
-                    marker.setAttribute('aria-hidden', 'true');
-                    const popover = document.createElement('span');
-                    popover.className = 'calendar-post-popover';
-                    popover.setAttribute('role', 'tooltip');
-                    posts.slice(0, 3).forEach((post) => {
-                        const link = document.createElement('a');
-                        link.href = post.url;
-                        link.textContent = post.title;
-                        popover.appendChild(link);
-                    });
-                    if (posts.length > 3) {
-                        const more = document.createElement('small');
-                        more.textContent = `还有 ${posts.length - 3} 篇…`;
-                        popover.appendChild(more);
-                    }
-                    dayElement.append(marker, popover);
-                }
-                days.appendChild(dayElement);
-            }
-        }
-        function renderHoliday() {
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const list = Object.values(holidays).flat().map(([name, date]) => ({ name, date: new Date(`${date}T00:00:00`) })).filter(item => item.date >= today).sort((a, b) => a.date - b.date);
-            const next = list[0];
-            if (!next) return;
-            const distance = Math.ceil((next.date - today) / 86400000);
-            holiday.innerHTML = `距离 <strong>${next.name}</strong> 还有 <strong>${distance}</strong> 天`;
-        }
-        root.querySelector('[data-calendar-prev]').addEventListener('click', () => { view.setMonth(view.getMonth() - 1); render(); });
-        root.querySelector('[data-calendar-next]').addEventListener('click', () => { view.setMonth(view.getMonth() + 1); render(); });
-        currentMonthButton.addEventListener('click', () => {
-            view = new Date(now.getFullYear(), now.getMonth(), 1);
-            render();
-        });
-        render(); renderHoliday();
-    })();
+<script>
+	import {
+		addDays,
+		daysInMonth,
+		getDayInfo,
+		isSupportedYear,
+		lunarDayName,
+		lunarMonthName,
+		nextFestival,
+		type SolarDate,
+		weekdayOf,
+	} from "../../utils/lunar";
+
+	interface PostEntry {
+		date: string;
+		title: string;
+		url: string;
+	}
+
+	interface Refs {
+		grid: HTMLElement;
+		title: HTMLButtonElement;
+		label: HTMLElement;
+		picker: HTMLElement | null;
+		pickerYear: HTMLElement | null;
+		pickerMonths: HTMLElement | null;
+		dayList: HTMLElement | null;
+		nextFestivalText: HTMLElement | null;
+		count: HTMLAnchorElement | null;
+		announce: HTMLElement | null;
+	}
+
+	const WEEK_LABELS = ["日", "一", "二", "三", "四", "五", "六"];
+	const DAYS_PER_GRID = 42;
+	const SWIPE_THRESHOLD = 36;
+	const pad = (value: number): string => String(value).padStart(2, "0");
+	const dateKeyOf = (year: number, month: number, day: number): string => `${year}-${pad(month)}-${pad(day)}`;
+
+	function readToday(): SolarDate {
+		const now = new Date();
+		return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
+	}
+
+	function parsePosts(raw: string): PostEntry[] {
+		try {
+			const value: unknown = JSON.parse(raw);
+			if (!Array.isArray(value)) return [];
+			return value.filter((item): item is PostEntry => {
+				if (typeof item !== "object" || item === null) return false;
+				const entry = item as Partial<PostEntry>;
+				return typeof entry.date === "string" && typeof entry.title === "string" && typeof entry.url === "string";
+			});
+		} catch {
+			return [];
+		}
+	}
+
+	class CalendarWidget extends HTMLElement {
+		private posts: PostEntry[] = [];
+		private postsByDate = new Map<string, PostEntry[]>();
+		private today: SolarDate = { year: 1970, month: 1, day: 1 };
+		private view: { year: number; month: number } = { year: 1970, month: 1 };
+		private focusKey = "";
+		private dayListKey = "";
+		private pickerYear = 1970;
+		private pointerStart: { x: number; y: number } | null = null;
+		private suppressClickUntil = 0;
+		private timer: number | undefined;
+		private refs: Refs | null = null;
+
+		connectedCallback(): void {
+			if (this.dataset.ready === "1") return;
+			this.dataset.ready = "1";
+
+			this.posts = parsePosts(this.dataset.posts ?? "");
+			for (const post of this.posts) {
+				const group = this.postsByDate.get(post.date);
+				if (group) group.push(post);
+				else this.postsByDate.set(post.date, [post]);
+			}
+
+			this.today = readToday();
+			this.view = { year: this.today.year, month: this.today.month };
+			this.focusKey = dateKeyOf(this.today.year, this.today.month, this.today.day);
+
+			if (!this.collectRefs()) return;
+			this.bindEvents();
+			this.render();
+			this.renderCountdown();
+
+			this.timer = window.setInterval(() => this.checkDayChange(), 60_000);
+			document.addEventListener("visibilitychange", this.onVisibility);
+			document.addEventListener("pointerdown", this.onDocumentPointerDown, true);
+		}
+
+		disconnectedCallback(): void {
+			if (this.timer !== undefined) window.clearInterval(this.timer);
+			this.timer = undefined;
+			document.removeEventListener("visibilitychange", this.onVisibility);
+			document.removeEventListener("pointerdown", this.onDocumentPointerDown, true);
+		}
+
+		private collectRefs(): boolean {
+			const grid = this.querySelector<HTMLElement>('[data-cal="grid"]');
+			const title = this.querySelector<HTMLButtonElement>('[data-cal="title"]');
+			const label = this.querySelector<HTMLElement>('[data-cal="label"]');
+			if (grid === null || title === null || label === null) return false;
+
+			this.refs = {
+				grid,
+				title,
+				label,
+				picker: this.querySelector<HTMLElement>('[data-cal="picker"]'),
+				pickerYear: this.querySelector<HTMLElement>('[data-cal="picker-year"]'),
+				pickerMonths: this.querySelector<HTMLElement>('[data-cal="picker-months"]'),
+				dayList: this.querySelector<HTMLElement>('[data-cal="daylist"]'),
+				nextFestivalText: this.querySelector<HTMLElement>('[data-cal="next-festival"]'),
+				count: this.querySelector<HTMLAnchorElement>('[data-cal="count"]'),
+				announce: this.querySelector<HTMLElement>('[data-cal="announce"]'),
+			};
+			return true;
+		}
+
+		private bindEvents(): void {
+			this.querySelector('[data-cal="prev"]')?.addEventListener("click", () => this.shiftMonth(-1));
+			this.querySelector('[data-cal="next"]')?.addEventListener("click", () => this.shiftMonth(1));
+			this.querySelector('[data-cal="year-prev"]')?.addEventListener("click", () => this.changePickerYear(-1));
+			this.querySelector('[data-cal="year-next"]')?.addEventListener("click", () => this.changePickerYear(1));
+			this.querySelector('[data-cal="picker-today"]')?.addEventListener("click", () => {
+				this.closePicker(false);
+				this.goToToday();
+			});
+
+			const refs = this.refs;
+			if (refs === null) return;
+			refs.title.addEventListener("click", () => this.togglePicker());
+			refs.grid.addEventListener("click", this.onGridClick);
+			refs.grid.addEventListener("focusin", this.onGridFocus);
+			refs.grid.addEventListener("keydown", this.onGridKeydown);
+			refs.grid.addEventListener("pointerdown", this.onGridPointerDown);
+			refs.grid.addEventListener("pointerup", this.onGridPointerUp);
+			refs.grid.addEventListener("pointercancel", this.onGridPointerCancel);
+			this.addEventListener("keydown", this.onWidgetKeydown);
+		}
+
+		private render(announce = true): void {
+			const refs = this.refs;
+			if (refs === null) return;
+
+			const { year, month } = this.view;
+			const headerLabel = `${year} 年 ${month} 月`;
+			refs.label.textContent = headerLabel;
+			refs.title.setAttribute("aria-label", `${headerLabel}，点击选择月份`);
+
+			const firstWeekday = weekdayOf(year, month, 1);
+			const start = addDays(year, month, 1, -firstWeekday);
+			const todayKey = dateKeyOf(this.today.year, this.today.month, this.today.day);
+
+			const keys: string[] = [];
+			for (let index = 0; index < DAYS_PER_GRID; index += 1) {
+				const date = addDays(start.year, start.month, start.day, index);
+				keys.push(dateKeyOf(date.year, date.month, date.day));
+			}
+
+			if (!keys.includes(this.focusKey)) {
+				this.focusKey = dateKeyOf(year, month, 1);
+			}
+
+			refs.grid.textContent = "";
+			refs.grid.dataset.month = `${year}-${pad(month)}`;
+			for (let index = 0; index < DAYS_PER_GRID; index += 1) {
+				const date = addDays(start.year, start.month, start.day, index);
+				const key = keys[index] ?? "";
+				// 第一格固定是周日的列，所以列号直接取 index % 7
+				const weekday = index % 7;
+				refs.grid.append(this.buildCell(date, key, todayKey, weekday));
+			}
+
+			this.renderCount();
+			this.hideDayList();
+			if (announce) {
+				const count = this.postsOfMonth(year, month).length;
+				this.announce(`${headerLabel}${count > 0 ? `，${count} 篇文章` : ""}`);
+			}
+		}
+
+		private buildCell(date: SolarDate, key: string, todayKey: string, weekday: number): HTMLElement {
+			const inMonth = date.year === this.view.year && date.month === this.view.month;
+			const info = getDayInfo(date.year, date.month, date.day);
+			const posts = inMonth ? (this.postsByDate.get(key) ?? []) : [];
+			const isToday = key === todayKey;
+
+			let element: HTMLElement;
+			if (!inMonth || posts.length > 1) {
+				const button = document.createElement("button");
+				button.type = "button";
+				element = button;
+			} else if (posts.length === 1) {
+				const link = document.createElement("a");
+				link.href = posts[0].url;
+				element = link;
+			} else {
+				element = document.createElement("span");
+			}
+
+			const classes = ["cal-day"];
+			if (!inMonth) classes.push("is-outside");
+			if (isToday) classes.push("is-today");
+			if (posts.length > 0) classes.push("is-posted");
+			element.className = classes.join(" ");
+			element.dataset.date = key;
+			if (!inMonth) element.dataset.outside = "1";
+			if (inMonth && posts.length > 0) element.dataset.action = "1";
+			element.tabIndex = key === this.focusKey ? 0 : -1;
+
+			const number = document.createElement("span");
+			number.className = "cal-day-num";
+			number.textContent = String(date.day);
+			number.setAttribute("aria-hidden", "true");
+			element.append(number);
+
+			const sub = document.createElement("span");
+			sub.className = "cal-day-sub";
+			sub.setAttribute("aria-hidden", "true");
+			if (inMonth && info.label !== "") {
+				sub.textContent = info.label;
+				sub.classList.add(`is-${info.tone}`);
+			}
+			element.append(sub);
+
+			if (inMonth && posts.length > 0) {
+				element.title = posts.length === 1 ? posts[0].title : `共 ${posts.length} 篇文章`;
+			}
+
+			element.setAttribute("aria-label", this.ariaLabelOf(date, weekday, info, posts, inMonth, isToday));
+			return element;
+		}
+
+		private ariaLabelOf(
+			date: SolarDate,
+			weekday: number,
+			info: ReturnType<typeof getDayInfo>,
+			posts: PostEntry[],
+			inMonth: boolean,
+			isToday: boolean,
+		): string {
+			const segments: string[] = [];
+			if (isToday) segments.push("今天");
+			segments.push(`${date.year} 年 ${date.month} 月 ${date.day} 日`);
+			segments.push(`星期${WEEK_LABELS[weekday] ?? ""}`);
+
+			if (inMonth) {
+				if (info.festival !== null) segments.push(info.festival.name);
+				else if (info.term !== null) segments.push(info.term);
+				if (info.lunar !== null) {
+					segments.push(`农历${lunarMonthName(info.lunar.month, info.lunar.isLeap)}${lunarDayName(info.lunar.day)}`);
+				}
+				if (posts.length === 1) segments.push(`1 篇文章：${posts[0].title}`);
+				else if (posts.length > 1) segments.push(`${posts.length} 篇文章`);
+			} else {
+				segments.push("点击切换到该月份");
+			}
+
+			return segments.join("，");
+		}
+
+		private renderCount(): void {
+			const count = this.refs?.count ?? null;
+			if (count === null) return;
+
+			const monthPosts = this.postsOfMonth(this.view.year, this.view.month);
+			const latest = this.latestPost();
+			if (latest === null) {
+				count.hidden = true;
+				return;
+			}
+
+			count.hidden = false;
+			if (monthPosts.length > 0) {
+				const newest = monthPosts[monthPosts.length - 1] ?? latest;
+				count.href = newest.url;
+				count.textContent = `本月 ${monthPosts.length} 篇`;
+				count.setAttribute("aria-label", `本月有 ${monthPosts.length} 篇文章，阅读最新一篇：${newest.title}`);
+			} else {
+				count.href = latest.url;
+				count.textContent = `最近更新 ${latest.date.slice(5)}`;
+				count.setAttribute("aria-label", `本月还没有文章，阅读最近更新：${latest.title}`);
+			}
+		}
+
+		private renderCountdown(): void {
+			const target = this.refs?.nextFestivalText ?? null;
+			if (target === null) return;
+
+			target.classList.remove("is-soon");
+			target.textContent = "";
+
+			const upcoming = nextFestival(this.today.year, this.today.month, this.today.day);
+			if (upcoming === null) {
+				target.textContent = "节日表已覆盖 1900–2100 年";
+				return;
+			}
+
+			if (upcoming.days === 0) {
+				target.append("今天是 ", this.emphasis(upcoming.name));
+				target.classList.add("is-soon");
+				return;
+			}
+
+			if (upcoming.days <= 3) target.classList.add("is-soon");
+			target.append("距离 ", this.emphasis(upcoming.name), " 还有 ", this.emphasis(String(upcoming.days)), " 天");
+		}
+
+		private emphasis(text: string): HTMLElement {
+			const element = document.createElement("strong");
+			element.className = "cal-em";
+			element.textContent = text;
+			return element;
+		}
+
+		private announce(text: string): void {
+			const region = this.refs?.announce ?? null;
+			if (region !== null) region.textContent = text;
+		}
+
+		private postsOfMonth(year: number, month: number): PostEntry[] {
+			const prefix = `${year}-${pad(month)}`;
+			const result: PostEntry[] = [];
+			for (const [key, group] of this.postsByDate) {
+				if (key.startsWith(prefix)) result.push(...group);
+			}
+			return result.sort((left, right) => left.date.localeCompare(right.date));
+		}
+
+		private latestPost(): PostEntry | null {
+			const todayKey = dateKeyOf(this.today.year, this.today.month, this.today.day);
+			let latest: PostEntry | null = null;
+			let fallback: PostEntry | null = null;
+			for (const post of this.posts) {
+				if (fallback === null || post.date > fallback.date) fallback = post;
+				if (post.date > todayKey) continue;
+				if (latest === null || post.date > latest.date) latest = post;
+			}
+			return latest ?? fallback;
+		}
+
+		private parseKey(key: string): SolarDate {
+			const [year, month, day] = key.split("-").map(Number);
+			return { year: year ?? 1970, month: month ?? 1, day: day ?? 1 };
+		}
+
+		private goTo(year: number, month: number, day: number): void {
+			if (!isSupportedYear(year)) return;
+			this.focusKey = dateKeyOf(year, month, day);
+			if (year !== this.view.year || month !== this.view.month) {
+				this.view = { year, month };
+				this.render();
+			} else {
+				this.syncTabStops();
+			}
+			this.focusCell(this.focusKey);
+		}
+
+		private goToToday(): void {
+			this.today = readToday();
+			this.goTo(this.today.year, this.today.month, this.today.day);
+		}
+
+		private focusCell(key: string): void {
+			const grid = this.refs?.grid ?? null;
+			if (grid === null) return;
+			grid.querySelector<HTMLElement>(`[data-date="${key}"]`)?.focus({ preventScroll: true });
+		}
+
+		private syncTabStops(): void {
+			const grid = this.refs?.grid ?? null;
+			if (grid === null) return;
+			for (const cell of grid.querySelectorAll<HTMLElement>("[data-date]")) {
+				cell.tabIndex = cell.dataset.date === this.focusKey ? 0 : -1;
+			}
+		}
+
+		private shiftMonth(delta: number, day = this.focusDay()): void {
+			const base = new Date(Date.UTC(this.view.year, this.view.month - 1 + delta, 1));
+			const year = base.getUTCFullYear();
+			const month = base.getUTCMonth() + 1;
+			if (!isSupportedYear(year)) return;
+
+			const isTodayMonth = year === this.today.year && month === this.today.month;
+			const targetDay = isTodayMonth ? this.today.day : Math.min(day, daysInMonth(year, month));
+			this.goTo(year, month, targetDay);
+		}
+
+		private focusDay(): number {
+			const day = this.parseKey(this.focusKey).day;
+			return day >= 1 && day <= 31 ? day : 1;
+		}
+
+		private moveFocus(delta: number): void {
+			const date = this.parseKey(this.focusKey);
+			const next = addDays(date.year, date.month, date.day, delta);
+			if (!isSupportedYear(next.year)) return;
+			this.goTo(next.year, next.month, next.day);
+		}
+
+		private togglePicker(): void {
+			const picker = this.refs?.picker ?? null;
+			if (picker === null) return;
+			if (picker.hidden) this.openPicker();
+			else this.closePicker(true);
+		}
+
+		private openPicker(): void {
+			const refs = this.refs;
+			if (refs === null || refs.picker === null) return;
+			this.hideDayList();
+			this.pickerYear = this.view.year;
+			refs.picker.hidden = false;
+			refs.title.setAttribute("aria-expanded", "true");
+			this.renderPicker();
+			refs.pickerMonths?.querySelector<HTMLElement>(`[data-month="${this.view.month}"]`)?.focus();
+		}
+
+		private closePicker(returnFocus: boolean): void {
+			const refs = this.refs;
+			if (refs === null || refs.picker === null) return;
+			refs.picker.hidden = true;
+			refs.title.setAttribute("aria-expanded", "false");
+			if (returnFocus) refs.title.focus();
+		}
+
+		private changePickerYear(delta: number): void {
+			if (!isSupportedYear(this.pickerYear + delta)) return;
+			this.pickerYear += delta;
+			this.renderPicker();
+		}
+
+		private renderPicker(): void {
+			const refs = this.refs;
+			if (refs === null) return;
+			if (refs.pickerYear !== null) refs.pickerYear.textContent = `${this.pickerYear} 年`;
+			const container = refs.pickerMonths;
+			if (container === null) return;
+
+			container.textContent = "";
+			for (let month = 1; month <= 12; month += 1) {
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "cal-picker-month";
+				button.dataset.month = String(month);
+				button.textContent = `${month} 月`;
+
+				const count = this.postsOfMonth(this.pickerYear, month).length;
+				if (count > 0) button.classList.add("has-posts");
+				if (this.pickerYear === this.view.year && month === this.view.month) button.classList.add("is-current");
+				if (this.pickerYear === this.today.year && month === this.today.month) button.classList.add("is-today");
+
+				button.setAttribute("aria-label", `${this.pickerYear} 年 ${month} 月${count > 0 ? `，${count} 篇文章` : ""}`);
+				if (this.pickerYear === this.view.year && month === this.view.month) button.setAttribute("aria-current", "date");
+
+				button.addEventListener("click", () => {
+					this.closePicker(false);
+					this.goTo(this.pickerYear, month, 1);
+				});
+				container.append(button);
+			}
+		}
+
+		private showDayList(key: string): void {
+			const list = this.refs?.dayList ?? null;
+			const posts = this.postsByDate.get(key) ?? [];
+			if (list === null || posts.length === 0) return;
+
+			this.closePicker(false);
+			this.dayListKey = key;
+			const date = this.parseKey(key);
+
+			list.textContent = "";
+			const head = document.createElement("div");
+			head.className = "cal-daylist-head";
+
+			const heading = document.createElement("span");
+			heading.textContent = `${date.month} 月 ${date.day} 日 · ${posts.length} 篇`;
+
+			const close = document.createElement("button");
+			close.type = "button";
+			close.className = "cal-daylist-close";
+			close.setAttribute("aria-label", "关闭文章列表");
+			close.textContent = "×";
+			close.addEventListener("click", () => {
+				this.hideDayList();
+				this.focusCell(key);
+			});
+
+			head.append(heading, close);
+			list.append(head);
+
+			for (const post of posts) {
+				const link = document.createElement("a");
+				link.className = "cal-daylist-link";
+				link.href = post.url;
+				link.textContent = post.title;
+				list.append(link);
+			}
+
+			list.hidden = false;
+			this.announce(`${date.month} 月 ${date.day} 日共 ${posts.length} 篇文章`);
+			list.querySelector<HTMLAnchorElement>(".cal-daylist-link")?.focus({ preventScroll: true });
+		}
+
+		private hideDayList(): void {
+			const list = this.refs?.dayList ?? null;
+			if (list === null) return;
+			list.hidden = true;
+			list.textContent = "";
+			this.dayListKey = "";
+		}
+
+		private checkDayChange(): void {
+			const previous = this.today;
+			const next = readToday();
+			if (next.year === previous.year && next.month === previous.month && next.day === previous.day) return;
+
+			const followingTodayMonth = this.view.year === previous.year && this.view.month === previous.month;
+			this.today = next;
+			if (followingTodayMonth) {
+				this.view = { year: next.year, month: next.month };
+				this.focusKey = dateKeyOf(next.year, next.month, next.day);
+			}
+			this.render();
+			this.renderCountdown();
+			if (this.refs?.picker && !this.refs.picker.hidden) this.renderPicker();
+		}
+
+		private onVisibility = (): void => {
+			if (document.visibilityState === "visible") this.checkDayChange();
+		};
+
+		private onDocumentPointerDown = (event: PointerEvent): void => {
+			const refs = this.refs;
+			if (refs === null || refs.picker === null || refs.picker.hidden) return;
+			if (!(event.target instanceof Node)) return;
+			if (refs.picker.contains(event.target) || refs.title.contains(event.target)) return;
+			this.closePicker(false);
+		};
+
+		private onWidgetKeydown = (event: KeyboardEvent): void => {
+			if (event.key !== "Escape") return;
+			const refs = this.refs;
+			if (refs === null) return;
+			if (refs.picker !== null && !refs.picker.hidden) {
+				event.preventDefault();
+				this.closePicker(true);
+				return;
+			}
+			if (refs.dayList !== null && !refs.dayList.hidden) {
+				event.preventDefault();
+				const key = this.dayListKey;
+				this.hideDayList();
+				if (key !== "") this.focusCell(key);
+			}
+		};
+
+		private onGridClick = (event: MouseEvent): void => {
+			if (performance.now() < this.suppressClickUntil) {
+				event.preventDefault();
+				event.stopPropagation();
+				return;
+			}
+
+			const cell = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-date]") : null;
+			if (cell === null) return;
+			const key = cell.dataset.date ?? "";
+
+			if (cell.dataset.outside === "1") {
+				event.preventDefault();
+				const date = this.parseKey(key);
+				this.goTo(date.year, date.month, date.day);
+				return;
+			}
+
+			if ((this.postsByDate.get(key)?.length ?? 0) > 1) {
+				event.preventDefault();
+				this.showDayList(key);
+			}
+		};
+
+		private onGridFocus = (event: FocusEvent): void => {
+			const cell = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-date]") : null;
+			const key = cell?.dataset.date;
+			if (key === undefined || key === this.focusKey) return;
+			this.focusKey = key;
+			this.syncTabStops();
+		};
+
+		private onGridKeydown = (event: KeyboardEvent): void => {
+			const offsets: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+			const offset = offsets[event.key];
+			if (offset !== undefined) {
+				event.preventDefault();
+				this.moveFocus(offset);
+				return;
+			}
+
+			if (event.key === "Home" || event.key === "End") {
+				event.preventDefault();
+				const date = this.parseKey(this.focusKey);
+				const weekday = weekdayOf(date.year, date.month, date.day);
+				this.moveFocus(event.key === "Home" ? -weekday : 6 - weekday);
+				return;
+			}
+
+			if (event.key === "PageUp" || event.key === "PageDown") {
+				event.preventDefault();
+				this.shiftMonth(event.key === "PageUp" ? -1 : 1, this.focusDay());
+				return;
+			}
+
+			if (event.key === "t" || event.key === "T") {
+				event.preventDefault();
+				this.goToToday();
+			}
+		};
+
+		private onGridPointerDown = (event: PointerEvent): void => {
+			if (event.pointerType === "mouse") return;
+			this.pointerStart = { x: event.clientX, y: event.clientY };
+		};
+
+		private onGridPointerUp = (event: PointerEvent): void => {
+			const start = this.pointerStart;
+			this.pointerStart = null;
+			if (start === null) return;
+
+			const deltaX = event.clientX - start.x;
+			const deltaY = event.clientY - start.y;
+			if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY) * 1.4) return;
+
+			this.suppressClickUntil = performance.now() + 350;
+			this.shiftMonth(deltaX < 0 ? 1 : -1);
+		};
+
+		private onGridPointerCancel = (): void => {
+			this.pointerStart = null;
+		};
+	}
+
+	if (!customElements.get("calendar-widget")) {
+		customElements.define("calendar-widget", CalendarWidget);
+	}
 </script>
 
 <style>
-    :global(.calendar-card) { overflow: visible !important; }
-    :global(.calendar-card)::before { right: 0 !important; }
-    .calendar-widget { padding: 0 0.25rem; }
-    .calendar-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem; }
-    .calendar-heading-center { display: flex; min-width: 7.5rem; flex-direction: column; align-items: center; gap: 0.2rem; }
-    .calendar-heading strong { color: rgb(38 38 38); font-size: 1.05rem; }
-    .calendar-heading > button { width: 1.75rem; height: 1.75rem; border-radius: 999px; color: var(--primary); font-size: 1.6rem; line-height: 1; transition: background-color 0.2s; }
-    .calendar-heading > button:hover { background: color-mix(in srgb, var(--primary) 12%, transparent); }
-    .calendar-current-month { padding: 0.15rem 0.55rem; border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent); border-radius: 999px; color: var(--primary); background: color-mix(in srgb, var(--primary) 7%, transparent); font-size: 0.6rem; font-weight: 750; line-height: 1.3; transition: background-color 160ms ease, transform 160ms ease; }
-    .calendar-current-month:hover { background: color-mix(in srgb, var(--primary) 13%, transparent); transform: translateY(-1px); }
-    .calendar-current-month[hidden] { display: none; }
-    .calendar-weekdays, .calendar-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.2rem; text-align: center; }
-    .calendar-weekdays { color: rgb(115 115 115); font-size: 0.7rem; margin-bottom: 0.3rem; }
-    .calendar-weekdays span:first-child, .calendar-weekdays span:last-child { color: color-mix(in srgb, var(--primary) 72%, rgb(115 115 115)); font-weight: 700; }
-    :global(.calendar-day), :global(.calendar-empty) { display: grid; place-items: center; min-height: 1.8rem; border-radius: 0.55rem; font-size: 0.78rem; }
-    :global(.calendar-day) { color: rgb(64 64 64); transition: color 160ms ease, background-color 160ms ease, transform 160ms ease; }
-    :global(.calendar-day:hover) { color: var(--primary); background: color-mix(in srgb, var(--primary) 9%, transparent); transform: translateY(-1px); }
-    :global(.calendar-day.has-posts) { position: relative; cursor: pointer; font-weight: 700; }
-    :global(.calendar-post-marker) { position: absolute; right: 0.2rem; bottom: 0.15rem; width: 0.28rem; height: 0.28rem; border: 1px solid rgb(255 255 255 / 0.75); border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 0.12rem color-mix(in srgb, var(--primary) 12%, transparent); }
-    :global(.calendar-post-popover) { position: absolute; z-index: 20; left: 50%; bottom: calc(100% + 0.4rem); display: flex; width: max-content; max-width: 11.5rem; flex-direction: column; gap: 0.3rem; padding: 0.5rem 0.6rem; border: 1px solid color-mix(in srgb, var(--primary) 16%, white); border-radius: 0.75rem; background: color-mix(in srgb, var(--cream-base) 82%, transparent); backdrop-filter: blur(20px) saturate(145%); -webkit-backdrop-filter: blur(20px) saturate(145%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 0.65rem 1.4rem rgb(112 77 67 / 0.13); color: rgb(64 64 64); font-size: 0.65rem; font-weight: 650; line-height: 1.35; text-align: left; opacity: 0; visibility: hidden; pointer-events: none; transform: translate(-50%, 0.25rem); transition: opacity 150ms ease, transform 150ms ease, visibility 150ms ease; }
-    :global(.calendar-post-popover a) { display: -webkit-box; overflow: hidden; color: inherit; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-    :global(.calendar-post-popover a:hover) { color: var(--primary); }
-    :global(.calendar-post-popover small) { color: rgb(115 115 115); font-size: 0.62rem; }
-    :global(.calendar-day.has-posts:hover .calendar-post-popover), :global(.calendar-day.has-posts:focus-within .calendar-post-popover) { opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0); }
-    :global(.calendar-days > .calendar-day:nth-child(7n) .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 6) .calendar-post-popover) { right: -0.25rem; left: auto; transform: translateY(0.25rem); }
-    :global(.calendar-days > .calendar-day:nth-child(7n):hover .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n):focus-within .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 6):hover .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 6):focus-within .calendar-post-popover) { transform: translateY(0); }
-    :global(.calendar-days > .calendar-day:nth-child(7n + 1) .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 2) .calendar-post-popover) { right: auto; left: -0.25rem; transform: translateY(0.25rem); }
-    :global(.calendar-days > .calendar-day:nth-child(7n + 1):hover .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 1):focus-within .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 2):hover .calendar-post-popover), :global(.calendar-days > .calendar-day:nth-child(7n + 2):focus-within .calendar-post-popover) { transform: translateY(0); }
-    :global(.calendar-day.is-today) { color: white !important; background: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent); font-weight: 700; }
-    .calendar-holiday { display: flex; align-items: center; justify-content: center; gap: 0.35rem; margin-top: 0.75rem; border-top: 1px dashed rgb(0 0 0 / 0.1); padding-top: 0.75rem; color: rgb(115 115 115); text-align: center; font-size: 0.75rem; }
-    .calendar-holiday-icon { flex: 0 0 auto; color: var(--primary); font-size: 1.05rem; }
-    .calendar-holiday strong { color: var(--primary); }
-    :global(.dark) .calendar-heading strong { color: rgb(247 239 235 / 0.94); }
-    :global(.dark) .calendar-weekdays { color: rgb(247 239 235 / 0.62); }
-    :global(.dark .calendar-day) { color: color-mix(in srgb, var(--primary) 8%, rgb(247 239 235 / 0.8)); }
-    :global(.dark .calendar-day.has-posts) { color: rgb(255 247 244 / 0.94); }
-    :global(.dark .calendar-day.is-today) { color: white !important; }
-    :global(.dark) .calendar-holiday { border-color: color-mix(in srgb, var(--primary) 15%, rgb(255 255 255 / 0.08)); color: rgb(247 239 235 / 0.68); }
-    :global(.dark .calendar-post-popover) { border-color: color-mix(in srgb, var(--primary) 20%, rgb(255 255 255 / 0.08)); background: color-mix(in srgb, var(--cream-base) 78%, transparent); color: rgb(247 239 235 / 0.9); }
-    :global(.dark .calendar-post-popover small) { color: rgb(247 239 235 / 0.62); }
+	.cal {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+		padding: 0 0.05rem;
+	}
+
+	.cal-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.15rem;
+		margin-bottom: 0.3rem;
+	}
+
+	.cal-nav {
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: 1.55rem;
+		height: 1.55rem;
+		border-radius: 999px;
+		color: color-mix(in srgb, var(--primary) 68%, var(--text-body));
+		background: transparent;
+		cursor: pointer;
+		transition:
+			background-color 0.2s ease,
+			color 0.2s ease,
+			transform 0.2s ease;
+	}
+
+	.cal-nav :global(svg) {
+		width: 1.05rem;
+		height: 1.05rem;
+	}
+
+	.cal-nav:hover {
+		background: color-mix(in srgb, var(--primary) 10%, transparent);
+		color: var(--primary);
+	}
+
+	.cal-nav:active {
+		transform: scale(0.9);
+	}
+
+	.cal-title {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.28rem;
+		flex: 1;
+		min-width: 0;
+		padding: 0.2rem 0.5rem;
+		border-radius: 0.7rem;
+		background: transparent;
+		color: var(--text-strong);
+		font-size: 0.95rem;
+		font-weight: 800;
+		letter-spacing: 0.01em;
+		cursor: pointer;
+		transition:
+			background-color 0.2s ease,
+			color 0.2s ease;
+	}
+
+	.cal-title:hover {
+		background: color-mix(in srgb, var(--primary) 8%, transparent);
+	}
+
+	.cal-caret {
+		width: 0;
+		height: 0;
+		border-left: 0.2rem solid transparent;
+		border-right: 0.2rem solid transparent;
+		border-top: 0.24rem solid color-mix(in srgb, var(--primary) 55%, transparent);
+		transition: transform 0.25s ease;
+	}
+
+	.cal-title[aria-expanded="true"] .cal-caret {
+		transform: rotate(180deg);
+	}
+
+	.cal-week,
+	.cal-grid {
+		display: grid;
+		grid-template-columns: repeat(7, minmax(0, 1fr));
+		column-gap: 0.12rem;
+		row-gap: 0.18rem;
+		text-align: center;
+	}
+
+	.cal-week {
+		margin-bottom: 0.12rem;
+		color: var(--text-muted);
+		font-size: 0.62rem;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+	}
+
+	.cal-week > span:first-child,
+	.cal-week > span:last-child {
+		color: color-mix(in srgb, var(--primary) 62%, var(--text-muted));
+	}
+
+	.cal-grid {
+		touch-action: pan-y;
+		/* 6 行网格的占位高度，避免脚本渲染前卡片高度跳动 */
+		min-height: 13.2rem;
+	}
+
+	:global(.cal-day) {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.02rem;
+		width: 100%;
+		height: 2.05rem;
+		padding: 0.06rem 0;
+		border: 1px solid transparent;
+		border-radius: 0.62rem;
+		background: transparent;
+		color: var(--text-body);
+		font: inherit;
+		line-height: 1;
+		text-decoration: none;
+		cursor: default;
+		transition:
+			background-color 0.2s ease,
+			color 0.2s ease,
+			box-shadow 0.2s ease;
+	}
+
+	:global(.cal-day[data-action="1"]) {
+		cursor: pointer;
+	}
+
+	:global(.cal-day:hover) {
+		background: color-mix(in srgb, var(--primary) 8%, transparent);
+	}
+
+	:global(.cal-day:focus-visible) {
+		outline: 2px solid color-mix(in srgb, var(--primary) 60%, transparent);
+		outline-offset: 1px;
+	}
+
+	:global(.cal-day-num) {
+		display: grid;
+		place-items: center;
+		min-width: 1.3rem;
+		height: 1.3rem;
+		padding: 0 0.1rem;
+		border-radius: 999px;
+		font-size: 0.76rem;
+		font-variant-numeric: tabular-nums;
+		font-weight: 600;
+		letter-spacing: 0.01em;
+	}
+
+	:global(.cal-day-sub) {
+		display: block;
+		width: 100%;
+		height: 0.56rem;
+		overflow: hidden;
+		color: var(--text-muted);
+		font-size: 0.51rem;
+		line-height: 0.56rem;
+		white-space: nowrap;
+	}
+
+	:global(.cal-day-sub.is-festival) {
+		color: color-mix(in srgb, var(--primary) 90%, var(--text-strong));
+		font-weight: 700;
+	}
+
+	:global(.cal-day-sub.is-holiday) {
+		color: color-mix(in srgb, var(--primary) 72%, var(--text-body));
+		font-weight: 600;
+	}
+
+	:global(.cal-day-sub.is-term) {
+		color: color-mix(in srgb, var(--tea) 58%, var(--primary));
+		font-weight: 600;
+	}
+
+	:global(.cal-day.is-today) {
+		background: color-mix(in srgb, var(--primary) 7%, transparent);
+	}
+
+	:global(.cal-day.is-today .cal-day-num) {
+		background: var(--primary);
+		color: var(--cream-base);
+		box-shadow: 0 0.28rem 0.7rem -0.2rem color-mix(in srgb, var(--primary) 55%, transparent);
+		font-weight: 800;
+	}
+
+	:global(.cal-day.is-posted) {
+		background: color-mix(in srgb, var(--primary) 5.5%, transparent);
+	}
+
+	:global(.cal-day.is-posted .cal-day-num) {
+		color: color-mix(in srgb, var(--primary) 92%, var(--text-strong));
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 26%, transparent);
+		font-weight: 700;
+	}
+
+	:global(.cal-day.is-outside) {
+		color: color-mix(in srgb, var(--text-muted) 45%, transparent);
+	}
+
+	:global(.cal-day.is-outside .cal-day-num) {
+		font-weight: 500;
+	}
+
+	:global(.cal-day.is-outside:hover) {
+		background: color-mix(in srgb, var(--primary) 5%, transparent);
+	}
+
+	.cal-foot {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.35rem;
+		margin-top: 0.4rem;
+		padding-top: 0.42rem;
+		padding-right: 1.05rem;
+		border-top: 1px dashed color-mix(in srgb, var(--primary) 18%, transparent);
+	}
+
+	.cal-next {
+		display: inline-flex;
+		align-items: baseline;
+		flex-wrap: wrap;
+		gap: 0.12rem;
+		min-width: 0;
+		color: var(--text-muted);
+		font-size: 0.64rem;
+		line-height: 1.3;
+	}
+
+	.cal-next :global(.cal-em) {
+		color: color-mix(in srgb, var(--primary) 85%, var(--text-strong));
+		font-weight: 800;
+	}
+
+	.cal-next.is-soon :global(.cal-em) {
+		color: var(--primary);
+	}
+
+	.cal-count {
+		display: inline-flex;
+		align-items: center;
+		flex: none;
+		max-width: 46%;
+		padding: 0.15rem 0.45rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--primary) 10%, transparent);
+		color: color-mix(in srgb, var(--primary) 88%, var(--text-body));
+		font-size: 0.6rem;
+		font-weight: 700;
+		text-decoration: none;
+		white-space: nowrap;
+		transition:
+			background-color 0.2s ease,
+			color 0.2s ease;
+	}
+
+	.cal-count:hover {
+		background: color-mix(in srgb, var(--primary) 16%, transparent);
+		color: var(--primary);
+	}
+
+	.cal-count[hidden] {
+		display: none;
+	}
+
+	.cal-daylist {
+		margin-top: 0.4rem;
+		padding: 0.4rem 0.5rem;
+		border: 1px dashed color-mix(in srgb, var(--primary) 26%, transparent);
+		border-radius: 0.65rem;
+		background: color-mix(in srgb, var(--primary) 4%, transparent);
+	}
+
+	.cal-daylist[hidden] {
+		display: none;
+	}
+
+	:global(.cal-daylist-head) {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.4rem;
+		color: var(--text-muted);
+		font-size: 0.6rem;
+		font-weight: 700;
+	}
+
+	:global(.cal-daylist-close) {
+		display: grid;
+		place-items: center;
+		width: 1.1rem;
+		height: 1.1rem;
+		border-radius: 999px;
+		background: transparent;
+		color: var(--text-muted);
+		font-size: 0.8rem;
+		line-height: 1;
+		cursor: pointer;
+	}
+
+	:global(.cal-daylist-close:hover) {
+		background: color-mix(in srgb, var(--primary) 12%, transparent);
+		color: var(--primary);
+	}
+
+	:global(.cal-daylist-link) {
+		display: block;
+		padding: 0.18rem 0;
+		color: var(--text-body);
+		font-size: 0.68rem;
+		line-height: 1.35;
+		text-decoration: none;
+	}
+
+	:global(.cal-daylist-link:hover) {
+		color: var(--primary);
+	}
+
+	.cal-picker {
+		position: absolute;
+		z-index: 20;
+		top: 2.1rem;
+		left: 50%;
+		width: min(100%, 15rem);
+		padding: 0.55rem 0.55rem 0.5rem;
+		border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--glass-border));
+		border-radius: 0.85rem;
+		background: color-mix(in srgb, var(--glass-panel) 88%, var(--cream-base));
+		box-shadow: 0 0.9rem 2rem -1rem color-mix(in srgb, var(--tea) 45%, transparent);
+		transform: translateX(-50%);
+		animation: cal-pop 0.18s ease-out;
+	}
+
+	.cal-picker[hidden] {
+		display: none;
+	}
+
+	.cal-picker-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.3rem;
+		margin-bottom: 0.35rem;
+		padding-bottom: 0.3rem;
+		border-bottom: 1px dashed color-mix(in srgb, var(--primary) 20%, transparent);
+		color: var(--text-strong);
+		font-size: 0.8rem;
+	}
+
+	.cal-picker-head strong {
+		font-weight: 800;
+		letter-spacing: 0.02em;
+	}
+
+	.cal-picker-arrow {
+		display: grid;
+		place-items: center;
+		width: 1.5rem;
+		height: 1.5rem;
+		border-radius: 999px;
+		color: color-mix(in srgb, var(--primary) 62%, var(--text-body));
+		background: transparent;
+		cursor: pointer;
+		transition:
+			background-color 0.18s ease,
+			color 0.18s ease;
+	}
+
+	.cal-picker-arrow :global(svg) {
+		width: 1rem;
+		height: 1rem;
+	}
+
+	.cal-picker-arrow:hover {
+		background: color-mix(in srgb, var(--primary) 10%, transparent);
+		color: var(--primary);
+	}
+
+	.cal-picker-months {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.25rem;
+	}
+
+	:global(.cal-picker-month) {
+		position: relative;
+		display: grid;
+		place-items: center;
+		height: 1.7rem;
+		border: 1px solid transparent;
+		border-radius: 0.5rem;
+		background: transparent;
+		color: var(--text-body);
+		font-size: 0.66rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition:
+			background-color 0.18s ease,
+			border-color 0.18s ease,
+			color 0.18s ease;
+	}
+
+	:global(.cal-picker-month:hover) {
+		background: color-mix(in srgb, var(--primary) 9%, transparent);
+		color: var(--text-strong);
+	}
+
+	:global(.cal-picker-month.is-current) {
+		border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+		background: color-mix(in srgb, var(--primary) 12%, transparent);
+		color: color-mix(in srgb, var(--primary) 92%, var(--text-strong));
+		font-weight: 800;
+	}
+
+	:global(.cal-picker-month.is-today) {
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tea) 38%, transparent);
+	}
+
+	:global(.cal-picker-month.has-posts::after) {
+		content: "";
+		position: absolute;
+		top: 0.22rem;
+		right: 0.26rem;
+		width: 0.22rem;
+		height: 0.22rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--primary) 70%, transparent);
+	}
+
+	.cal-picker-today {
+		width: 100%;
+		margin-top: 0.4rem;
+		padding: 0.28rem 0;
+		border-radius: 0.55rem;
+		background: color-mix(in srgb, var(--primary) 10%, transparent);
+		color: color-mix(in srgb, var(--primary) 88%, var(--text-strong));
+		font-size: 0.66rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition:
+			background-color 0.18s ease,
+			color 0.18s ease;
+	}
+
+	.cal-picker-today:hover {
+		background: color-mix(in srgb, var(--primary) 16%, transparent);
+	}
+
+	.cal-sr {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	@keyframes cal-pop {
+		from {
+			opacity: 0;
+			transform: translate(-50%, -0.3rem) scale(0.98);
+		}
+		to {
+			opacity: 1;
+			transform: translate(-50%, 0) scale(1);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.cal-picker {
+			animation: none;
+		}
+
+		.cal-nav,
+		.cal-title,
+		.cal-count,
+		:global(.cal-day) {
+			transition: none;
+		}
+	}
 </style>
