@@ -1838,13 +1838,10 @@ onMount(() => {
 			box-shadow 0.25s ease;
 	}
 
-	.timeline-entry:hover,
-	.timeline-entry.is-active {
+	/* 卡片底色、描边、位移只属于 hover */
+	.timeline-entry:hover {
 		border-color: color-mix(in srgb, var(--primary) 18%, transparent);
 		background: color-mix(in srgb, var(--glass-card) 82%, transparent);
-	}
-
-	.timeline-entry:hover {
 		transform: translateX(0.3rem);
 		box-shadow: 0 0.7rem 1.8rem rgb(118 80 68 / 0.06);
 	}
@@ -1890,8 +1887,37 @@ onMount(() => {
 	}
 
 	.entry-content {
+		position: relative;
 		min-width: 0;
 		padding: 0.7rem 0.5rem;
+	}
+
+	/* 阅读位置的短竖线：只有 is-active 才长出来 */
+	.entry-content::before {
+		content: "";
+		position: absolute;
+		left: 0;
+		top: 50%;
+		width: 2px;
+		height: 1.5rem;
+		border-radius: 999px;
+		background: linear-gradient(
+			180deg,
+			var(--primary),
+			color-mix(in srgb, var(--primary) 30%, transparent)
+		);
+		opacity: 0;
+		transform: translateY(-50%) scaleY(0.2);
+		transform-origin: center;
+		transition:
+			opacity 0.3s ease,
+			transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+		pointer-events: none;
+	}
+
+	.timeline-entry.is-active .entry-content::before {
+		opacity: 1;
+		transform: translateY(-50%) scaleY(1);
 	}
 
 	.entry-title {
@@ -1928,9 +1954,13 @@ onMount(() => {
 		border-bottom-color: color-mix(in srgb, var(--primary) 60%, transparent);
 	}
 
-	.timeline-entry:hover .entry-title strong,
-	.timeline-entry.is-active .entry-title strong {
+	.timeline-entry:hover .entry-title strong {
 		color: var(--primary);
+	}
+
+	/* 阅读位置只把标题染淡一点，强度明显低于 hover */
+	.timeline-entry.is-active .entry-title strong {
+		color: color-mix(in srgb, var(--primary) 62%, var(--text-body));
 	}
 
 	.entry-badge {
@@ -2009,8 +2039,7 @@ onMount(() => {
 			transform 0.25s ease;
 	}
 
-	.timeline-entry:hover .entry-arrow,
-	.timeline-entry.is-active .entry-arrow {
+	.timeline-entry:hover .entry-arrow {
 		opacity: 1;
 		transform: translateX(0);
 	}
@@ -2321,6 +2350,7 @@ onMount(() => {
 		.timeline-entry,
 		.entry-marker span,
 		.entry-arrow,
+		.entry-content::before,
 		.milestone-card,
 		.milestone-card::before,
 		.echo-bar,
