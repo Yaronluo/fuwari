@@ -920,22 +920,24 @@ const calendarPosts = (await getSortedPostsList())
 		font-weight: 600;
 	}
 
-	:global(.cal-day.is-today) {
-		background: color-mix(in srgb, var(--primary) 7%, transparent);
-	}
-
 	:global(.cal-day.is-today .cal-day-num) {
-		background: var(--primary);
-		color: var(--cream-base);
-		box-shadow: 0 0.28rem 0.7rem -0.2rem color-mix(in srgb, var(--primary) 55%, transparent);
+		/* 细描边圆环，不再铺满主色：数字保持正文色，清爽且对比充足 */
+		background: transparent;
+		color: var(--text-strong);
+		box-shadow: inset 0 0 0 1.5px var(--primary);
 		font-weight: 800;
 	}
 
-	:global(.cal-day.is-posted) {
+	:global(.cal-day.is-today .cal-day-sub:not(.is-festival):not(.is-term):not(.is-holiday)) {
+		color: color-mix(in srgb, var(--primary) 88%, var(--text-strong));
+		font-weight: 600;
+	}
+
+	:global(.cal-day.is-posted:not(.is-today)) {
 		background: color-mix(in srgb, var(--primary) 5.5%, transparent);
 	}
 
-	:global(.cal-day.is-posted .cal-day-num) {
+	:global(.cal-day.is-posted:not(.is-today) .cal-day-num) {
 		color: color-mix(in srgb, var(--primary) 92%, var(--text-strong));
 		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 26%, transparent);
 		font-weight: 700;
@@ -945,7 +947,7 @@ const calendarPosts = (await getSortedPostsList())
 		color: color-mix(in srgb, var(--text-muted) 45%, transparent);
 	}
 
-	:global(.cal-day.is-outside .cal-day-num) {
+	:global(.cal-day.is-outside:not(.is-today) .cal-day-num) {
 		font-weight: 500;
 	}
 
