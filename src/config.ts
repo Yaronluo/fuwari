@@ -51,6 +51,11 @@ export const navBarConfig: NavBarConfig = {
 			icon: "fa6-solid:compass",
 			children: [
 				{
+					name: "生日小屋",
+					url: "/birthday/",
+					icon: "fa6-solid:cake-candles",
+				},
+				{
 					name: "网站统计",
 					url: "/stats/",
 					icon: "fa6-solid:chart-pie",

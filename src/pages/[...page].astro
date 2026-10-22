@@ -6,6 +6,7 @@ import { PAGE_SIZE } from "../constants/constants";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
 import { getSortedPosts } from "../utils/content-utils";
 import Hero from "../components/Hero.astro";
+import BirthdayInvitation from "../components/BirthdayInvitation.svelte";
 
 export const getStaticPaths = (async ({ paginate }) => {
 	const allBlogPosts = await getSortedPosts();
@@ -20,6 +21,7 @@ const len = page.data.length;
 
 <MainGridLayout>
     {page.currentPage === 1 && <Hero slot="top-full-width" />}
+    {page.currentPage === 1 && <BirthdayInvitation client:load />}
     <PostPage page={page}></PostPage>
     <Pagination class="mx-auto onload-animation" page={page} style={`animation-delay: calc(var(--content-delay) + ${(len)*50}ms)`}></Pagination>
 </MainGridLayout>

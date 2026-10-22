@@ -1,0 +1,9 @@
+---
+import BirthdayRoom from "../components/BirthdayRoom.svelte";
+import MainGridLayout from "../layouts/MainGridLayout.astro";
+import { profileConfig } from "../config";
+---
+
+<MainGridLayout title="生日小屋" description="每年农历九月十三，来陪 Yaron 许个愿。愿热爱不减，心愿渐成。">
+	<BirthdayRoom name={profileConfig.name} client:load />
+</MainGridLayout>
