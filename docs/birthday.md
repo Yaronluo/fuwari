@@ -1,6 +1,6 @@
 # 生日小屋
 
-入口：`/birthday/`；导航位于「探索 → 生日小屋」。首页第一屏介绍之后、文章列表之前，仅在生日当天显示邀请卡。
+入口：`/birthday/`；「探索 → 生日小屋」的导航项与页脚入口只在农历生日当天显示。首页第一屏介绍之后、文章列表之前，同样只在生日当天显示邀请卡。
 
 ## 每年自动切换
 
@@ -25,7 +25,8 @@
 - `src/components/BirthdayRoom.svelte`：整页排版、蛋糕与蜡烛、音乐盒、祝福卡、生日签、信与彩纸动画。
 - `src/components/BirthdayInvitation.svelte`：首页生日入口。
 - `src/utils/birthday.ts`：农历与时区计算。
-- `src/config.ts`：常驻导航入口与博主昵称。
+- `src/config.ts`：导航项 `onlyOnBirthday` 标记与博主昵称。
+- `src/components/Navbar.astro`：维护 `html.birthday-day`；`src/styles/main.css` 据此隐藏带 `data-birthday-only` 的导航、移动菜单与页脚条目。
 
 验证命令：
 
