@@ -101,7 +101,7 @@ const STUDIO_DEFINITIONS = [
 const bangumiData = await getBangumiData();
 const watchedCollections = bangumiData.collections.filter((item) => item.type === 2);
 const syncDate = new Intl.DateTimeFormat("zh-CN", {
-	timeZone: "Asia/Hong_Kong", dateStyle: "medium", timeStyle: "short",
+	timeZone: "Asia/Shanghai", dateStyle: "medium", timeStyle: "short",
 }).format(new Date(bangumiData.fetchedAt));
 
 const watchedById = new Map<number, BangumiCollection>();

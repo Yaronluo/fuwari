@@ -14,7 +14,7 @@ import ImageWrapper from "./misc/ImageWrapper.astro";
 const currentYear = new Date().getFullYear();
 
 // 构建时兜底的小站天数，运行时会由脚本按当前时间重新计算
-// （起航日按香港时间零点算，跟 Footer 脚本里的解析保持一致）
+// （起航日按北京时间零点算，跟 Footer 脚本里的解析保持一致）
 const daysSinceStart = Math.max(
 	1,
 	Math.floor(

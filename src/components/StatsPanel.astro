@@ -323,8 +323,8 @@ const RECENT_DAYS = 30;
 		const isLive = () => window.__statsGardenRunId === runId && document.body.contains(root);
 
 		const numberFormat = new Intl.NumberFormat('zh-CN');
-		const TIME_ZONE = 'Asia/Hong_Kong';
-		const HKT_OFFSET_MS = 8 * 3600 * 1000;
+		const TIME_ZONE = 'Asia/Shanghai';
+		const CST_OFFSET_MS = 8 * 3600 * 1000;
 		const DAY_MS = 86400000;
 		const CALENDAR_DAYS = CALENDAR_WEEKS * 7;
 		const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -350,7 +350,7 @@ const RECENT_DAYS = 30;
 		};
 		const shiftDays = (date, days) => new Date(date.getTime() + days * DAY_MS);
 		// Noon in the report timezone: safely inside the intended local day.
-		const localNoonMs = (date) => date.getTime() - HKT_OFFSET_MS + 12 * 3600 * 1000;
+		const localNoonMs = (date) => date.getTime() - CST_OFFSET_MS + 12 * 3600 * 1000;
 		const todayStamp = () => {
 			const parts = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' })
 				.format(new Date())

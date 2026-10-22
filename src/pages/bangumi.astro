@@ -38,7 +38,7 @@ allCollections.forEach((item) => {
     statusCounts[String(item.type)] = (statusCounts[String(item.type)] || 0) + 1;
 });
 const syncDate = new Intl.DateTimeFormat('zh-CN', {
-    timeZone: 'Asia/Hong_Kong', dateStyle: 'medium', timeStyle: 'short'
+    timeZone: 'Asia/Shanghai', dateStyle: 'medium', timeStyle: 'short'
 }).format(new Date(bangumiData.fetchedAt));
 
 const userRatings = allCollections
@@ -97,7 +97,7 @@ const reviews = allCollections
     .filter((item) => item.type === 2 && item.comment?.trim())
     .sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
 const reviewDate = (value?: string) => value
-    ? new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(value))
+    ? new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(value))
     : '';
 ---
 

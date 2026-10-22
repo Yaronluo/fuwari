@@ -114,8 +114,8 @@ const formatNumber = new Intl.NumberFormat("zh-CN");
         }
 
         function updateRunningTime() {
-            // 与站点其他「起航日」口径保持一致：按香港时间零点解析，
-            // 否则 new Date("2025-12-01") 是 UTC 零点，比 HKT 早 8 小时。
+            // 与站点其他「起航日」口径保持一致：按北京时间零点解析，
+            // 否则 new Date("2025-12-01") 是 UTC 零点，比 UTC+8 早 8 小时。
             const startDate = new Date(`${SITE_START_DATE}T00:00:00+08:00`);
             const now = new Date();
             const diff = now.getTime() - startDate.getTime();
@@ -155,7 +155,7 @@ const formatNumber = new Intl.NumberFormat("zh-CN");
                     endAt: String(Date.now()),
                 });
                 const dateParts = new Intl.DateTimeFormat('en-US', {
-                    timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit',
+                    timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
                 }).formatToParts(new Date());
                 const part = (type) => dateParts.find((item) => item.type === type)?.value;
                 const todayStart = new Date(`${part('year')}-${part('month')}-${part('day')}T00:00:00+08:00`).getTime();
