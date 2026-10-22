@@ -660,7 +660,7 @@ onMount(() => {
 
 				<div class="milestone-card is-busy" data-spotlight>
 					<span class="milestone-icon">
-						<Icon icon="material-symbols:emoji-events-outline-rounded" />
+						<Icon icon="material-symbols:trophy-outline-rounded" />
 					</span>
 					<p class="milestone-label">笔耕最勤的一年</p>
 					<strong class="milestone-title">{busiestYear.year} 年</strong>
@@ -1966,19 +1966,18 @@ onMount(() => {
 		min-width: 0;
 		gap: 0.35rem;
 		overflow: hidden;
-		color: var(--text-muted);
+		color: var(--text-body);
 		font-size: 0.66rem;
 		white-space: nowrap;
-		mask-image: linear-gradient(90deg, #000 88%, transparent);
+		/* 不再做右侧渐隐：短标签的最后一个字也会被吃掉，超长时直接裁切 */
 	}
 
 	.entry-tags i {
 		font-style: normal;
-		opacity: 0.8;
 	}
 
 	.entry-tags i.is-empty {
-		opacity: 0.5;
+		opacity: 0.7;
 	}
 
 	.entry-category {
@@ -1986,7 +1985,7 @@ onMount(() => {
 		padding: 0.06rem 0.44rem;
 		border-radius: 999px;
 		background: color-mix(in srgb, var(--text-muted) 8%, transparent);
-		color: color-mix(in srgb, var(--text-muted) 92%, var(--primary));
+		color: var(--text-body);
 		font-size: 0.62rem;
 	}
 
@@ -2178,13 +2177,15 @@ onMount(() => {
 			.archive-year > .timeline-entry {
 				animation: entry-rise linear both;
 				animation-timeline: view();
-				animation-range: entry 0% cover 26%;
+				/* entry 100% 在元素完全进入视口时收尾；若用 cover 26%，
+				   页面末尾的条目因滚动距离不足会永远停在半透明状态。 */
+				animation-range: entry 0% entry 100%;
 			}
 
 			.year-heading {
 				animation: entry-rise linear both;
 				animation-timeline: view();
-				animation-range: entry 0% cover 20%;
+				animation-range: entry 0% entry 100%;
 			}
 		}
 	}
