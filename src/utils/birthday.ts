@@ -62,3 +62,29 @@ export function getBirthdayState(now = new Date()) {
 }
 
 export type BirthdayState = ReturnType<typeof getBirthdayState>;
+
+/**
+ * 订阅「今天是农历生日」的状态：立即回调一次，之后每秒、页面重新可见或
+ * 从 bfcache 恢复时重新计算。返回取消订阅函数。
+ */
+export function watchBirthday(callback: (isBirthday: boolean) => void): () => void {
+	const apply = () => {
+		let isBirthday = false;
+		try {
+			isBirthday = getBirthdayState().isBirthday;
+		} catch {
+			isBirthday = false;
+		}
+		callback(isBirthday);
+	};
+	apply();
+	const timer = window.setInterval(apply, 1000);
+	const onShow = () => apply();
+	window.addEventListener("pageshow", onShow);
+	document.addEventListener("visibilitychange", onShow);
+	return () => {
+		window.clearInterval(timer);
+		window.removeEventListener("pageshow", onShow);
+		document.removeEventListener("visibilitychange", onShow);
+	};
+}

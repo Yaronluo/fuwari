@@ -178,7 +178,7 @@ const socialBrand = (name: string) => {
 				<ul class="footer-nav">
 					{
 						exploreLinks.map((link) => (
-							<li>
+							<li data-birthday-only={link.onlyOnBirthday ? "" : undefined}>
 								<a href={url(link.url)}>
 									{link.icon && <Icon name={link.icon} />}
 									<span>{link.name}</span>

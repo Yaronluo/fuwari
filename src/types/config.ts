@@ -57,6 +57,8 @@ export type NavBarLink = {
 	external?: boolean;
 	icon?: string;
 	description?: string;
+	/** 只在农历生日当天出现在导航/页脚（由 html.birthday-day 控制显隐）。 */
+	onlyOnBirthday?: boolean;
 	children?: NavBarLink[];
 };
 

@@ -188,3 +188,8 @@
     }
   }
 }
+
+/* 生日小屋入口只保留在农历生日当天；html 上的状态类由 Navbar 脚本维护。 */
+html:not(.birthday-day) [data-birthday-only] {
+    display: none !important;
+}

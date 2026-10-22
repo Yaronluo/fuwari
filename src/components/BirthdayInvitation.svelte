@@ -1,22 +1,13 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { getBirthdayState } from "../utils/birthday";
+	import { watchBirthday } from "../utils/birthday";
 	import { url } from "../utils/url-utils";
 	let birthday = false;
-	onMount(() => {
-		const update = () => {
-			try { birthday = getBirthdayState().isBirthday; } catch { birthday = false; }
-		};
-		update();
-		const timer = window.setInterval(update, 1000);
-		window.addEventListener("pageshow", update);
-		document.addEventListener("visibilitychange", update);
-		return () => {
-			clearInterval(timer);
-			window.removeEventListener("pageshow", update);
-			document.removeEventListener("visibilitychange", update);
-		};
-	});
+	onMount(() =>
+		watchBirthday((isBirthday) => {
+			birthday = isBirthday;
+		}),
+	);
 </script>
 
 {#if birthday}

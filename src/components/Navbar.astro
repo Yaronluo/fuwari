@@ -58,6 +58,7 @@ let links: NavBarLink[] = navBarConfig.links.map(
                                 target={child.external ? "_blank" : null}
                                 class="nav-dropdown-link group flex min-h-10 items-center gap-1.5 rounded-lg px-2 py-1.5 transition-all"
                                 role="menuitem"
+                                data-birthday-only={child.onlyOnBirthday ? "" : undefined}
                             >
                                 <span class="nav-dropdown-icon flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--primary)]">
                                     {child.icon && <Icon name={child.icon} class="text-[0.8rem]" />}
@@ -384,3 +385,16 @@ if (document.readyState === 'loading') {
 }
 })();
 </script>}
+
+<script>
+	import { watchBirthday } from "../utils/birthday";
+
+	// 生日小屋这类入口只在农历生日当天出现；显隐规则在 src/styles/main.css。
+	// Swup 换页可能重复执行脚本，用一个全局标记避免叠加定时器。
+	const watched = window as unknown as { __birthdayDayWatch?: () => void };
+	if (!watched.__birthdayDayWatch) {
+		watched.__birthdayDayWatch = watchBirthday((isBirthday) => {
+			document.documentElement.classList.toggle("birthday-day", isBirthday);
+		});
+	}
+</script>

@@ -54,6 +54,7 @@ export const navBarConfig: NavBarConfig = {
 					name: "生日小屋",
 					url: "/birthday/",
 					icon: "fa6-solid:cake-candles",
+					onlyOnBirthday: true,
 				},
 				{
 					name: "网站统计",
