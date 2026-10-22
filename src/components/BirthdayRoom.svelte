@@ -1042,28 +1042,6 @@
 		</div>
 	</section>
 
-	<section class="colophon" use:reveal aria-label="关于这间小屋">
-		<p class="colophon-kicker">ABOUT THIS ROOM</p>
-		<h2>小屋说明书</h2>
-		<div class="colophon-grid">
-			<div class="colophon-item">
-				<span>01</span>
-				<h3>日期怎么算</h3>
-				<p>按北京时间（UTC+8）的农历九月十三。闰九月不重复庆祝，所以每年都只过一次。</p>
-			</div>
-			<div class="colophon-item">
-				<span>02</span>
-				<h3>会不会过期</h3>
-				<p>不会。日期在浏览器里用中国农历现算，明年、后年都会自己挪到新的一天，不需要重新部署。</p>
-			</div>
-			<div class="colophon-item">
-				<span>03</span>
-				<h3>留下了什么</h3>
-				<p>什么也没留下。祝福、音乐与抽签都只存在于这一次浏览里，不发送请求，也不做记录。</p>
-			</div>
-		</div>
-	</section>
-
 	<footer class="room-footer">
 		<span class="footer-mark" aria-hidden="true">୨୧</span>
 		<p>日落尤其温暖，人间皆是热爱。</p>
@@ -2507,55 +2485,6 @@
 		color: var(--text-muted);
 	}
 
-	.colophon {
-		position: relative;
-		z-index: 1;
-		margin-top: clamp(2.6rem, 4vw, 3.6rem);
-		padding-top: clamp(2rem, 3vw, 2.6rem);
-		border-top: 1px dashed var(--line-strong);
-	}
-	.colophon-kicker {
-		font-size: 0.56rem;
-		letter-spacing: 0.22em;
-		text-align: center;
-		color: var(--text-muted);
-	}
-	.colophon h2 {
-		margin: 0.45rem 0 1.4rem;
-		font-family: var(--display);
-		font-size: 1.35rem;
-		font-weight: 400;
-		letter-spacing: 0.02em;
-		text-align: center;
-	}
-	.colophon-grid {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 0.9rem;
-	}
-	.colophon-item {
-		padding: 1rem 1.05rem;
-		border: 1px solid var(--line-soft);
-		border-radius: 0.8rem;
-		background: color-mix(in srgb, var(--cream-base) 38%, transparent);
-	}
-	.colophon-item span {
-		font-family: var(--display);
-		font-style: italic;
-		font-size: 0.66rem;
-		color: var(--sakura);
-	}
-	.colophon-item h3 {
-		margin: 0.3rem 0 0.42rem;
-		font-size: 0.8rem;
-		font-weight: 600;
-	}
-	.colophon-item p {
-		font-size: 0.68rem;
-		line-height: 1.9;
-		color: var(--text-muted);
-	}
-
 	.room-footer {
 		position: relative;
 		z-index: 1;
@@ -2851,9 +2780,6 @@
 	}
 	@media (max-width: 820px) {
 		.wish-options {
-			grid-template-columns: minmax(0, 1fr);
-		}
-		.colophon-grid {
 			grid-template-columns: minmax(0, 1fr);
 		}
 		.chapter-head {
